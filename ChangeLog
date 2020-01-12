@@ -1,0 +1,2 @@
+version 0.4 (19 December 2019)
+	- Fixed calc_matrices_[lw|sw] using eigenvalue decomposition

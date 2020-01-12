@@ -1,0 +1,37 @@
+Order of work:
+
+User provides canopy_properties,facet_properties,volume_properties
+
+volume_properties augmented by gas absorption at higher spectral
+resolution
+
+These are used to calculate boundary conditions (sw diffuse/direct
+albedo, lw emissivity and emission)
+
+Optionally the atmospheric radiation is run
+
+volume_properties re-augmented by gas absorption
+
+The sw downwelling diffuse/direct and lw downwelling diffuse is
+provided as input to a calculation to obtain the fluxes at each
+surface facet
+
+
+radsurf_:
+
+canopy_properties
+facet_properties
+volume_properties
+fluxes
+
+! Operating on a range of columns
+calculate
+
+! Operating on a single column
+sw_urban_kernel
+lw_urban_kernel
+sw_vegetation_kernel
+lw_vegetation_kernel
+
+
+

@@ -1,0 +1,19 @@
+&radsurf_driver
+do_parallel = true,
+cos_solar_zenith_angle=0.5,
+veg_fsd = 0.5,
+/
+
+&radsurf
+iverbose = 4,
+do_sw = true,
+do_lw = true,
+use_sw_direct_albedo = false,
+do_vegetation = true,
+do_urban = true,
+nvegregion = 2,
+nsw = 1,
+nlw = 1,
+n_stream_vegetation = 8,
+n_stream_urban = 8,
+/
