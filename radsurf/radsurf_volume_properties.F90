@@ -51,7 +51,7 @@ contains
 
     use yomhook,        only : lhook, dr_hook
     use radsurf_config, only : config_type
-    use radsurf_canopy_properties, only : ITileFlat,  ITileVegetation, &
+    use radsurf_canopy_properties, only : ITileFlat,  ITileForest, &
          &                                ITileUrban, ITileVegetatedUrban
 
     class(volume_properties_type), intent(inout) :: this
@@ -82,7 +82,7 @@ contains
     end if
 
     if (present(i_representation)) then
-      if (.not. any(i_representation == ITileVegetation &
+      if (.not. any(i_representation == ITileForest &
            &        .or. i_representation == ITileVegetatedUrban)) then
         do_vegetation = .false.
       end if

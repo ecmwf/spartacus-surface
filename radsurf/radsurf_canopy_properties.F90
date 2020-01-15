@@ -19,14 +19,14 @@ module radsurf_canopy_properties
   ! Codes for the different type of tile
   enum, bind(c)
     enumerator :: ITileFlat = 0, &
-         &        ITileVegetation, &
+         &        ITileForest, &
          &        ITileUrban, &
          &        ITileVegetatedUrban
   end enum
 
   character(len=*), parameter :: TileRepresentationName(NTileTypes) &
        &  = (/ 'Flat          ', &
-       &       'Vegetation    ', &
+       &       'Forest        ', &
        &       'Urban         ', &
        &       'VegetatedUrban' /)
 
@@ -121,7 +121,7 @@ contains
     do_urban      = config%do_urban
 
     if (present(i_representation)) then
-      if (.not. any(i_representation == ITileVegetation &
+      if (.not. any(i_representation == ITileForest &
            &        .or. i_representation == ITileVegetatedUrban)) then
         do_vegetation = .false.
       end if
@@ -156,7 +156,8 @@ contains
       allocate(this%veg_scale(ntotlay))
     end if
 
-    if (config%nvegregion > 1) then
+    if (config%n_vegetation_region_forest > 1 &
+         &  .or. config%n_vegetation_region_urban > 1) then
       allocate(this%veg_fsd(ntotlay))
     end if
 
@@ -186,13 +187,13 @@ contains
     if (allocated(this%roof_temperature))       deallocate(this%roof_temperature)
     if (allocated(this%wall_temperature))       deallocate(this%wall_temperature)
     if (allocated(this%air_temperature))        deallocate(this%air_temperature)
-    if (allocated(this%veg_temperature)) deallocate(this%veg_temperature)
+    if (allocated(this%veg_temperature))        deallocate(this%veg_temperature)
     if (allocated(this%building_fraction))      deallocate(this%building_fraction)
-    if (allocated(this%veg_fraction))    deallocate(this%veg_fraction)
+    if (allocated(this%veg_fraction))           deallocate(this%veg_fraction)
     if (allocated(this%building_scale))         deallocate(this%building_scale)
-    if (allocated(this%veg_scale))       deallocate(this%veg_scale)
-    if (allocated(this%veg_fsd))         deallocate(this%veg_fsd)
-    if (allocated(this%veg_contact_fraction)) deallocate(this%veg_contact_fraction)
+    if (allocated(this%veg_scale))              deallocate(this%veg_scale)
+    if (allocated(this%veg_fsd))                deallocate(this%veg_fsd)
+    if (allocated(this%veg_contact_fraction))   deallocate(this%veg_contact_fraction)
 
     if (lhook) call dr_hook('radiation_canopy_properties:deallocate',1,hook_handle)
 

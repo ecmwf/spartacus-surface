@@ -33,12 +33,14 @@ module radsurf_config
     ! Do we include the capability to do vegetation and urban areas?
     ! If not, some arrays will not be allocated
     logical :: do_vegetation = .true.
-    logical :: do_urban = .true.
+    logical :: do_urban      = .true.
 
-    ! Number of regions to represent vegetation (1 or 2); since
-    ! clear-skies are also represented, the total number of regions in
-    ! which radiation will be modelled is one plus this number
-    integer(kind=jpim) :: nvegregion = 2
+    ! Number of regions to represent vegetation (1 or 2) in forest and
+    ! vegetated-urban tiles; since clear-skies are also represented,
+    ! the total number of regions in which radiation will be modelled
+    ! is one plus this number
+    integer(kind=jpim) :: n_vegetation_region_forest = 1
+    integer(kind=jpim) :: n_vegetation_region_urban  = 1
 
     ! Number of shortwave and longwave bands for user to supply
     ! properties of facets
@@ -46,17 +48,17 @@ module radsurf_config
     integer(kind=jpim) :: nlw = 1
 
     ! Number of diffuse streams to use in a single hemisphere for a
-    ! pure vegetation tile and an urban tile
-    integer(kind=jpim) :: n_stream_vegetation = 4
-    integer(kind=jpim) :: n_stream_urban = 4
+    ! forest and an urban tile
+    integer(kind=jpim) :: n_stream_forest = 4
+    integer(kind=jpim) :: n_stream_urban  = 4
 
     ! If true, the normalized perimeter length is
     ! 4*frac*(1-frac)/scale, if false it is 4*frac/scale
-    logical :: use_symmetric_veg_scale_forest = .true.
-    logical :: use_symmetric_veg_scale_urban  = .true.
+    logical :: use_symmetric_vegetation_scale_forest = .true.
+    logical :: use_symmetric_vegetation_scale_urban  = .true.
 
     ! Minimum vegetation fraction below which vegetation is ignored
-    real(kind=jprb) :: min_veg_fraction = 1.0e-6
+    real(kind=jprb) :: min_vegetation_fraction = 1.0e-6
 
     integer(kind=jpim) :: iverbose = 3
 
@@ -98,12 +100,16 @@ contains
 
     ! Namelist variables mirroring values in config_type
     
-    logical, pointer :: do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban
-    integer(kind=jpim), pointer :: nvegregion, nsw, nlw, n_stream_vegetation, &
-         &  n_stream_urban, iverbose
+    logical, pointer :: do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban, &
+         &  use_symmetric_vegetation_scale_forest, use_symmetric_vegetation_scale_urban
+    integer(kind=jpim), pointer :: nsw, nlw, n_stream_forest, &
+         &  n_stream_urban, iverbose, n_vegetation_region_forest, &
+         &  n_vegetation_region_urban
 
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban, &
-         &  nvegregion, nsw, nlw, n_stream_vegetation, n_stream_urban, iverbose
+         &  nsw, nlw, n_stream_forest, n_stream_urban, iverbose, &
+         &  n_vegetation_region_forest, n_vegetation_region_urban, &
+         &  use_symmetric_vegetation_scale_forest, use_symmetric_vegetation_scale_urban
 
     real(jprb) :: hook_handle
 
@@ -114,12 +120,15 @@ contains
     use_sw_direct_albedo => this%use_sw_direct_albedo
     do_vegetation        => this%do_vegetation
     do_urban             => this%do_urban
-    nvegregion           => this%nvegregion
     nsw                  => this%nsw
     nlw                  => this%nlw
-    n_stream_vegetation  => this%n_stream_vegetation
+    n_stream_forest      => this%n_stream_forest
     n_stream_urban       => this%n_stream_urban
     iverbose             => this%iverbose
+    n_vegetation_region_forest => this%n_vegetation_region_forest
+    n_vegetation_region_urban  => this%n_vegetation_region_urban
+    use_symmetric_vegetation_scale_forest => this%use_symmetric_vegetation_scale_forest
+    use_symmetric_vegetation_scale_urban  => this%use_symmetric_vegetation_scale_urban
 
     if (present(file_name) .and. present(unit)) then
       write(nulerr,'(a)') '*** Error: cannot specify both file_name and unit in call to config_type%read'

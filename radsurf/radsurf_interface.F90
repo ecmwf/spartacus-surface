@@ -21,14 +21,14 @@ contains
     use yomhook,                    only : lhook, dr_hook
     use radiation_io,               only : nulout
     use radsurf_config,             only : config_type
-    use radsurf_canopy_properties,  only : ITileFlat,  ITileVegetation, &
+    use radsurf_canopy_properties,  only : ITileFlat,  ITileForest, &
          &                                 ITileUrban, ITileVegetatedUrban, &
          &                                 canopy_properties_type
     use radsurf_facet_properties,   only : facet_properties_type
     use radsurf_volume_properties,  only : volume_properties_type
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
-    use radsurf_vegetation_sw,      only : spartacus_vegetation_sw
+    use radsurf_forest_sw,          only : spartacus_forest_sw
 
     implicit none
 
@@ -140,14 +140,14 @@ contains
           lw_norm%ground_net(:,jcol) = facet_props%ground_lw_emissivity(:,jcol)
         end if
 
-      case (ITileVegetation)
+      case (ITileForest)
         if (config%iverbose >= 4) then
-          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': vegetated tile with ', &
+          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': forest tile with ', &
                &  canopy_props%nlay(jcol), ' layers'
         end if
         if (config%do_sw) then
-          call spartacus_vegetation_sw(config, config%nswinternal, &
-               &  config%lg_vegetation%nstream, config%nvegregion+1, &
+          call spartacus_forest_sw(config, config%nswinternal, &
+               &  config%lg_vegetation%nstream, config%n_vegetation_region_forest+1, &
                &  canopy_props%nlay(jcol), ilay1, ilay2, &
                &  config%lg_vegetation, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, &

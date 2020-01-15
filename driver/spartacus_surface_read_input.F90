@@ -91,9 +91,9 @@ contains
            &              canopy_props%veg_fraction)
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
-      if (driver_config%veg_fsd >= 0.0_jprb) then
+      if (driver_config%vegetation_fsd >= 0.0_jprb) then
         allocate(canopy_props%veg_fsd(ntotlay))
-        canopy_props%veg_fsd = driver_config%veg_fsd
+        canopy_props%veg_fsd = driver_config%vegetation_fsd
       else
         call read_packed_1d(file, 'veg_fsd', canopy_props%nlay, &
              &              canopy_props%veg_fsd)
@@ -147,21 +147,21 @@ contains
         ! Read vegetation properties needed for longwave calculations
         call read_packed_2d(file, 'veg_lw_extinction', canopy_props%nlay, &
              &  volume_props%veg_lw_ext)
-        if (driver_config%veg_lw_extinction >= 0.0) then
+        if (driver_config%vegetation_lw_extinction >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation longwave extinction with ', &
-                 &  driver_config%veg_lw_extinction
+                 &  driver_config%vegetation_lw_extinction
           end if
-          volume_props%veg_lw_ext = driver_config%veg_lw_extinction
+          volume_props%veg_lw_ext = driver_config%vegetation_lw_extinction
         end if
         call read_packed_2d(file, 'veg_lw_ssa', canopy_props%nlay, &
              &  volume_props%veg_lw_ssa)
-        if (driver_config%veg_lw_ssa >= 0.0) then
+        if (driver_config%vegetation_lw_ssa >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation longwave single-scattering albedo with ', &
-                 &  driver_config%veg_lw_ssa
+                 &  driver_config%vegetation_lw_ssa
           end if
-          volume_props%veg_lw_ssa = driver_config%veg_lw_ssa
+          volume_props%veg_lw_ssa = driver_config%vegetation_lw_ssa
         end if
       end if
 
@@ -215,21 +215,21 @@ contains
         ! Read vegetation properties needed for shortwave calculations
         call read_packed_2d(file, 'veg_sw_extinction', canopy_props%nlay, &
              &  volume_props%veg_sw_ext)
-        if (driver_config%veg_sw_extinction >= 0.0) then
+        if (driver_config%vegetation_sw_extinction >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation shortwave extinction with ', &
-                 &  driver_config%veg_sw_extinction
+                 &  driver_config%vegetation_sw_extinction
           end if
-          volume_props%veg_sw_ext = driver_config%veg_sw_extinction
+          volume_props%veg_sw_ext = driver_config%vegetation_sw_extinction
         end if
         call read_packed_2d(file, 'veg_sw_ssa', canopy_props%nlay, &
              &  volume_props%veg_sw_ssa)
-        if (driver_config%veg_sw_ssa >= 0.0) then
+        if (driver_config%vegetation_sw_ssa >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation shortwave single-scattering albedo with ', &
-                 &  driver_config%veg_sw_ssa
+                 &  driver_config%vegetation_sw_ssa
           end if
-          volume_props%veg_sw_ssa = driver_config%veg_sw_ssa
+          volume_props%veg_sw_ssa = driver_config%vegetation_sw_ssa
         end if
       end if
 

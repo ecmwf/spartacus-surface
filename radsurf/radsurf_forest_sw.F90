@@ -1,4 +1,4 @@
-! radsurf_vegetation_sw.F90 - SPARTACUS shortwave vegetation solver
+! radsurf_forest_sw.F90 - SPARTACUS shortwave solver for forests
 !
 ! Copyright (C) 2020 ECMWF
 !
@@ -7,11 +7,11 @@
 ! License: see the COPYING file for details
 !
 
-module radsurf_vegetation_sw
+module radsurf_forest_sw
 
 contains
 
-  subroutine spartacus_vegetation_sw(config, &
+  subroutine spartacus_forest_sw(config, &
        &  nsw, ns, nreg, nlay, ilay1, ilay2, &
        &  lg, cos_sza, &
        &  canopy_props, volume_props, &
@@ -87,7 +87,7 @@ contains
     
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_vegetation_sw:spartacus_vegetation_sw',0,hook_handle)
+    if (lhook) call dr_hook('radsurf_forest_sw:spartacus_forest_sw',0,hook_handle)
 
     associate( &
          &  dz           => canopy_props%dz(ilay1:ilay2), &
@@ -109,7 +109,7 @@ contains
       frac(2:,nlay+1) = 0.0_jprb
 
       ! Set the normalized vegetation perimeter length
-      if (config%use_symmetric_veg_scale_forest) then
+      if (config%use_symmetric_vegetation_scale_forest) then
         norm_perim = 4.0_jprb * veg_fraction * (1.0_jprb - veg_fraction) / veg_scale
       else
         norm_perim = 4.0_jprb * veg_fraction / veg_scale
@@ -123,12 +123,12 @@ contains
         ! direct flux
         gamma0 = 0.0_jprb
         do jreg = 1,nreg-1
-          if (frac(jreg,jlay) <= config%min_veg_fraction) then
+          if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
             f0_there = 0.0_jprb
           else
             f0_there = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
           end if
-          if (frac(jreg+1,jlay) <= config%min_veg_fraction) then
+          if (frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f0_back = 0.0_jprb
           else
             f0_back = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
@@ -139,9 +139,8 @@ contains
 
     end associate
 
-    if (lhook) call dr_hook('radiation_vegetation_sw:spartacus_vegetation_sw',1,hook_handle)
+    if (lhook) call dr_hook('radsurf_forest_sw:spartacus_forest_sw',1,hook_handle)
 
-  end subroutine spartacus_vegetation_sw
+  end subroutine spartacus_forest_sw
 
-
-end module radsurf_vegetation_sw
+end module radsurf_forest_sw

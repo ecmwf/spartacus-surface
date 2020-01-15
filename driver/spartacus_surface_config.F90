@@ -39,11 +39,11 @@ module spartacus_surface_config
      real(kind=jprb) :: ground_lw_emissivity = -1.0
      real(kind=jprb) :: roof_lw_emissivity   = -1.0
      real(kind=jprb) :: wall_lw_emissivity   = -1.0
-     real(kind=jprb) :: veg_fsd              = -1.0
-     real(kind=jprb) :: veg_sw_extinction    = -1.0
-     real(kind=jprb) :: veg_sw_ssa           = -1.0
-     real(kind=jprb) :: veg_lw_extinction    = -1.0
-     real(kind=jprb) :: veg_lw_ssa           = -1.0
+     real(kind=jprb) :: vegetation_fsd           = -1.0
+     real(kind=jprb) :: vegetation_sw_extinction = -1.0
+     real(kind=jprb) :: vegetation_sw_ssa        = -1.0
+     real(kind=jprb) :: vegetation_lw_extinction = -1.0
+     real(kind=jprb) :: vegetation_lw_ssa        = -1.0
      
    contains
      procedure :: read => read_config_from_namelist
@@ -71,12 +71,12 @@ contains
 
     logical,            pointer :: do_parallel
     integer(kind=jpim), pointer :: nblocksize, istartcol, iendcol, iverbose, nrepeat
-    real(kind=jprb),    pointer :: cos_solar_zenith_angle, veg_fsd
+    real(kind=jprb),    pointer :: cos_solar_zenith_angle, vegetation_fsd
     real(kind=jprb),    pointer :: ground_sw_albedo, roof_sw_albedo, wall_sw_albedo
     real(kind=jprb),    pointer :: ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
 
     namelist /radsurf_driver/ do_parallel, nblocksize, nrepeat, istartcol, iendcol, &
-         &  iverbose, cos_solar_zenith_angle, veg_fsd, &
+         &  iverbose, cos_solar_zenith_angle, vegetation_fsd, &
          &  ground_sw_albedo, roof_sw_albedo, wall_sw_albedo, &
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
 
@@ -93,7 +93,7 @@ contains
     ground_lw_emissivity   => this%ground_lw_emissivity
     roof_lw_emissivity     => this%roof_lw_emissivity
     wall_lw_emissivity     => this%wall_lw_emissivity
-    veg_fsd                => this%veg_fsd
+    vegetation_fsd         => this%vegetation_fsd
 
     ! Open the namelist file and read the radiation_driver namelist
     open(unit=10, iostat=iosopen, file=trim(file_name))
