@@ -35,26 +35,36 @@ module radsurf_config
     logical :: do_vegetation = .true.
     logical :: do_urban = .true.
 
-    ! Number of regions to represent vegetation (1 or 2)
-    integer :: nvegregion = 2
+    ! Number of regions to represent vegetation (1 or 2); since
+    ! clear-skies are also represented, the total number of regions in
+    ! which radiation will be modelled is one plus this number
+    integer(kind=jpim) :: nvegregion = 2
 
     ! Number of shortwave and longwave bands for user to supply
     ! properties of facets
-    integer :: nsw = 1
-    integer :: nlw = 1
+    integer(kind=jpim) :: nsw = 1
+    integer(kind=jpim) :: nlw = 1
 
     ! Number of diffuse streams to use in a single hemisphere for a
     ! pure vegetation tile and an urban tile
-    integer :: n_stream_vegetation = 4
-    integer :: n_stream_urban = 4
+    integer(kind=jpim) :: n_stream_vegetation = 4
+    integer(kind=jpim) :: n_stream_urban = 4
 
-    integer :: iverbose = 3
+    ! If true, the normalized perimeter length is
+    ! 4*frac*(1-frac)/scale, if false it is 4*frac/scale
+    logical :: use_symmetric_veg_scale_forest = .true.
+    logical :: use_symmetric_veg_scale_urban  = .true.
+
+    ! Minimum vegetation fraction below which vegetation is ignored
+    real(kind=jprb) :: min_veg_fraction = 1.0e-6
+
+    integer(kind=jpim) :: iverbose = 3
 
     ! COMPUTED PARAMETERS
 
     ! Number of shortwave and longwave bands used internally to
     ! represent the spectral variation of atmospheric absorption
-    integer :: nswinternal, nlwinternal
+    integer(kind=jpim) :: nswinternal, nlwinternal
 
     type(legendre_gauss_type) :: lg_urban, lg_vegetation
 
@@ -80,16 +90,16 @@ contains
 
     class(config_type), intent(inout), target :: this
     character(*),       intent(in),  optional :: file_name
-    integer,            intent(in),  optional :: unit
+    integer(kind=jpim),            intent(in),  optional :: unit
     logical,            intent(out), optional :: is_success
 
-    integer :: iosopen, iosread ! Status after calling open and read
-    integer :: iunit ! Unit number of namelist file
+    integer(kind=jpim) :: iosopen, iosread ! Status after calling open and read
+    integer(kind=jpim) :: iunit ! Unit number of namelist file
 
     ! Namelist variables mirroring values in config_type
     
     logical, pointer :: do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban
-    integer, pointer :: nvegregion, nsw, nlw, n_stream_vegetation, &
+    integer(kind=jpim), pointer :: nvegregion, nsw, nlw, n_stream_vegetation, &
          &  n_stream_urban, iverbose
 
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban, &

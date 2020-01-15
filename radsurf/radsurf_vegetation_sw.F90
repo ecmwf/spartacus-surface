@@ -27,6 +27,7 @@ contains
     use radsurf_volume_properties,  only : volume_properties_type
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
+    use radiation_constants,        only : Pi
 
     implicit none
 
@@ -63,16 +64,31 @@ contains
     ! Direct (unscattered) transmittance
     real(kind=jprb), dimension(nsw,nreg,nreg,nlay) :: trans_dir_dir
 
-    ! Area fraction of each region in each layer
-    real(kind=jprb), dimension(nreg,nlay) :: frac
+    ! Area fraction of each region in each layer, plus a pseudo-layer
+    ! at the end representing the free atmosphere above
+    real(kind=jprb), dimension(nreg,nlay+1) :: frac
     
     ! Components of the Gamma matrices
-    real(kind=jprb), dimension(nsw,nreg,nreg,nlay)       :: gamma0
-    real(kind=jprb), dimension(nsw,nreg*ns,nreg*ns,nlay) :: gamma1, gamma2
-    real(kind=jprb), dimension(nsw,nreg*ns,nreg,nlay)    :: gamma3
+    real(kind=jprb), dimension(nsw,nreg,nreg)       :: gamma0
+    real(kind=jprb), dimension(nsw,nreg*ns,nreg*ns) :: gamma1, gamma2
+    real(kind=jprb), dimension(nsw,nreg*ns,nreg)    :: gamma3
+
+    ! Normalized vegetation perimeter length (perimeter length divided
+    ! by domain area), m-1
+    real(kind=jprb) :: norm_perim(nlay)
+
+    ! Tangent of solar zenith angle
+    real(kind=jprb) :: tan0
+
+    ! Rate of direct exchange between region
+    real(kind=jprb) :: f0_there, f0_back
 
     integer(kind=jpim) :: jlay, jreg, jsw
     
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radiation_vegetation_sw:spartacus_vegetation_sw',0,hook_handle)
+
     associate( &
          &  dz           => canopy_props%dz(ilay1:ilay2), &
          &  veg_fraction => canopy_props%veg_fraction(ilay1:ilay2), &
@@ -83,7 +99,47 @@ contains
          &  veg_sw_ext   => volume_props%veg_sw_ext(:,ilay1:ilay2), &
          &  veg_sw_ssa   => volume_props%veg_sw_ssa(:,ilay1:ilay2))
 
+      ! Tangent of solar zenith angle
+      tan0 = sqrt(1.0_jprb - cos_sza*cos_sza) / max(cos_sza,1.0e-6_jprb)
+
+      ! Set the area fraction of each region
+      frac(1,1:nlay)  = 1.0_jprb - veg_fraction
+      frac(2:,1:nlay) = spread(veg_fraction,1,nreg-1) / real(nreg-1,jprb)
+      frac(1,nlay+1)  = 1.0_jprb
+      frac(2:,nlay+1) = 0.0_jprb
+
+      ! Set the normalized vegetation perimeter length
+      if (config%use_symmetric_veg_scale_forest) then
+        norm_perim = 4.0_jprb * veg_fraction * (1.0_jprb - veg_fraction) / veg_scale
+      else
+        norm_perim = 4.0_jprb * veg_fraction / veg_scale
+      end if
+
+      ! Loop up through the canopy computing the Gamma matrices, and
+      ! from those the transmission and reflection matrices
+      do jlay = 1,nlay
+
+        ! Set the Gamma_0 matrix, which defines the rate of change of
+        ! direct flux
+        gamma0 = 0.0_jprb
+        do jreg = 1,nreg-1
+          if (frac(jreg,jlay) <= config%min_veg_fraction) then
+            f0_there = 0.0_jprb
+          else
+            f0_there = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
+          end if
+          if (frac(jreg+1,jlay) <= config%min_veg_fraction) then
+            f0_back = 0.0_jprb
+          else
+            f0_back = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
+          end if
+        end do
+
+      end do
+
     end associate
+
+    if (lhook) call dr_hook('radiation_vegetation_sw:spartacus_vegetation_sw',1,hook_handle)
 
   end subroutine spartacus_vegetation_sw
 

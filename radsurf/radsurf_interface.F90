@@ -63,6 +63,10 @@ contains
     ! Direct ground shortwave albedo, in case not provided by user
     real(kind=jprb), pointer :: ground_sw_albedo_direct(:,:) ! (nswinterval,ncol)
 
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radiation_interface:radsurf',0,hook_handle)
+
     ! Find which range of columns to process
     if (present(istartcol)) then
       icol1 = istartcol
@@ -85,9 +89,6 @@ contains
     do jcol = icol1,icol2
 
       irep = canopy_props%i_representation(jcol)
-      if (config%iverbose >= 4) then
-        write(nulout,'(a,i0,a,i0)') '  Column ', jcol, ', type ', irep
-      end if
       
       do_canopy = (.not. irep == ITileFlat)
 
@@ -106,6 +107,10 @@ contains
         ! Flat tiles simply involve copying the ground facet
         ! properties to the outward boundary conditions, and copying
         ! the incoming fluxes down to the ground facet
+        if (config%iverbose >= 4) then
+          write(nulout,'(a,i0,a)') '  Column ', jcol, ': flat'
+        end if
+
         if (config%do_sw) then
           ! Copy shortwave albedo
           bc_out%sw_albedo(:,jcol)        = facet_props%ground_sw_albedo(:,jcol)
@@ -136,9 +141,13 @@ contains
         end if
 
       case (ITileVegetation)
+        if (config%iverbose >= 4) then
+          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': vegetated tile with ', &
+               &  canopy_props%nlay(jcol), ' layers'
+        end if
         if (config%do_sw) then
           call spartacus_vegetation_sw(config, config%nswinternal, &
-               &  config%lg_vegetation%nstream, config%nvegregion, &
+               &  config%lg_vegetation%nstream, config%nvegregion+1, &
                &  canopy_props%nlay(jcol), ilay1, ilay2, &
                &  config%lg_vegetation, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, &
@@ -148,11 +157,17 @@ contains
         end if
 
       case (ITileUrban, ITileVegetatedUrban)
+        if (config%iverbose >= 4) then
+          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': urban tile with ', &
+               &  canopy_props%nlay(jcol), ' layers'
+        end if
 
 
       end select
 
     end do
+
+    if (lhook) call dr_hook('radiation_interface:radsurf',0,hook_handle)
 
   end subroutine radsurf
 
