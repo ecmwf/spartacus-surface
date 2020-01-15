@@ -57,6 +57,19 @@ module radsurf_config
     logical :: use_symmetric_vegetation_scale_forest = .true.
     logical :: use_symmetric_vegetation_scale_urban  = .true.
 
+    ! If we have two vegetation regions of different optical depth
+    ! then each will occupy half of the total vegetated fraction, but
+    ! we need to determine the extent of the contact between them and
+    ! the clear-sky region.  If the following numbers are 0 then the
+    ! optically thick region is completely enclosed within the
+    ! optically thin region so there is no contact between the thick
+    ! region and the clear-air region. If the numbers are 1 then there
+    ! is no contact between the two vegetation regions: they represent
+    ! different types of vegetation that are in contact only with
+    ! clear-air.
+    real(kind=jprb) :: vegetation_isolation_factor_forest = 0.0_jprb
+    real(kind=jprb) :: vegetation_isolation_factor_urban  = 0.0_jprb
+
     ! Minimum vegetation fraction below which vegetation is ignored
     real(kind=jprb) :: min_vegetation_fraction = 1.0e-6
 

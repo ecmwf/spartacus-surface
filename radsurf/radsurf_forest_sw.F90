@@ -74,16 +74,33 @@ contains
     real(kind=jprb), dimension(nsw,nreg*ns,nreg)    :: gamma3
 
     ! Normalized vegetation perimeter length (perimeter length divided
-    ! by domain area), m-1
-    real(kind=jprb) :: norm_perim(nlay)
+    ! by domain area), m-1.  If nreg=2 then there is a clear-sky and a
+    ! vegetation region, and norm_perim(1) is the normalized length
+    ! between the two regions, while norm_perim(2) is unused.  If
+    ! nreg=3 then region 1 is clear-sky, region 2 is low optical depth
+    ! vegetation and region 3 is high optical depth
+    ! vegetation. norm_perim(1) is the normalized length between
+    ! regions 1 and 2, norm_perim(2) is that between regions 2 and 3,
+    ! and norm_perim(3) is that between regions 3 and 1.
+    real(kind=jprb) :: norm_perim(nreg)
 
     ! Tangent of solar zenith angle
     real(kind=jprb) :: tan0
 
-    ! Rate of direct exchange between region
-    real(kind=jprb) :: f0_there, f0_back
+    ! Rate of exchange between regions, excluding the tangent term,
+    ! where the dimensions are in the sense of
+    ! f_exchange(region_to,region_from)
+    real(kind=jprb) :: f_exchange(nreg,nreg)
 
-    integer(kind=jpim) :: jlay, jreg, jsw
+    ! Extinction (m-1) and single scattering albedo of each region
+    real(kind=jprb) :: ext_reg(nsw,nreg), ssa_reg(nsw,nreg)
+
+    ! Loop counters
+    integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js
+
+    ! Index to the matrix dimension expressing regions "from" and "to"
+    ! in combination with a particular stream
+    integer(kind=jpim) :: ifr, ito
     
     real(jprb) :: hook_handle
 
@@ -108,34 +125,100 @@ contains
       frac(1,nlay+1)  = 1.0_jprb
       frac(2:,nlay+1) = 0.0_jprb
 
-      ! Set the normalized vegetation perimeter length
-      if (config%use_symmetric_vegetation_scale_forest) then
-        norm_perim = 4.0_jprb * veg_fraction * (1.0_jprb - veg_fraction) / veg_scale
-      else
-        norm_perim = 4.0_jprb * veg_fraction / veg_scale
-      end if
-
       ! Loop up through the canopy computing the Gamma matrices, and
       ! from those the transmission and reflection matrices
       do jlay = 1,nlay
 
+        ! Compute the normalized vegetation perimeter length
+        if (config%use_symmetric_vegetation_scale_forest) then
+          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) / veg_scale(jlay)
+        else
+          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
+        end if
+
+        if (nreg > 2) then
+          ! Share the clear-air/vegetation perimeter between the two
+          ! vegetated regions
+          norm_perim(3) = config%vegetation_isolation_factor_forest * norm_perim(3)
+          norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+               &          * norm_perim(1) 
+          ! We assume that the horizontal scale of the vegetation
+          ! inhomogeneities is the same as the scale of the tree crowns
+          ! themselves. Therefore, to compute the interface between the
+          ! two vegetated regions, we use the same formula as before but
+          ! with the fraction associated with one of the two vegetated
+          ! regions, which is half the total vegetation fraction.
+          if (config%use_symmetric_vegetation_scale_forest) then
+            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+                 &  / veg_scale(jlay)
+          else
+            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+          end if
+        else
+          ! Only one vegetated region so the other column of norm_perim
+          ! is unused
+          norm_perim(2:) = 0.0_jprb
+        end if
+
         ! Set the Gamma_0 matrix, which defines the rate of change of
         ! direct flux
-        gamma0 = 0.0_jprb
+
         do jreg = 1,nreg-1
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
-            f0_there = 0.0_jprb
+            f_exchange(jreg+1,jreg) = 0.0_jprb
           else
-            f0_there = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
+            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
           end if
           if (frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
-            f0_back = 0.0_jprb
+            f_exchange(jreg,jreg+1) = 0.0_jprb
           else
-            f0_back = norm_perim(jlay) * tan0 / (Pi * frac(jreg,jlay))
+            f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
           end if
         end do
+        if (nreg > 2 .and. norm_perim(3) > 0.0_jprb) then
+          if (frac(3,jlay) <= config%min_vegetation_fraction) then
+            f_exchange(1,3) = 0.0_jprb
+          else
+            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
+          end if
+          if (frac(1,jlay) <= config%min_vegetation_fraction) then
+            f_exchange(3,1) = 0.0_jprb
+          else
+            f_exchange(3,1) = norm_perim(jreg) * tan0 / (Pi * frac(1,jlay))
+          end if
+        end if
 
-      end do
+        gamma0 = 0.0_jprb
+        gamma1 = 0.0_jprb
+        gamma2 = 0.0_jprb
+        gamma3 = 0.0_jprb
+
+        do jreg_fr = 1,nreg
+          do jreg_to = 1,nreg
+            if (jreg_fr /= jreg_to) then
+              gamma0(:,jreg_fr,jreg_fr) = gamma0(:,jreg_fr,jreg_fr) &
+                   &  - tan0 * f_exchange(jreg_to,jreg_fr)
+              gamma0(:,jreg_to,jreg_fr) = gamma0(:,jreg_to,jreg_fr) &
+                   &  + tan0 * f_exchange(jreg_to,jreg_fr)
+              do js = 1,ns
+                ifr = js + (jreg_fr-1)*ns
+                ito = js + (jreg_to-1)*ns
+                gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) &
+                     &  - lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
+                gamma1(:,ito,ifr) = gamma1(:,ito,ifr) &
+                     &  + lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
+!                gamma3(:,ito,jreg_fr) = 0.5_jprb * lg%hweight(js) * veg
+              end do
+            end if
+          end do
+        end do
+
+        gamma1 = gamma1 + gamma2
+
+
+      end do ! Loop over layers
 
     end associate
 
