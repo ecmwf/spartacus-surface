@@ -79,10 +79,11 @@ program spartacus_surface_driver
 
   ! Read "radsurf" namelist into radiation configuration type
   call config%read(file_name=file_name)
+  call config%consolidate()
 
   ! Read "radsurf_driver" namelist into radiation driver config type
   call driver_config%read(file_name)
-
+  
   ! --------------------------------------------------------
   ! Section 3: Read input data file
   ! --------------------------------------------------------

@@ -89,6 +89,8 @@ contains
     if (config%do_vegetation) then
       call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
            &              canopy_props%veg_fraction)
+      ! FIX ME
+      canopy_props%veg_fraction = 0.5
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
       if (driver_config%vegetation_fsd >= 0.0_jprb) then
@@ -235,7 +237,7 @@ contains
 
       if (config%do_vegetation .or. config%do_urban) then
         allocate(volume_props%air_sw_ext(config%nsw, ntotlay))
-        volume_props%air_sw_ext = 0.0_jprb
+        volume_props%air_sw_ext = 1.0e-3_jprb
         allocate(volume_props%air_sw_ssa(config%nsw, ntotlay))
         volume_props%air_sw_ssa = 1.0_jprb
       end if
