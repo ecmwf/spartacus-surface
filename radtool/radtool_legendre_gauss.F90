@@ -57,6 +57,8 @@ contains
 
     this%sin_ang = sqrt(1.0_jprb - this%mu*this%mu)
     this%tan_ang = this%sin_ang / this%mu
+    this%hweight = this%weight * this%mu
+    this%hweight = this%hweight / sum(this%hweight)
     
   end subroutine initialize_legendre_gauss
 

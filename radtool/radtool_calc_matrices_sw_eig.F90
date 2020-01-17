@@ -72,8 +72,9 @@ contains
     ! Radiation emerging from top and bottom of layer due to
     ! scattering by the direct beam, and the transmittance of the
     ! layer to direct radiation with no scattering on the way
-    real(kind=jprb), intent(out), dimension(nmat,ndiff, ndiff) &
-         &  :: s_up, s_dn, trans_dir
+    real(kind=jprb), intent(out), dimension(nmat,ndiff, ndir) &
+         &  :: s_up, s_dn
+    real(kind=jprb), intent(out), dimension(nmat,ndir,ndir) :: trans_dir
 
     
     ! Local variables
@@ -118,12 +119,12 @@ contains
     real(kind=jprb), dimension(nmat,ndiff,ndir) :: gamma3_g0
 
     ! Inverse of g0
-    real(kind=jprb), dimension(nmat,ndiff,ndir) :: g0_inv
+    real(kind=jprb), dimension(nmat,ndir,ndir) :: g0_inv
 
     ! DEFINE
-    real(kind=jprb), dimension(nmat,ndiff,ndir) :: gamma1_d
+    real(kind=jprb), dimension(nmat,ndiff,ndiff) :: gamma1_d
 
-    real(kind=jprb), dimension(nmat,ndiff,ndir) :: gamma2_inv_gamma1_d
+    real(kind=jprb), dimension(nmat,ndiff,ndiff) :: gamma2_inv_gamma1_d
 
     real(kind=jprb), dimension(nmat,ndiff,ndir) :: g3_d_inv_g0, g4_inv_g0
     
@@ -289,7 +290,7 @@ contains
 
     ! Radiation emerging from top and bottom of layer due to
     ! scattering by the direct beam
-    real(kind=jprb), intent(out), dimension(nmat,ndiff, ndiff) &
+    real(kind=jprb), intent(out), dimension(nmat,ndiff, ndir) &
          &  :: s_up, s_dn
 
     real(kind=jprb) :: g_d(nmat,2*ndiff+ndir,2*ndiff+ndir)
@@ -306,7 +307,7 @@ contains
     g_d(:,1:ndiff,ndiff+1:2*ndiff) = g_d(:,ndiff+1:2*ndiff,1:ndiff)
     g_d(:,ndiff+1:2*ndiff,ndiff+1:2*ndiff) = g1
     ! Fill direct part
-    g_d(:,2*ndiff+1:2+ndiff+ndir,2*ndiff+1:2*ndiff+ndir) = g0
+    g_d(:,2*ndiff+1:2*ndiff+ndir,2*ndiff+1:2*ndiff+ndir) = g0
     ! Mixed part
 
 !    print *, g_d(:,1:ndiff,2*ndiff+1:2*ndiff+ndir)
