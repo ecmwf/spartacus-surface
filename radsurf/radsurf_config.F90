@@ -81,11 +81,12 @@ module radsurf_config
     ! represent the spectral variation of atmospheric absorption
     integer(kind=jpim) :: nswinternal, nlwinternal
 
-    type(legendre_gauss_type) :: lg_urban, lg_vegetation
+    type(legendre_gauss_type) :: lg_urban, lg_forest
 
    contains
      procedure :: read => read_config_from_namelist
-
+     procedure :: consolidate => consolidate_config
+     
   end type config_type
 
 contains
@@ -201,4 +202,26 @@ contains
 
   end subroutine read_config_from_namelist
 
+  
+  subroutine consolidate_config(this)
+
+    use yomhook,      only : lhook, dr_hook
+
+    class(config_type), intent(inout) :: this
+
+    real(jprb) :: hook_handle
+    
+    if (lhook) call dr_hook('radsurf_config:consolidate',0,hook_handle)
+
+    this%nswinternal = this%nsw
+    this%nlwinternal = this%nlw
+
+    call this%lg_forest%initialize(this%n_stream_forest)
+    call this%lg_urban%initialize(this%n_stream_urban)
+    
+    if (lhook) call dr_hook('radsurf_config:consolidate',1,hook_handle)
+    
+  end subroutine consolidate_config
+
+  
 end module radsurf_config

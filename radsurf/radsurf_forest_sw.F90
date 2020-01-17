@@ -29,7 +29,12 @@ contains
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radtool_calc_matrices_sw_eig,only: calc_matrices_sw_eig
     use radiation_constants,        only : Pi
+    use radtool_matrix,             only : identity_minus_mat_x_mat, mat_x_mat, &
+         &                                 solve_mat, rect_mat_x_mat
+    use radsurf_overlap,            only : calc_overlap_matrices
 
+    use print_matrix_mod
+    
     implicit none
 
     type(config_type),             intent(in)  :: config
@@ -111,6 +116,11 @@ contains
     real(kind=jprb) :: a_below(nsw,nreg*ns,nreg*ns,2:nlay+1)
     real(kind=jprb) :: d_below(nsw,nreg*ns,nreg,2:nlay+1)
 
+    ! Denominator matrix used in the matrix adding method
+    real(kind=jprb) :: denominator(nsw,nreg*ns,nreg*ns)
+
+    real(kind=jprb), dimension(nreg,nreg,nlay+1) :: u_overlap, v_overlap
+    
     ! Loop counters
     integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js, js_fr, js_to
 
@@ -141,6 +151,10 @@ contains
       frac(1,nlay+1)  = 1.0_jprb
       frac(2:,nlay+1) = 0.0_jprb
 
+      ! Compute overlap matrices
+      call calc_overlap_matrices(nlay,nreg,frac,u_overlap,v_overlap, &
+           &  config%min_vegetation_fraction);
+      
       ! Loop up through the canopy computing the Gamma matrices, and
       ! from those the transmission and reflection matrices
       do jlay = 1,nlay
@@ -168,6 +182,11 @@ contains
                &       / ext_reg(:,3)
         end if
 
+        call print_vector('ext_reg',ext_reg(1,:))
+        call print_vector('ssa_reg',ssa_reg(1,:))
+        call print_vector('veg_fraction',veg_fraction)
+        call print_vector('veg_scale', veg_scale);
+        
         ! Compute the normalized vegetation perimeter length
         if (config%use_symmetric_vegetation_scale_forest) then
           norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
@@ -179,7 +198,7 @@ contains
         if (nreg > 2) then
           ! Share the clear-air/vegetation perimeter between the two
           ! vegetated regions
-          norm_perim(3) = config%vegetation_isolation_factor_forest * norm_perim(3)
+          norm_perim(nreg) = config%vegetation_isolation_factor_forest * norm_perim(1)
           norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
                &          * norm_perim(1) 
           ! We assume that the horizontal scale of the vegetation
@@ -190,7 +209,8 @@ contains
           ! regions, which is half the total vegetation fraction.
           if (config%use_symmetric_vegetation_scale_forest) then
             norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
+                 &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
                  &  / veg_scale(jlay)
           else
             norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
@@ -202,8 +222,12 @@ contains
           norm_perim(2:) = 0.0_jprb
         end if
 
+
+        call print_vector('norm_perim', norm_perim)
+        
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
+        f_exchange = 0.0_jprb
         do jreg = 1,nreg-1
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg+1,jreg) = 0.0_jprb
@@ -216,7 +240,7 @@ contains
             f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
           end if
         end do
-        if (nreg > 2 .and. norm_perim(3) > 0.0_jprb) then
+        if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
           if (frac(3,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
           else
@@ -228,7 +252,9 @@ contains
             f_exchange(3,1) = norm_perim(jreg) * tan0 / (Pi * frac(1,jlay))
           end if
         end if
-
+        call print_matrix('f_exchange',f_exchange)
+        call print_vector('tan_ang',lg%tan_ang)
+        
         ! Compute the Gamma matrices representing exchange of direct
         ! and diffuse radiation between regions (gamma0 and gamma1
         ! respectively)
@@ -288,6 +314,11 @@ contains
           end do
         end do
 
+        call print_matrix('gamma0',gamma0(1,:,:))
+        call print_matrix('gamma1',gamma1(1,:,:))
+        call print_matrix('gamma2',gamma2(1,:,:))
+        call print_matrix('gamma3',gamma3(1,:,:))
+        
         ! Compute reflection/transmission matrices for this layer
         call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
              &  gamma0, gamma1, gamma2, gamma3, &
@@ -302,9 +333,9 @@ contains
       d_above = 0.0_jprb
       do jreg = 1,nreg
         do js_to = 1,ns
-          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_direct * lg%hweight(js)
+          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_direct * lg%hweight(js_to)
           do js_fr = 1,ns
-            a_above(:,js_to+(jreg-1)*ns,jreg_fr+(jreg-1)*ns,1) = ground_sw_albedo * lg%hweight(js)
+            a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) = ground_sw_albedo * lg%hweight(js_to)
           end do
         end do
       end do
@@ -313,6 +344,20 @@ contains
       a_below = 0.0_jprb
       d_below = 0.0_jprb
       do jlay = 1,nlay
+        denominator = identity_minus_mat_x_mat(nsw,nsw,nreg*ns, &
+             &  a_above(:,:,:,jlay), ref_diff(:,:,:,jlay))
+        a_below(:,:,:,jlay+1) = ref_diff(:,:,:,jlay) &
+             &  + mat_x_mat(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay), &
+             &  solve_mat(nsw,nsw,nreg*ns,denominator, &
+             &  mat_x_mat(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
+             &  trans_diff(:,:,:,jlay))))
+        d_below(:,:,:,jlay+1) = ref_dir(:,:,:,jlay) &
+             &  + rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,trans_diff(:,:,:,jlay), &
+             &  solve_mat(nsw,nsw,nreg*ns,denominator, &
+             &    rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_below(:,:,:,jlay), &
+             &                       trans_dir_dir(:,:,:,jlay)) &
+             &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
+             &                       trans_dir_diff(:,:,:,jlay))))
         
 
 

@@ -147,9 +147,9 @@ contains
         end if
         if (config%do_sw) then
           call spartacus_forest_sw(config, config%nswinternal, &
-               &  config%lg_vegetation%nstream, config%n_vegetation_region_forest+1, &
+               &  config%lg_forest%nstream, config%n_vegetation_region_forest+1, &
                &  canopy_props%nlay(jcol), ilay1, ilay2, &
-               &  config%lg_vegetation, canopy_props%cos_sza(jcol), &
+               &  config%lg_forest, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, &
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
