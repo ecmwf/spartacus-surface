@@ -27,6 +27,7 @@ contains
     use radsurf_volume_properties,  only : volume_properties_type
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
+    use radtool_calc_matrices_sw_eig,only: calc_matrices_sw_eig
     use radiation_constants,        only : Pi
 
     implicit none
@@ -55,12 +56,12 @@ contains
 
     ! Transmittance and reflectance of a layer to diffuse radiation
     real(kind=jprb), dimension(nsw,nreg*ns,nreg*ns,nlay) &
-         &  :: trans_dif, ref_dif
+         &  :: trans_diff, ref_diff
     ! Reflectance of a layer to direct radiation, and fraction of
     ! direct radiation that is scattered and passes out through the
     ! base of the layer
     real(kind=jprb), dimension(nsw,nreg*ns,nreg,nlay) &
-         &   :: ref_dir, trans_dir_dif
+         &   :: ref_dir, trans_dir_diff
     ! Direct (unscattered) transmittance
     real(kind=jprb), dimension(nsw,nreg,nreg,nlay) :: trans_dir_dir
 
@@ -95,8 +96,23 @@ contains
     ! Extinction (m-1) and single scattering albedo of each region
     real(kind=jprb) :: ext_reg(nsw,nreg), ssa_reg(nsw,nreg)
 
+    ! Optical depth scaling of vegetation optical depth to represent
+    ! inhomogeneity
+    real(kind=jprb) :: od_scaling(2:nreg)
+
+    ! Diffuse and direct albedo matrices just above and below each
+    ! interface. The "above" albedos include surface (interface=1) and
+    ! top-of-canopy (interface=nlay+1) so have one element more than
+    ! the number of layers. The "below" albedos use the same indexing
+    ! of interfaces, but the surface is never used so this dimension
+    ! starts at 2.
+    real(kind=jprb) :: a_above(nsw,nreg*ns,nreg*ns,nlay+1) ! Diffuse
+    real(kind=jprb) :: d_above(nsw,nreg*ns,nreg,nlay+1)    ! Direct
+    real(kind=jprb) :: a_below(nsw,nreg*ns,nreg*ns,2:nlay+1)
+    real(kind=jprb) :: d_below(nsw,nreg*ns,nreg,2:nlay+1)
+
     ! Loop counters
-    integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js
+    integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js, js_fr, js_to
 
     ! Index to the matrix dimension expressing regions "from" and "to"
     ! in combination with a particular stream
@@ -129,9 +145,33 @@ contains
       ! from those the transmission and reflection matrices
       do jlay = 1,nlay
 
+        ! Compute the extinction coefficient and single-scattering
+        ! albedo of each region
+        ext_reg(:,1) = air_sw_ext(:,jlay)
+        ssa_reg(:,1) = veg_sw_ext(:,jlay)
+        if (nreg == 2) then
+          ext_reg(:,2) = air_sw_ext(:,jlay) + veg_sw_ext(:,jlay)
+          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &       / ext_reg(:,2)
+        else
+          ! Approximate method to approximate a Gamma distribution
+          od_scaling(2) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
+               &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
+          od_scaling(3) = 2.0_jprb - od_scaling(2)
+          ext_reg(:,2) = air_sw_ext(:,jlay) + od_scaling(2)*veg_sw_ext(:,jlay)
+          ext_reg(:,3) = air_sw_ext(:,jlay) + od_scaling(3)*veg_sw_ext(:,jlay)
+          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
+               &          + od_scaling(2)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &       / ext_reg(:,2)
+          ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
+               &          + od_scaling(3)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &       / ext_reg(:,3)
+        end if
+
         ! Compute the normalized vegetation perimeter length
         if (config%use_symmetric_vegetation_scale_forest) then
-          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) / veg_scale(jlay)
+          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
+               &        / veg_scale(jlay)
         else
           norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
         end if
@@ -162,9 +202,8 @@ contains
           norm_perim(2:) = 0.0_jprb
         end if
 
-        ! Set the Gamma_0 matrix, which defines the rate of change of
-        ! direct flux
-
+        ! Compute the rates of exchange between regions, excluding the
+        ! tangent term
         do jreg = 1,nreg-1
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg+1,jreg) = 0.0_jprb
@@ -190,35 +229,94 @@ contains
           end if
         end if
 
+        ! Compute the Gamma matrices representing exchange of direct
+        ! and diffuse radiation between regions (gamma0 and gamma1
+        ! respectively)
         gamma0 = 0.0_jprb
         gamma1 = 0.0_jprb
-        gamma2 = 0.0_jprb
-        gamma3 = 0.0_jprb
-
         do jreg_fr = 1,nreg
           do jreg_to = 1,nreg
             if (jreg_fr /= jreg_to) then
-              gamma0(:,jreg_fr,jreg_fr) = gamma0(:,jreg_fr,jreg_fr) &
-                   &  - tan0 * f_exchange(jreg_to,jreg_fr)
-              gamma0(:,jreg_to,jreg_fr) = gamma0(:,jreg_to,jreg_fr) &
-                   &  + tan0 * f_exchange(jreg_to,jreg_fr)
+              gamma0(:,jreg_fr,jreg_fr) = - tan0 * f_exchange(jreg_to,jreg_fr)
+              gamma0(:,jreg_to,jreg_fr) = + tan0 * f_exchange(jreg_to,jreg_fr)
               do js = 1,ns
                 ifr = js + (jreg_fr-1)*ns
                 ito = js + (jreg_to-1)*ns
-                gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) &
-                     &  - lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
-                gamma1(:,ito,ifr) = gamma1(:,ito,ifr) &
-                     &  + lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
-!                gamma3(:,ito,jreg_fr) = 0.5_jprb * lg%hweight(js) * veg
+                gamma1(:,ifr,ifr) = - lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
+                gamma1(:,ito,ifr) = + lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
               end do
             end if
           end do
         end do
+        
+        ! Diagonal elements of gamma0 and gamma1 also have loss term
+        ! due to extinction through the regions
+        do jreg = 1,nreg
+          gamma0(:,jreg,jreg) = gamma0(:,jreg,jreg) - ext_reg(:,jreg)/cos_sza
+          do js = 1,ns
+            ifr = js + (jreg-1)*ns
+            gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) - ext_reg(:,jreg)/lg%mu(js)
+          end do
+        end do
 
+        ! Compute Gamma2, representing the rate of scattering of
+        ! radiation from one diffuse stream to another
+        gamma2 = 0.0_jprb
+        do js_fr = 1,ns
+          do js_to = 1,ns
+            do jreg = 1,nreg
+              ifr = js_fr + (jreg-1)*ns
+              ito = js_to + (jreg-1)*ns
+              gamma2(:,ito,ifr) = 0.5_jprb * lg%hweight(js_fr) &
+                   &  * ext_reg(:,jreg) * ssa_reg(:,jreg) / lg%mu(js_fr)
+            end do
+          end do
+        end do
+
+        ! Gamma1 also contains gain of diffuse radiation by
+        ! scattering, so add Gamma2 to it
         gamma1 = gamma1 + gamma2
 
+        ! Compute Gamma3, representing scattering from the direct to
+        ! the diffuse streams
+        gamma3 = 0.0_jprb
+        do jreg = 1,nreg
+          do js = 1,ns
+            ito = js + (jreg-1)*ns
+            gamma3(:,ito,jreg) = 0.5_jprb * lg%hweight(js) &
+                 &             * ext_reg(:,jreg) * ssa_reg(:,jreg) / cos_sza
+          end do
+        end do
 
-      end do ! Loop over layers
+        ! Compute reflection/transmission matrices for this layer
+        call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
+             &  gamma0, gamma1, gamma2, gamma3, &
+             &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
+             &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
+             &  trans_dir_dir(:,:,:,jlay))
+
+      end do ! Loop over layers to compute reflectance/transmittance matrices
+
+      ! Set the surface albedo
+      a_above = 0.0_jprb
+      d_above = 0.0_jprb
+      do jreg = 1,nreg
+        do js_to = 1,ns
+          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_direct * lg%hweight(js)
+          do js_fr = 1,ns
+            a_above(:,js_to+(jreg-1)*ns,jreg_fr+(jreg-1)*ns,1) = ground_sw_albedo * lg%hweight(js)
+          end do
+        end do
+      end do
+
+      ! Loop up through the half levels / interfaces computing albedos
+      a_below = 0.0_jprb
+      d_below = 0.0_jprb
+      do jlay = 1,nlay
+        
+
+
+      end do ! Loop over layers for upward pass to compute albedos
 
     end associate
 

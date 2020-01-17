@@ -309,9 +309,9 @@ contains
     g_d(:,2*ndiff+1:2+ndiff+ndir,2*ndiff+1:2*ndiff+ndir) = g0
     ! Mixed part
 
-    print *, g_d(:,1:ndiff,2*ndiff+1:2*ndiff+ndir)
+!    print *, g_d(:,1:ndiff,2*ndiff+1:2*ndiff+ndir)
 !    print *, g3
-    print *, spread(exp_eigenval_dir_dz,2,ndiff)
+!    print *, spread(exp_eigenval_dir_dz,2,ndiff)
 
     g_d(:,1:ndiff,2*ndiff+1:2*ndiff+ndir) = g3 * spread(exp_eigenval_dir_dz,2,ndiff)
     g_d(:,ndiff+1:2*ndiff,2*ndiff+1:2*ndiff+ndir) = g4
