@@ -90,7 +90,7 @@ contains
       call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
            &              canopy_props%veg_fraction)
       ! FIX ME
-      canopy_props%veg_fraction = 0.5
+      ! canopy_props%veg_fraction = 0.5
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
       if (driver_config%vegetation_fsd >= 0.0_jprb) then

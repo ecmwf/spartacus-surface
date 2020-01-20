@@ -2,6 +2,7 @@
 do_parallel = true,
 cos_solar_zenith_angle=0.5,
 vegetation_fsd = 0.5,
+vegetation_sw_extinction = 0.25,
 /
 
 &radsurf
@@ -15,6 +16,6 @@ n_vegetation_region_forest = 1,
 n_vegetation_region_urban = 2,
 nsw = 1,
 nlw = 1,
-n_stream_forest = 2,
+n_stream_forest = 1,
 n_stream_urban = 2,
 /

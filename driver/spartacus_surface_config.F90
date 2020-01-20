@@ -74,11 +74,13 @@ contains
     real(kind=jprb),    pointer :: cos_solar_zenith_angle, vegetation_fsd
     real(kind=jprb),    pointer :: ground_sw_albedo, roof_sw_albedo, wall_sw_albedo
     real(kind=jprb),    pointer :: ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
+    real(kind=jprb),    pointer :: vegetation_sw_extinction, vegetation_sw_ssa
 
     namelist /radsurf_driver/ do_parallel, nblocksize, nrepeat, istartcol, iendcol, &
          &  iverbose, cos_solar_zenith_angle, vegetation_fsd, &
          &  ground_sw_albedo, roof_sw_albedo, wall_sw_albedo, &
-         &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
+         &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
+         &  vegetation_sw_extinction, vegetation_sw_ssa
 
     do_parallel            => this%do_parallel
     nblocksize             => this%nblocksize
@@ -94,6 +96,8 @@ contains
     roof_lw_emissivity     => this%roof_lw_emissivity
     wall_lw_emissivity     => this%wall_lw_emissivity
     vegetation_fsd         => this%vegetation_fsd
+    vegetation_sw_extinction=>this%vegetation_sw_extinction
+    vegetation_sw_ssa      => this%vegetation_sw_ssa
 
     ! Open the namelist file and read the radiation_driver namelist
     open(unit=10, iostat=iosopen, file=trim(file_name))
