@@ -330,14 +330,14 @@ contains
     g_d2(:,1:ndiff,2*ndiff+1:2*ndiff+ndir) = g3
 
     s_up = rect_mat_x_mat(nmat, ndiff, 2*ndiff+ndir, ndir, g_d2, cprime_dir)
-    s_up = s_up * mu0
+    !s_up = s_up * mu0
 
     g_d2(:,1:ndiff,1:ndiff) = g2
     g_d2(:,1:ndiff,ndiff+1:2*ndiff) = g1 * spread(exp_lambda_dz,2,ndiff)
     g_d2(:,1:ndiff,2*ndiff+1:2*ndiff+ndir) = g4 * spread(exp_eigenval_dir_dz,2,ndiff)
 
     s_dn = rect_mat_x_mat(nmat, ndiff, 2*ndiff+ndir, ndir, g_d2, cprime_dir)
-    s_dn = s_dn * mu0
+    !s_dn = s_dn * mu0
 
   end subroutine direct_diffuse_part
 

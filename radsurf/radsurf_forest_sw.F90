@@ -294,7 +294,7 @@ contains
             do jreg = 1,nreg
               ifr = js_fr + (jreg-1)*ns
               ito = js_to + (jreg-1)*ns
-              gamma2(:,ito,ifr) = 0.5_jprb * lg%hweight(js_fr) &
+              gamma2(:,ito,ifr) = 0.5_jprb * lg%weight(js_fr) &
                    &  * ext_reg(:,jreg) * ssa_reg(:,jreg) / lg%mu(js_fr)
             end do
           end do
@@ -310,8 +310,10 @@ contains
         do jreg = 1,nreg
           do js = 1,ns
             ito = js + (jreg-1)*ns
-            gamma3(:,ito,jreg) = 0.5_jprb * lg%hweight(js) &
-                 &             * ext_reg(:,jreg) * ssa_reg(:,jreg) / cos_sza
+            ! Note that the cosine of the solar zenith angle in Eq. 13
+            ! of Hogan (2019) cancels with the one in Eq. 11.
+            gamma3(:,ito,jreg) = 0.5_jprb * lg%weight(js) &
+                 &             * ext_reg(:,jreg) * ssa_reg(:,jreg)
           end do
         end do
 
@@ -356,7 +358,7 @@ contains
         d_below(:,:,:,jlay+1) = ref_dir(:,:,:,jlay) &
              &  + rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,trans_diff(:,:,:,jlay), &
              &  solve_mat(nsw,nsw,nreg*ns,denominator, &
-             &    rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_below(:,:,:,jlay), &
+             &    rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_above(:,:,:,jlay), &
              &                       trans_dir_dir(:,:,:,jlay)) &
              &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
              &                       trans_dir_diff(:,:,:,jlay))))
@@ -373,6 +375,13 @@ contains
 
       call print_array3('a_above', a_above(1,:,:,:))
       call print_array3('d_above', d_above(1,:,:,:))
+      call print_array3('a_below', a_below(1,:,:,:))
+      call print_array3('d_below', d_below(1,:,:,:))
+      call print_array3('T', trans_diff(1,:,:,:))
+      call print_array3('R', ref_diff(1,:,:,:))
+      call print_array3('Sup', ref_dir(1,:,:,:))
+      call print_array3('Sdn', trans_dir_diff(1,:,:,:))
+      call print_array3('Ess', trans_dir_dir(1,:,:,:))
       call print_array3('u_overlap',u_overlap)
       call print_array3('v_overlap',v_overlap)
 
