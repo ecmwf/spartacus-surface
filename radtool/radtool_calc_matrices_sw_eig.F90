@@ -194,7 +194,7 @@ contains
          &  g0*spread(exp(eigenval_dir*dz),2,ndir), g0_inv)
    
     ! Section 4: Mixed direct-diffuse part
-    gamma3_g0 = rect_mat_x_mat(nmat,ndiff,ndiff,ndir,gamma3,g0)
+    gamma3_g0 = rect_mat_x_mat(nmat,ndiff,ndir,ndir,gamma3,g0)
     gamma1_d = gamma1
     do jd = 1,ndir
        do jo = 1,ndiff

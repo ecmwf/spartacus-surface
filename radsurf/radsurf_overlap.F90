@@ -111,7 +111,7 @@ contains
 
     ! The ground is treated as one clear-sky region, so the fractions
     ! are assigned as such
-    frac_lower(1) = 1.0_jprb
+    frac_lower(1)      = 1.0_jprb
     frac_lower(2:nreg) = 0.0_jprb
 
     ! Loop up through the canopy, where jlay indexes each layer
@@ -122,7 +122,7 @@ contains
       if (jlay > nlay) then
         ! We are at the top of the canopy: treat as a single clear-sky
         ! region
-        frac_upper(1) = 1.0_jprb
+        frac_upper(1)      = 1.0_jprb
         frac_upper(2:nreg) = 0.0_jprb
       else
         frac_upper = region_fracs(1:nreg,jlay)
@@ -151,7 +151,7 @@ contains
           end if
         end do
       end do
-      frac_upper = frac_lower
+      frac_lower = frac_upper
         
     end do ! layers
 
