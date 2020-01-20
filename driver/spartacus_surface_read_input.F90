@@ -169,7 +169,7 @@ contains
 
       if (config%do_vegetation .or. config%do_urban) then
         allocate(volume_props%air_lw_ext(config%nsw, ntotlay))
-        volume_props%air_lw_ext = 0.0_jprb
+        volume_props%air_lw_ext = 1.0e-5_jprb
         allocate(volume_props%air_lw_ssa(config%nsw, ntotlay))
         volume_props%air_lw_ssa = 0.0_jprb
       end if
@@ -237,7 +237,7 @@ contains
 
       if (config%do_vegetation .or. config%do_urban) then
         allocate(volume_props%air_sw_ext(config%nsw, ntotlay))
-        volume_props%air_sw_ext = 1.0e-3_jprb
+        volume_props%air_sw_ext = 1.0e-5_jprb
         allocate(volume_props%air_sw_ssa(config%nsw, ntotlay))
         volume_props%air_sw_ssa = 1.0_jprb
       end if

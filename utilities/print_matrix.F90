@@ -32,13 +32,14 @@ contains
     real(jprb),   intent(in) :: mat(:,:,:)
     integer    :: i, j, k
     write(6,'(a,a)') name, '='
-    do i = 1,size(mat,1)
-       do j = 1,size(mat,2)
-          do k = 1,size(mat,3)
+    do k = 1,size(mat,3)
+      do i = 1,size(mat,1)
+        do j = 1,size(mat,2)
              write(6,'(f16.8,$)') mat(i,j,k)
           end do
           write(6,'(x)')
        end do
+       write(6,'(x)')
     end do
   end subroutine print_array3
   
