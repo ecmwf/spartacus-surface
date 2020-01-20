@@ -16,7 +16,7 @@ contains
        &  lg, cos_sza, &
        &  canopy_props, volume_props, &
        &  ground_sw_albedo, ground_sw_albedo_direct, &
-       &  bc_out, &
+       &  top_sw_albedo, top_sw_albedo_direct, &
        &  sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)
     
     use parkind1,                   only : jpim, jprb
@@ -25,12 +25,13 @@ contains
     use radtool_legendre_gauss,     only : legendre_gauss_type
     use radsurf_canopy_properties,  only : canopy_properties_type
     use radsurf_volume_properties,  only : volume_properties_type
-    use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radtool_calc_matrices_sw_eig,only: calc_matrices_sw_eig
     use radiation_constants,        only : Pi
     use radtool_matrix,             only : identity_minus_mat_x_mat, mat_x_mat, &
-         &                                 solve_mat, rect_mat_x_mat
+         &                                 solve_mat, rect_mat_x_mat, & 
+         &                                 rect_expandedmat_x_mat, &
+         &                                 rect_mat_x_expandedmat
     use radsurf_overlap,            only : calc_overlap_matrices
 
     use print_matrix_mod
@@ -52,7 +53,7 @@ contains
     type(canopy_properties_type),  intent(in)  :: canopy_props
     type(volume_properties_type),  intent(in)  :: volume_props
     real(kind=jprb), dimension(nsw),intent(in) :: ground_sw_albedo, ground_sw_albedo_direct
-    type(boundary_conds_out_type), intent(out) :: bc_out
+    real(kind=jprb), dimension(nsw),intent(out):: top_sw_albedo, top_sw_albedo_direct
     type(canopy_flux_type),        intent(out), optional &
          &  :: sw_norm_dir, &  ! SW fluxes normalized by top-of-canopy direct
          &     sw_norm_diff, & ! SW fluxes normalized by top-of-canopy diffuse
@@ -162,11 +163,11 @@ contains
         ! Compute the extinction coefficient and single-scattering
         ! albedo of each region
         ext_reg(:,1) = air_sw_ext(:,jlay)
-        ssa_reg(:,1) = veg_sw_ext(:,jlay)
+        ssa_reg(:,1) = air_sw_ssa(:,jlay)
         if (nreg == 2) then
           ext_reg(:,2) = air_sw_ext(:,jlay) + veg_sw_ext(:,jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
-               &       / ext_reg(:,2)
+               &       / max(ext_reg(:,2), 1.0e-8_jprb)
         else
           ! Approximate method to approximate a Gamma distribution
           od_scaling(2) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
@@ -176,10 +177,10 @@ contains
           ext_reg(:,3) = air_sw_ext(:,jlay) + od_scaling(3)*veg_sw_ext(:,jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
                &          + od_scaling(2)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
-               &       / ext_reg(:,2)
+               &       / max(ext_reg(:,2), 1.0e-8_jprb)
           ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
                &          + od_scaling(3)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
-               &       / ext_reg(:,3)
+               &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
 
         call print_vector('ext_reg',ext_reg(1,:))
@@ -344,6 +345,7 @@ contains
       a_below = 0.0_jprb
       d_below = 0.0_jprb
       do jlay = 1,nlay
+        ! Adding method
         denominator = identity_minus_mat_x_mat(nsw,nsw,nreg*ns, &
              &  a_above(:,:,:,jlay), ref_diff(:,:,:,jlay))
         a_below(:,:,:,jlay+1) = ref_diff(:,:,:,jlay) &
@@ -358,11 +360,31 @@ contains
              &                       trans_dir_dir(:,:,:,jlay)) &
              &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
              &                       trans_dir_diff(:,:,:,jlay))))
-        
-
-
+        ! Overlap: Hogan (2019), equations 22 and 23
+        a_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,ns,nreg*ns, &
+             &  u_overlap(:,:,jlay+1), &
+             &  rect_mat_x_expandedmat(nsw,nreg,ns,nreg*ns, a_below(:,:,:,jlay+1), &
+             &                          v_overlap(:,:,jlay+1)))
+        d_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,ns,nreg, &
+             &  u_overlap(:,:,jlay+1), &
+             &  rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_below(:,:,:,jlay+1), &
+             &                 v_overlap(:,:,jlay+1)))
       end do ! Loop over layers for upward pass to compute albedos
 
+      call print_array3('a_above', a_above(1,:,:,:))
+      call print_array3('d_above', d_above(1,:,:,:))
+      call print_array3('u_overlap',u_overlap)
+      call print_array3('v_overlap',v_overlap)
+
+      ! Store top-of-canopy boundary conditions
+      top_sw_albedo = 0.0_jprb
+      ! Diffuse isotropic albedo is weighted average over the ns
+      ! streams
+      do js = 1,ns
+        top_sw_albedo(:) = top_sw_albedo(:) + lg%hweight(js) * a_above(:,js,js,nlay+1)
+      end do
+      top_sw_albedo_direct = d_above(:,1,1,nlay+1)
+      
     end associate
 
     if (lhook) call dr_hook('radsurf_forest_sw:spartacus_forest_sw',1,hook_handle)

@@ -1,6 +1,6 @@
 ! radtool_matrix.f90 - SPARTACUS matrix operations
 !
-! Copyright (C) 2014-2018 ECMWF
+! Copyright (C) 2014-2020 ECMWF
 !
 ! Author:  Robin Hogan
 ! Email:   r.j.hogan@ecmwf.int
@@ -35,7 +35,8 @@ module radtool_matrix
   public  :: mat_x_vec, singlemat_x_vec, mat_x_mat, &
        &     singlemat_x_mat, mat_x_singlemat, &
        &     identity_minus_mat_x_mat, solve_vec, solve_mat, expm, &
-       &     fast_expm_exchange_2, fast_expm_exchange_3
+       &     fast_expm_exchange_2, fast_expm_exchange_3, &
+       &     rect_expandedmat_x_mat, rect_mat_x_expandedmat
 
   private :: solve_vec_2, solve_vec_3, solve_mat_2, &
        &     solve_mat_3, lu_factorization, lu_substitution, solve_mat_n, &
@@ -68,7 +69,7 @@ contains
 
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_vec',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_vec',0,hook_handle)
 
     if (present(do_top_left_only_in)) then
       do_top_left_only = do_top_left_only_in
@@ -90,7 +91,7 @@ contains
       end do
     end if
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_vec',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_vec',1,hook_handle)
 
   end function mat_x_vec
 
@@ -111,7 +112,7 @@ contains
     integer    :: j1, j2
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:single_mat_x_vec',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:single_mat_x_vec',0,hook_handle)
 
     ! Array-wise assignment
     singlemat_x_vec = 0.0_jprb
@@ -123,7 +124,7 @@ contains
       end do
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:single_mat_x_vec',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:single_mat_x_vec',1,hook_handle)
 
   end function singlemat_x_vec
 
@@ -148,7 +149,7 @@ contains
     integer    :: i_actual_matrix_pattern
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_mat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_mat',0,hook_handle)
 
     if (present(i_matrix_pattern)) then
       i_actual_matrix_pattern = i_matrix_pattern
@@ -203,7 +204,7 @@ contains
       end do
     end if
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_mat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_mat',1,hook_handle)
 
   end function mat_x_mat
 
@@ -224,7 +225,7 @@ contains
     integer    :: j1, j2, j3
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:rect_mat_x_mat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_mat',0,hook_handle)
 
     ! Array-wise assignment
     rect_mat_x_mat = 0.0_jprb
@@ -239,7 +240,7 @@ contains
        end do
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:rect_mat_x_mat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_mat',1,hook_handle)
 
   end function rect_mat_x_mat
 
@@ -260,7 +261,7 @@ contains
     integer    :: j1, j2, j3
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:singlemat_x_mat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:singlemat_x_mat',0,hook_handle)
 
     ! Array-wise assignment
     singlemat_x_mat = 0.0_jprb
@@ -274,7 +275,7 @@ contains
       end do
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:singlemat_x_mat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:singlemat_x_mat',1,hook_handle)
 
   end function singlemat_x_mat
 
@@ -295,7 +296,7 @@ contains
     integer    :: j1, j2, j3
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_singlemat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_singlemat',0,hook_handle)
 
     ! Array-wise assignment
     mat_x_singlemat = 0.0_jprb
@@ -309,9 +310,100 @@ contains
       end do
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:mat_x_singlemat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:mat_x_singlemat',1,hook_handle)
 
   end function mat_x_singlemat
+
+
+  !---------------------------------------------------------------------
+  ! Treat A as an m-by-m matrix and B as n m*s-by-p square matrices
+  ! (with the n dimension varying fastest) and perform matrix
+  ! multiplications on all n matrix pairs, expanding A such that
+  ! element A(i,j) is replaced by A(i,j)*Is, where Is is the s-by-s
+  ! identity matrix.
+  function rect_expandedmat_x_mat(n,m,s,p,A,B)
+
+    use yomhook, only : lhook, dr_hook
+
+    integer,    intent(in)                      :: n, m, s, p
+    real(jprb), intent(in), dimension(m,m)      :: A
+    real(jprb), intent(in), dimension(:,:,:)    :: B
+    real(jprb),             dimension(n,m*s,p) :: rect_expandedmat_x_mat
+
+    integer    :: j1, j3    ! Indices of the unexpanded A
+    integer    :: jj1, jj2  ! Indices of the output matrix
+    integer    :: offset2
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_mat',0,hook_handle)
+
+    ! Array-wise assignment
+    rect_expandedmat_x_mat = 0.0_jprb
+
+    do j1 = 1,m
+      do j3 = 1,m
+        if (A(j1,j3) /= 0.0_jprb) then
+          offset2 = (j3-j1)*s
+          do jj2 = 1,p
+            do jj1 = (j1-1)*s+1, j1*s
+              rect_expandedmat_x_mat(:,jj1,jj2) &
+                   &  = rect_expandedmat_x_mat(:,jj1,jj2) &
+                   &                + A(j1,j3)*B(:,jj1+offset2,jj2)
+            end do
+          end do
+        end if
+      end do
+    end do
+
+    if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_mat',1,hook_handle)
+
+  end function rect_expandedmat_x_mat
+
+
+
+  !---------------------------------------------------------------------
+  ! Treat B as an m-by-m matrix and A as n p-by-m*s square matrices
+  ! (with the n dimension varying fastest) and perform matrix
+  ! multiplications on all n matrix pairs, expanding B such that
+  ! element B(i,j) is replaced by B(i,j)*Is, where Is is the s-by-s
+  ! identity matrix.
+  function rect_mat_x_expandedmat(n,m,s,p,A,B)
+
+    use yomhook, only : lhook, dr_hook
+
+    integer,    intent(in)                      :: n, m, s, p
+    real(jprb), intent(in), dimension(:,:,:)    :: A
+    real(jprb), intent(in), dimension(m,m)      :: B
+
+    real(jprb),             dimension(n,p,m*s) :: rect_mat_x_expandedmat
+    integer    :: j2, j3   ! Indices of the unexpanded B
+    integer    :: jj1, jj2 ! Indices of the output matrix
+    integer    :: offset3
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_expandedmat',0,hook_handle)
+
+    ! Array-wise assignment
+    rect_mat_x_expandedmat = 0.0_jprb
+
+    do j2 = 1,m
+      do j3 = 1,m
+        if (B(j3,j2) /= 0.0_jprb) then
+          offset3 = (j3-j2)*s
+          do jj1 = 1,p
+            do jj2 = (j2-1)*s+1, j2*s
+              rect_mat_x_expandedmat(:,jj1,jj2) = rect_mat_x_expandedmat(:,jj1,jj2) &
+                   &                        + A(:,jj1,jj2+offset3)*B(j3,j2)
+            end do
+          end do
+        end if
+      end do
+    end do
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_expandedmat',1,hook_handle)
+
+  end function rect_mat_x_expandedmat
+
 
 
   !---------------------------------------------------------------------
@@ -329,7 +421,7 @@ contains
     integer    :: j
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:identity_mat_x_mat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:identity_mat_x_mat',0,hook_handle)
 
     if (present(i_matrix_pattern)) then
       identity_minus_mat_x_mat = mat_x_mat(n,iend,m,A,B,i_matrix_pattern)
@@ -343,7 +435,7 @@ contains
            &     = 1.0_jprb + identity_minus_mat_x_mat(1:iend,j,j)
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:identity_mat_x_mat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:identity_mat_x_mat',1,hook_handle)
 
   end function identity_minus_mat_x_mat
 
@@ -812,7 +904,7 @@ contains
     real(jprb)             :: LU(iend,m,m)
     real(jprb)             :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:solve_vec',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:solve_vec',0,hook_handle)
 
     if (m == 2) then
       call solve_vec_2(n,iend,A,b,solve_vec)
@@ -823,7 +915,7 @@ contains
       call lu_substitution(n,iend,m,LU,b,solve_vec)
     end if
 
-    if (lhook) call dr_hook('radiation_matrix:solve_vec',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:solve_vec',1,hook_handle)
 
   end function solve_vec
 
@@ -843,7 +935,7 @@ contains
     real(jprb)              :: solve_mat(iend,m,m)
     real(jprb)              :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:solve_mat',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:solve_mat',0,hook_handle)
 
     if (m == 2) then
       call solve_mat_2(n,iend,A,B,solve_mat)
@@ -853,7 +945,7 @@ contains
       call solve_mat_n(n,iend,m,A,B,solve_mat)
     end if
 
-    if (lhook) call dr_hook('radiation_matrix:solve_mat',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:solve_mat',1,hook_handle)
 
   end function solve_mat
 
@@ -874,7 +966,7 @@ contains
 
     real(jprb)              :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:invert',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:invert',0,hook_handle)
 
     ! if (m == 2) then
     !   ! Reciprocal of determinant; use LU as scratch space
@@ -890,7 +982,7 @@ contains
       call lu_invert(n,iend,m,LU,invert)
     ! end if
 
-    if (lhook) call dr_hook('radiation_matrix:invert',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:invert',1,hook_handle)
 
   end function invert
 
@@ -932,7 +1024,7 @@ contains
 
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:expm',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:expm',0,hook_handle)
 
     normA = 0.0_jprb
 
@@ -1001,7 +1093,7 @@ contains
       end if
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:expm',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:expm',1,hook_handle)
 
   end subroutine expm
 
@@ -1026,7 +1118,7 @@ contains
 
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:fast_expm_exchange_2',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:fast_expm_exchange_2',0,hook_handle)
 
     ! Security to ensure that if a==b==0 then the identity matrix is returned
     factor = (1.0_jprb - exp(-(a(1:iend)+b(1:iend))))/max(1.0e-12_jprb,a(1:iend)+b(1:iend))
@@ -1036,7 +1128,7 @@ contains
     R(1:iend,1,2) = factor*b(1:iend)
     R(1:iend,2,2) = 1.0_jprb - factor*b(1:iend)
 
-    if (lhook) call dr_hook('radiation_matrix:fast_expm_exchange_2',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:fast_expm_exchange_2',1,hook_handle)
 
   end subroutine fast_expm_exchange_2
 
@@ -1081,7 +1173,7 @@ contains
 
     real(jprb) :: hook_handle
 
-    if (lhook) call dr_hook('radiation_matrix:fast_expm_exchange_3',0,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:fast_expm_exchange_3',0,hook_handle)
 
     ! Eigenvalues
     tmp1 = 0.5_jprb * (a(1:iend)+b(1:iend)+c(1:iend)+d(1:iend))
@@ -1121,7 +1213,7 @@ contains
       end do
     end do
 
-    if (lhook) call dr_hook('radiation_matrix:fast_expm_exchange_3',1,hook_handle)
+    if (lhook) call dr_hook('radtool_matrix:fast_expm_exchange_3',1,hook_handle)
 
   end subroutine fast_expm_exchange_3
 

@@ -153,7 +153,8 @@ contains
                &  canopy_props, volume_props, &
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
-               &  bc_out, sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)
+               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+               &  sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)
         end if
 
       case (ITileUrban, ITileVegetatedUrban)
