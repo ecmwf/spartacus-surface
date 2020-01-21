@@ -36,7 +36,8 @@ module radtool_matrix
        &     singlemat_x_mat, mat_x_singlemat, &
        &     identity_minus_mat_x_mat, solve_vec, solve_mat, expm, &
        &     fast_expm_exchange_2, fast_expm_exchange_3, &
-       &     rect_expandedmat_x_mat, rect_mat_x_expandedmat
+       &     rect_expandedmat_x_mat, rect_mat_x_expandedmat, &
+       &     rect_mat_x_mat, rect_mat_x_vec
 
   private :: solve_vec_2, solve_vec_3, solve_mat_2, &
        &     solve_mat_3, lu_factorization, lu_substitution, solve_mat_n, &
@@ -94,6 +95,40 @@ contains
     if (lhook) call dr_hook('radtool_matrix:mat_x_vec',1,hook_handle)
 
   end function mat_x_vec
+
+  
+  !---------------------------------------------------------------------
+  ! Treat A as n k-by-l matrices and B as n l-element vectors (with
+  ! the n dimension varying fastest) and perform matrix-vector
+  ! multiplications on all n pairs
+  function rect_mat_x_vec(n,k,l,A,b)
+
+    use yomhook, only : lhook, dr_hook
+
+    integer,    intent(in)                   :: n, k, l
+    real(jprb), intent(in), dimension(n,k,l) :: A
+    real(jprb), intent(in), dimension(n,l)   :: b
+
+    real(jprb),             dimension(n,k)   :: rect_mat_x_vec
+    integer    :: j1, j2
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_vec',0,hook_handle)
+
+    ! Array-wise assignment
+    rect_mat_x_vec = 0.0_jprb
+
+    ! Ordinary dense matrix
+    do j1 = 1,k
+      do j2 = 1,l
+        rect_mat_x_vec(:,j1) = rect_mat_x_vec(:,j1) &
+             &                  + A(:,j1,j2)*B(:,j2)
+      end do
+    end do
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_vec',1,hook_handle)
+
+  end function rect_mat_x_vec
 
 
   !---------------------------------------------------------------------
@@ -316,11 +351,10 @@ contains
 
 
   !---------------------------------------------------------------------
-  ! Treat A as an m-by-m matrix and B as n m*s-by-p square matrices
-  ! (with the n dimension varying fastest) and perform matrix
-  ! multiplications on all n matrix pairs, expanding A such that
-  ! element A(i,j) is replaced by A(i,j)*Is, where Is is the s-by-s
-  ! identity matrix.
+  ! Treat A as an m-by-m matrix and B as n m*s-by-p matrices (with the
+  ! n dimension varying fastest) and perform matrix multiplications on
+  ! all n matrix pairs, expanding A such that element A(i,j) is
+  ! replaced by A(i,j)*Is, where Is is the s-by-s identity matrix.
   function rect_expandedmat_x_mat(n,m,s,p,A,B)
 
     use yomhook, only : lhook, dr_hook
@@ -362,11 +396,10 @@ contains
 
 
   !---------------------------------------------------------------------
-  ! Treat B as an m-by-m matrix and A as n p-by-m*s square matrices
-  ! (with the n dimension varying fastest) and perform matrix
-  ! multiplications on all n matrix pairs, expanding B such that
-  ! element B(i,j) is replaced by B(i,j)*Is, where Is is the s-by-s
-  ! identity matrix.
+  ! Treat B as an m-by-m matrix and A as n p-by-m*s matrices (with the
+  ! n dimension varying fastest) and perform matrix multiplications on
+  ! all n matrix pairs, expanding B such that element B(i,j) is
+  ! replaced by B(i,j)*Is, where Is is the s-by-s identity matrix.
   function rect_mat_x_expandedmat(n,m,s,p,A,B)
 
     use yomhook, only : lhook, dr_hook
@@ -404,6 +437,49 @@ contains
 
   end function rect_mat_x_expandedmat
 
+
+
+  !---------------------------------------------------------------------
+  ! Treat A as an m-by-m matrix and B as n m*s vectors (with the n
+  ! dimension varying fastest) and perform matrix-vector
+  ! multiplications on all n pairs, expanding A such that element
+  ! A(i,j) is replaced by A(i,j)*Is, where Is is the s-by-s identity
+  ! matrix.
+  function rect_expandedmat_x_vec(n,m,s,A,b)
+
+    use yomhook, only : lhook, dr_hook
+
+    integer,    intent(in)                   :: n, m, s
+    real(jprb), intent(in), dimension(m,m)   :: A
+    real(jprb), intent(in), dimension(:,:)   :: b
+    real(jprb),             dimension(n,m*s) :: rect_expandedmat_x_vec
+
+    integer    :: j1, j3    ! Indices of the unexpanded A
+    integer    :: jj1       ! Indices of the output vector
+    integer    :: offset2
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_vec',0,hook_handle)
+
+    ! Array-wise assignment
+    rect_expandedmat_x_vec = 0.0_jprb
+
+    do j1 = 1,m
+      do j3 = 1,m
+        if (A(j1,j3) /= 0.0_jprb) then
+          offset2 = (j3-j1)*s
+          do jj1 = (j1-1)*s+1, j1*s
+            rect_expandedmat_x_vec(:,jj1) &
+                 &  = rect_expandedmat_x_vec(:,jj1) &
+                 &          + A(j1,j3)*b(:,jj1+offset2)
+          end do
+        end if
+      end do
+    end do
+
+    if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_vec',1,hook_handle)
+
+  end function rect_expandedmat_x_vec
 
 
   !---------------------------------------------------------------------

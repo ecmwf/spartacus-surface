@@ -28,10 +28,10 @@ contains
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radtool_calc_matrices_sw_eig,only: calc_matrices_sw_eig
     use radiation_constants,        only : Pi
-    use radtool_matrix,             only : identity_minus_mat_x_mat, mat_x_mat, &
-         &                                 solve_mat, rect_mat_x_mat, & 
-         &                                 rect_expandedmat_x_mat, &
-         &                                 rect_mat_x_expandedmat
+    use radtool_matrix,             only : identity_minus_mat_x_mat, &
+         &  mat_x_mat, singlemat_x_vec, mat_x_vec, rect_mat_x_vec, &
+         &  solve_mat, rect_mat_x_mat, rect_expandedmat_x_mat, &
+         &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec
     use radsurf_overlap,            only : calc_overlap_matrices
 
     use print_matrix_mod
@@ -118,9 +118,24 @@ contains
     real(kind=jprb) :: d_below(nsw,nreg*ns,nreg,2:nlay+1)
 
     ! Denominator matrix used in the matrix adding method
-    real(kind=jprb) :: denominator(nsw,nreg*ns,nreg*ns)
+    real(kind=jprb) :: denominator(nsw,nreg*ns,nreg*ns,nlay)
 
+    ! Directional overlap matrices expressing how the fluxes in each
+    ! region of one layer pass into the layer above (u_overlap) or
+    ! below (v_overlap)
     real(kind=jprb), dimension(nreg,nreg,nlay+1) :: u_overlap, v_overlap
+
+    ! Fluxes just above or just below a layer interface, normalized by
+    ! either the downwelling diffuse or downwelling direct flux at
+    ! canopy top
+    real(kind=jprb), dimension(nsw,nreg*ns) &
+         &  :: flux_dn_diff_above, flux_up_above, &
+         &     flux_dn_diff_below, flux_up_below
+    real(kind=jprb), dimension(nsw,nreg) &
+         &  :: flux_dn_dir_above, flux_dn_dir_below
+    ! Reflected direct flux just above a layer interface, used as an
+    ! intermediate variable in the final part of the algorithm
+    real(kind=jprb), dimension(nsw,nreg*ns) :: flux_reflected_dir
     
     ! Loop counters
     integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js, js_fr, js_to
@@ -143,6 +158,10 @@ contains
          &  veg_sw_ext   => volume_props%veg_sw_ext(:,ilay1:ilay2), &
          &  veg_sw_ssa   => volume_props%veg_sw_ssa(:,ilay1:ilay2))
 
+      ! --------------------------------------------------------
+      ! Section 1: Prepare general variables and arrays
+      ! --------------------------------------------------------
+      
       ! Tangent of solar zenith angle
       tan0 = sqrt(1.0_jprb - cos_sza*cos_sza) / max(cos_sza,1.0e-6_jprb)
 
@@ -156,10 +175,16 @@ contains
       call calc_overlap_matrices(nlay,nreg,frac,u_overlap,v_overlap, &
            &  config%min_vegetation_fraction);
       
+      ! --------------------------------------------------------
+      ! Section 2: First loop over layers
+      ! --------------------------------------------------------
       ! Loop up through the canopy computing the Gamma matrices, and
       ! from those the transmission and reflection matrices
       do jlay = 1,nlay
 
+        ! --------------------------------------------------------
+        ! Section 2a: Prepare the properties of the current layer
+        ! --------------------------------------------------------
         ! Compute the extinction coefficient and single-scattering
         ! albedo of each region
         ext_reg(:,1) = air_sw_ext(:,jlay)
@@ -256,6 +281,9 @@ contains
         call print_matrix('f_exchange',f_exchange)
         call print_vector('tan_ang',lg%tan_ang)
         
+        ! --------------------------------------------------------
+        ! Section 2b: Compute Gamma matrices
+        ! --------------------------------------------------------
         ! Compute the Gamma matrices representing exchange of direct
         ! and diffuse radiation between regions (gamma0 and gamma1
         ! respectively)
@@ -322,7 +350,9 @@ contains
         call print_matrix('gamma2',gamma2(1,:,:))
         call print_matrix('gamma3',gamma3(1,:,:))
         
-        ! Compute reflection/transmission matrices for this layer
+        ! --------------------------------------------------------
+        ! Section 2c: Compute reflection/transmission matrices for this layer
+        ! --------------------------------------------------------
         call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
              &  gamma0, gamma1, gamma2, gamma3, &
              &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
@@ -331,6 +361,9 @@ contains
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
 
+      ! --------------------------------------------------------
+      ! Section 3: Albedo of scene at each layer interface
+      ! --------------------------------------------------------
       ! Set the surface albedo
       a_above = 0.0_jprb
       d_above = 0.0_jprb
@@ -348,16 +381,16 @@ contains
       d_below = 0.0_jprb
       do jlay = 1,nlay
         ! Adding method
-        denominator = identity_minus_mat_x_mat(nsw,nsw,nreg*ns, &
+        denominator(:,:,:,jlay) = identity_minus_mat_x_mat(nsw,nsw,nreg*ns, &
              &  a_above(:,:,:,jlay), ref_diff(:,:,:,jlay))
         a_below(:,:,:,jlay+1) = ref_diff(:,:,:,jlay) &
              &  + mat_x_mat(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay), &
-             &  solve_mat(nsw,nsw,nreg*ns,denominator, &
+             &  solve_mat(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
              &  mat_x_mat(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
              &  trans_diff(:,:,:,jlay))))
         d_below(:,:,:,jlay+1) = ref_dir(:,:,:,jlay) &
              &  + rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,trans_diff(:,:,:,jlay), &
-             &  solve_mat(nsw,nsw,nreg*ns,denominator, &
+             &  solve_mat(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
              &    rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_above(:,:,:,jlay), &
              &                       trans_dir_dir(:,:,:,jlay)) &
              &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
@@ -393,6 +426,47 @@ contains
         top_sw_albedo(:) = top_sw_albedo(:) + lg%hweight(js) * a_above(:,js,js,nlay+1)
       end do
       top_sw_albedo_direct = d_above(:,1,1,nlay+1)
+
+      ! --------------------------------------------------------
+      ! Section 4: Compute normalized flux profile
+      ! --------------------------------------------------------
+
+      ! First the fluxes normalized by the direct downwelling flux at
+      ! canopy top.
+
+      ! Initial normalized flux is therefore 1 in each spectral
+      ! interval, so just below the interface between the top layer
+      ! and the free atmosphere it is equal to the fractional coverage
+      ! of each region
+      flux_dn_dir_above(:,1)  = 1.0_jprb
+      flux_dn_dir_above(:,2:) = 0.0_jprb
+      flux_dn_diff_above      = 0.0_jprb
+      
+      ! Loop down through layers
+      do jlay = nlay,1,-1
+        ! Translate the downwelling flux component across the
+        ! interface at the top of the layer
+        flux_dn_dir_below = singlemat_x_vec(nsw,nsw,nreg, &
+             &  v_overlap(:,:,jlay+1), flux_dn_dir_above)
+        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,ns, &
+             &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
+        ! Compute fluxes at base of layer
+        flux_dn_dir_above = mat_x_vec(nsw,nsw,nreg, &
+             &  trans_dir_dir(:,:,:,jlay), flux_dn_dir_below)
+
+        flux_reflected_dir = rect_mat_x_vec(nsw,nreg*ns,nreg, &
+             &  d_above(:,:,:,jlay), flux_dn_dir_above)
+
+        flux_dn_diff_above = solve_vec(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
+             &  mat_x_vec(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay),flux_dn_diff_below) &
+             &  + mat_x_vec(nsw,nsw,nreg*ns,ref_diff(:,:,:,jlay),flux_reflected_dir) &
+             &  + rect_mat_x_vec(nsw,nreg*ns,nreg,trans_dir_diff(:,:,:,jlay), &
+             &                   flux_dn_dir_below))
+        flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
+             &  flux_dn_diff_above) + flux_reflected_dir
+
+      end do
+      
       
     end associate
 
