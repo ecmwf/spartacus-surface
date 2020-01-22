@@ -23,5 +23,5 @@ clean:
 
 radtool_legendre_gauss.o: radiation_constants.o
 radtool_calc_matrices_sw_eig.o radtool_calc_matrices_lw_eig.o: \
-	radtool_matrix.o radtool_eigen_decomposition.o
+	radtool_matrix.o radtool_eigen_decomposition.o radtool_schur.o
 radtool_schur.o: radtool_matrix.o
