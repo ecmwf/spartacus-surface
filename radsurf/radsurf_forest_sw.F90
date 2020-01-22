@@ -462,11 +462,9 @@ contains
       ! First the fluxes normalized by the direct downwelling flux at
       ! canopy top.
 
-      ! Initial normalized flux is therefore 1 in each spectral
-      ! interval, so just below the interface between the top layer
-      ! and the free atmosphere it is equal to the fractional coverage
-      ! of each region
-      flux_dn_dir_above(:,1)  = 1.0_jprb
+      ! Initial normalized direct flux is therefore 1 in each spectral
+      ! interval
+      flux_dn_dir_above(:,1)  = 1.0_jprb / cos_sza
       flux_dn_dir_above(:,2:) = 0.0_jprb
       flux_dn_diff_above      = 0.0_jprb
       
@@ -504,10 +502,8 @@ contains
              &                   - flux_dn_diff_above - flux_up_below + flux_up_above) &
              &  + rect_mat_x_vec(nsw,nreg*ns,nreg,int_dir_diff(:,:,:,jlay), &
              &                   flux_dn_dir_below - flux_dn_dir_above)
-        call print_vector('int_flux_dir', int_flux_dir(1,:))
-        call print_vector('int_flux_diff', int_flux_diff(1,:))
-        ilay = ilay1 + jlay - 1
 
+        ilay = ilay1 + jlay - 1
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
              &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
@@ -531,15 +527,90 @@ contains
         print *, 'LAYER ', jlay
         call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
         call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
-!        call print_vector('  flux_up_below ', flux_up_below(1,:))
         call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
         call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
         call print_vector('  flux_up_above ', flux_up_above(1,:))
       end do
+      sw_norm_dir%ground_dn_direct(:,icol) = sum(flux_dn_dir_above,2)
+      sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_direct(:,icol) &
+           &  + sum(flux_dn_diff_above,2)
+      sw_norm_dir%ground_net(:,icol) = sw_norm_dir%ground_dn(:,icol) &
+           &  - sum(flux_up_above,2)
+
+      ! Second the fluxes normalized by the diffuse downwelling flux
+      ! at canopy top.
+
+      ! Initial normalized diffuse flux sums to 1 in each stream, in
+      ! each spectral interval, so use the Legendre-Gauss horizontal
+      ! weights
+      flux_dn_dir_above          = 0.0_jprb ! No direct calculation now needed below
+      flux_dn_diff_above         = 0.0_jprb
+      flux_dn_diff_above(:,1:ns) = spread(lg%hweight,nsw,1)
       
+      ! Loop down through layers
+      do jlay = nlay,1,-1
+        ! Translate the downwelling flux component across the
+        ! interface at the top of the layer
+        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,ns, &
+             &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
+        flux_up_below = mat_x_vec(nsw,nsw,nreg*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below) 
+        ! Compute fluxes at base of layer
+        flux_dn_diff_above = solve_vec(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
+             &  mat_x_vec(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay),flux_dn_diff_below) &
+             &  + mat_x_vec(nsw,nsw,nreg*ns,ref_diff(:,:,:,jlay),flux_reflected_dir))
+        flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
+             &  flux_dn_diff_above)
+
+        ! Compute integrated flux vectors, recalling that _above means
+        ! above the just above the *base* of the layer, and _below
+        ! means just below the *top* of the layer
+        int_flux_diff= mat_x_vec(nsw,nsw,nreg*ns,int_diff(:,:,:,jlay), flux_dn_diff_below &
+             &                   - flux_dn_diff_above - flux_up_below + flux_up_above)
+
+        ilay = ilay1 + jlay - 1
+        ! Absorption by clear-air region - see Eqs. 29 and 30
+        sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
+             &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
+             &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2)
+        do jreg = 2,nreg
+          ! Absorption by clear-air in the vegetated regions
+          sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
+               &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+               &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
+          sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
+               &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+               &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
+        end do
+
+        print *, 'DIFFUSE'
+        print *, 'LAYER ', jlay
+        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        call print_vector('  flux_up_above ', flux_up_above(1,:))
+      end do
+      sw_norm_diff%ground_dn_direct(:,icol) = 0.0_jprb
+      sw_norm_diff%ground_dn(:,icol) = sum(flux_dn_diff_above,2)
+      sw_norm_diff%ground_net(:,icol) = sw_norm_diff%ground_dn(:,icol) &
+           &  - sum(flux_up_above,2)
+    
+        print *, 'DIRECT'
       call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
       call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
       call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
+      call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
+      call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
+      call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
+
+        print *, 'DIFFUSE'
+      call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
+      call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
+      call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
+      call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
+      call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
+      call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
+
 
     end associate
 

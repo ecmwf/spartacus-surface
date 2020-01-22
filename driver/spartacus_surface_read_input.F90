@@ -239,7 +239,7 @@ contains
         allocate(volume_props%air_sw_ext(config%nsw, ntotlay))
         volume_props%air_sw_ext = 1.0e-5_jprb
         allocate(volume_props%air_sw_ssa(config%nsw, ntotlay))
-        volume_props%air_sw_ssa = 1.0_jprb
+        volume_props%air_sw_ssa = 0.999_jprb
       end if
 
     end if
