@@ -12,7 +12,7 @@ module radsurf_forest_sw
 contains
 
   subroutine spartacus_forest_sw(config, &
-       &  nsw, ns, nreg, nlay, ilay1, ilay2, &
+       &  nsw, ns, nreg, nlay, icol, ilay1, ilay2, &
        &  lg, cos_sza, &
        &  canopy_props, volume_props, &
        &  ground_sw_albedo, ground_sw_albedo_direct, &
@@ -41,8 +41,8 @@ contains
     type(config_type),             intent(in)  :: config
     ! Number of spectral intervals, number of layers
     integer(kind=jpim),            intent(in)  :: nsw, nlay
-    ! Index of first and last layer of the current column
-    integer(kind=jpim),            intent(in)  :: ilay1, ilay2
+    ! Index of current column and first and last layer of the current column
+    integer(kind=jpim),            intent(in)  :: icol, ilay1, ilay2
     ! Number of regions, number of diffuse streams in each hemisphere
     integer(kind=jpim),            intent(in)  :: nreg, ns
     ! Legendre-Gauss coefficients
@@ -54,7 +54,7 @@ contains
     type(volume_properties_type),  intent(in)  :: volume_props
     real(kind=jprb), dimension(nsw),intent(in) :: ground_sw_albedo, ground_sw_albedo_direct
     real(kind=jprb), dimension(nsw),intent(out):: top_sw_albedo, top_sw_albedo_direct
-    type(canopy_flux_type),        intent(out), optional &
+    type(canopy_flux_type),        intent(inout), optional &
          &  :: sw_norm_dir, &  ! SW fluxes normalized by top-of-canopy direct
          &     sw_norm_diff, & ! SW fluxes normalized by top-of-canopy diffuse
          &     lw_internal, &  ! LW fluxes from internal emission
@@ -104,7 +104,7 @@ contains
 
     ! Optical depth scaling of vegetation optical depth to represent
     ! inhomogeneity
-    real(kind=jprb) :: od_scaling(2:nreg)
+    real(kind=jprb) :: od_scaling(2:nreg,nlay)
 
     ! Diffuse and direct albedo matrices just above and below each
     ! interface. The "above" albedos include surface (interface=1) and
@@ -137,8 +137,29 @@ contains
     ! intermediate variable in the final part of the algorithm
     real(kind=jprb), dimension(nsw,nreg*ns) :: flux_reflected_dir
     
+    ! The following matrices are defined such that the integrated
+    ! diffuse flux (u_hat+v_hat in Eq. 29) is
+    !   int_diff * (u_conv+v_conv) + int_dir_diff * s_conv
+    ! where u_conv+v_conv is the convergence of diffuse fluxes into
+    ! the layer, i.e. the sum of the fluxes entering the layer from
+    ! the top or base, minus the fluxes leaving the layer from top or
+    ! base, and s_conv is the convergence of direct fluxes into the
+    ! layer, i.e. the direct flux at layer top minus the direct flux
+    ! at layer base. Likewise, the integrated direct flux is 
+    !   int_diff * s_conv
+    real(kind=jprb) &
+         &  :: int_diff(nsw,nreg*ns,nreg*ns,nlay), &
+         &     int_dir(nsw,nreg,nreg,nlay), &
+         &     int_dir_diff(nsw,nreg*ns,nreg,nlay)
+
+    ! Integrated diffuse and direct fluxes across a layer
+    real(kind=jprb) :: int_flux_diff(nsw,nreg*ns), int_flux_dir(nsw,nreg)
+
     ! Loop counters
     integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js, js_fr, js_to
+
+    ! Index to layer inside canopy_flux object
+    integer(kind=jpim) :: ilay
 
     ! Index to the matrix dimension expressing regions "from" and "to"
     ! in combination with a particular stream
@@ -193,18 +214,19 @@ contains
           ext_reg(:,2) = air_sw_ext(:,jlay) + veg_sw_ext(:,jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
+          od_scaling(2,jlay) = 1.0_jprb
         else
           ! Approximate method to approximate a Gamma distribution
-          od_scaling(2) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
+          od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
-          od_scaling(3) = 2.0_jprb - od_scaling(2)
-          ext_reg(:,2) = air_sw_ext(:,jlay) + od_scaling(2)*veg_sw_ext(:,jlay)
-          ext_reg(:,3) = air_sw_ext(:,jlay) + od_scaling(3)*veg_sw_ext(:,jlay)
+          od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
+          ext_reg(:,2) = air_sw_ext(:,jlay) + od_scaling(2,jlay)*veg_sw_ext(:,jlay)
+          ext_reg(:,3) = air_sw_ext(:,jlay) + od_scaling(3,jlay)*veg_sw_ext(:,jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(2)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &          + od_scaling(2,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(3)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &          + od_scaling(3,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
 
@@ -357,7 +379,9 @@ contains
              &  gamma0, gamma1, gamma2, gamma3, &
              &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
              &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
-             &  trans_dir_dir(:,:,:,jlay))
+             &  trans_dir_dir(:,:,:,jlay), &
+             &  int_dir(:,:,:,jlay), int_diff(:,:,:,jlay), &
+             &  int_dir_diff(:,:,:,jlay))
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
 
@@ -431,6 +455,10 @@ contains
       ! Section 4: Compute normalized flux profile
       ! --------------------------------------------------------
 
+      ! Set to the flux components to zero initially
+      call sw_norm_diff%zero(icol, ilay1, ilay2)
+      call sw_norm_dir%zero( icol, ilay1, ilay2)
+
       ! First the fluxes normalized by the direct downwelling flux at
       ! canopy top.
 
@@ -450,6 +478,8 @@ contains
              &  v_overlap(:,:,jlay+1), flux_dn_dir_above)
         flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,ns, &
              &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
+        flux_up_below = mat_x_vec(nsw,nsw,nreg*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below) &
+             &  + rect_mat_x_vec(nsw,nreg*ns,nreg,d_below(:,:,:,jlay+1),flux_dn_dir_below)
         ! Compute fluxes at base of layer
         flux_dn_dir_above = mat_x_vec(nsw,nsw,nreg, &
              &  trans_dir_dir(:,:,:,jlay), flux_dn_dir_below)
@@ -465,9 +495,52 @@ contains
         flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
              &  flux_dn_diff_above) + flux_reflected_dir
 
+        ! Compute integrated flux vectors, recalling that _above means
+        ! above the just above the *base* of the layer, and _below
+        ! means just below the *top* of the layer
+        int_flux_dir = mat_x_vec(nsw,nsw,nreg,int_dir(:,:,:,jlay), &
+             &                   flux_dn_dir_below - flux_dn_dir_above)
+        int_flux_diff= mat_x_vec(nsw,nsw,nreg*ns,int_diff(:,:,:,jlay), flux_dn_diff_below &
+             &                   - flux_dn_diff_above - flux_up_below + flux_up_above) &
+             &  + rect_mat_x_vec(nsw,nreg*ns,nreg,int_dir_diff(:,:,:,jlay), &
+             &                   flux_dn_dir_below - flux_dn_dir_above)
+        call print_vector('int_flux_dir', int_flux_dir(1,:))
+        call print_vector('int_flux_diff', int_flux_diff(1,:))
+        ilay = ilay1 + jlay - 1
+
+        ! Absorption by clear-air region - see Eqs. 29 and 30
+        sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
+             &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
+             &    * (int_flux_dir(:,1) & ! / cos_sza &
+             &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
+        do jreg = 2,nreg
+          ! Absorption by clear-air in the vegetated regions
+          sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
+               &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+               &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+               &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
+          sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
+               &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+               &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+               &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
+        end do
+
+        print *, 'DIRECT'
+        print *, 'LAYER ', jlay
+        call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
+        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+!        call print_vector('  flux_up_below ', flux_up_below(1,:))
+        call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
+        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        call print_vector('  flux_up_above ', flux_up_above(1,:))
       end do
       
-      
+      call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
+      call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
+      call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
+
     end associate
 
     if (lhook) call dr_hook('radsurf_forest_sw:spartacus_forest_sw',1,hook_handle)

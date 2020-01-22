@@ -23,14 +23,15 @@ contains
   ! of radiative transfer in complex urban canopies).
   subroutine calc_matrices_sw_eig(nmat, ndiff, ndir, dz, mu0, &
        &  gamma0, gamma1, gamma2, gamma3, &
-       &  reflectance, transmittance, s_up, s_dn, trans_dir)
+       &  reflectance, transmittance, s_up, s_dn, trans_dir, &
+       &  int_dir, int_diff, int_dir_diff)
 
     use parkind1, only : jprb
 
     use radtool_matrix, only : mat_x_mat, rect_mat_x_mat, mat_x_vec, &
          &                     invert, solve_mat, solve_vec, solve_rect_mat
-
     use radtool_eigen_decomposition, only : eigen_decomposition_real
+    use radtool_schur, only : schur_invert_sw
 
     implicit none
 
@@ -75,7 +76,20 @@ contains
     real(kind=jprb), intent(out), dimension(nmat,ndiff, ndir) &
          &  :: s_up, s_dn
     real(kind=jprb), intent(out), dimension(nmat,ndir,ndir) :: trans_dir
-
+    ! The following matrices are defined such that the integrated
+    ! diffuse flux (u_hat+v_hat in Eq. 29) is
+    !   int_diff * (u_conv+v_conv) + int_dir_diff * s_conv
+    ! where u_conv+v_conv is the convergence of diffuse fluxes into
+    ! the layer, i.e. the sum of the fluxes entering the layer from
+    ! the top or base, minus the fluxes leaving the layer from top or
+    ! base, and s_conv is the convergence of direct fluxes into the
+    ! layer, i.e. the direct flux at layer top minus the direct flux
+    ! at layer base. Likewise, the integrated direct flux is 
+    !   int_diff * s_conv
+    real(kind=jprb), intent(out), optional &
+         &  :: int_diff(nmat,ndiff,ndiff), &
+         &     int_dir(nmat,ndir,ndir), &
+         &     int_dir_diff(nmat,ndiff,ndir)
     
     ! Local variables
 
@@ -128,6 +142,19 @@ contains
 
     real(kind=jprb), dimension(nmat,ndiff,ndir) :: g3_d_inv_g0, g4_inv_g0
     
+    ! If the full gamma matrix is
+    !        gamma = [ -gamma1  -gamma2  -gamma3  ]
+    !                [  gamma2   gamma1   gamma3  ]
+    !                [                    gamma0  ]
+    ! then its inverse is
+    !   inv(gamma) = [ -gamma1i -gamma2i -gamma3i ]
+    !                [  gamma2i  gamma1i -gamma3i ]
+    !                [                    gamma0i ]
+    ! and may be computed efficiently via the Schur-complement method
+    real(kind=jprb), dimension(nmat,ndir,ndir)   :: gamma0i
+    real(kind=jprb), dimension(nmat,ndiff,ndiff) :: gamma1i, gamma2i
+    real(kind=jprb), dimension(nmat,ndiff,ndir)  :: gamma3i
+
     ! Temporary vector and matrix
     real(kind=jprb), dimension(nmat,ndiff) :: tmp_vec
     real(kind=jprb), dimension(nmat,ndiff,ndiff) :: tmp_mat
@@ -183,7 +210,6 @@ contains
          &        + mat_x_mat(nmat,nmat,ndiff,g2,  cprime_lower)
     transmittance = mat_x_mat(nmat,nmat,ndiff,g2  ,cprime_upper) &
          &        + mat_x_mat(nmat,nmat,ndiff,g1_d,cprime_lower)
-
 
     ! Section 3: Direct transmittance matrix: the matrix exponential
     ! of gamma0, which we compute using eigen-decomposition
@@ -251,6 +277,15 @@ contains
 
 #endif
     
+    if (present(int_dir) .or. present(int_diff) &
+         &                    .or. present(int_dir_diff)) then
+      call schur_invert_sw(nmat,ndir,ndiff,gamma0, gamma1, gamma2, gamma3, &
+           &                               gamma0i,gamma1i,gamma2i,gamma3i)
+      int_dir      = -gamma0i
+      int_diff     = gamma2i - gamma1i
+      int_dir_diff = 2.0_jprb * gamma3i
+    end if
+
   end subroutine calc_matrices_sw_eig
 
 

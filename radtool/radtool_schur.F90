@@ -9,6 +9,9 @@
 
 module radtool_schur
 
+
+contains
+
   !---------------------------------------------------------------------
   ! Use the Schur complement method to invert the Gamma matrix
   ! occurring in the shortwave SPARTACUS method.  If 
@@ -20,9 +23,6 @@ module radtool_schur
   !            [  g2i  g1i -g3i ]
   !            [            g0i ]
   !
-
-contains
-
   subroutine schur_invert_sw(nmat, n0, n1, g0, g1, g2, g3, g0i, g1i, g2i, g3i)
     
     use parkind1, only : jprb, jpim
