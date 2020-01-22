@@ -96,6 +96,9 @@ driver:
 test:
 	cd test && $(MAKE) test
 
+test_code:
+	cd driver && $(MAKE) test_code
+
 clean: clean-tests clean-toplevel clean-utilities clean-mods
 
 clean-tests:

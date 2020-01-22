@@ -7,11 +7,13 @@ EXECUTABLE = ../bin/spartacus_surface
 
 all: $(EXECUTABLE)
 
+test_code: $(TEST)
+
 $(EXECUTABLE): $(OBJECTS) ../lib/*.a
 	$(FC) $(OBJECTS) $(LIBS) -o $(EXECUTABLE)
 
-$(TEST): $(TEST).F90 $(OBJECTS) ../lib/*.a
-	$(FC) $(FCFLAGS) $(TEST).F90 $(OBJECTS) $(LIBS) -o $(TEST)
+$(TEST): $(TEST).F90 ../lib/*.a
+	$(FC) $(FCFLAGS) $(TEST).F90 $(LIBS) -o $(TEST)
 
 %.o: %.F90 ../mod/*.mod
 	$(FC) $(FCFLAGS) -c $<
