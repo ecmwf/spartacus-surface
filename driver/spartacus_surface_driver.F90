@@ -29,7 +29,7 @@ program spartacus_surface_driver
   use spartacus_surface_read_input, only : read_input
   use radsurf_canopy_flux,          only : canopy_flux_type
   use radsurf_interface,            only : radsurf
-
+  use radsurf_save,                 only : save_canopy_fluxes
   use easy_netcdf
 
   implicit none
@@ -40,7 +40,17 @@ program spartacus_surface_driver
   type(facet_properties_type)  :: facet_props
   type(volume_properties_type) :: volume_props
   type(boundary_conds_out_type):: bc_out
+  ! Canopy flux components, the last three normalized by top-of-canopy
+  ! downwelling
   type(canopy_flux_type)       :: lw_internal, lw_norm, sw_norm_diff, sw_norm_dir
+  ! Total canopy fluxes
+  type(canopy_flux_type)       :: lw_flux, sw_flux
+
+  ! Top-of-canopy downward radiation, all dimensioned (nspec,ncol)
+  real(kind=jprb), allocatable &
+       &  :: top_flux_dn_sw(:,:), &        ! Total shortwave (direct+diffuse)
+       &     top_flux_dn_direct_sw(:,:), & ! ...diffuse only
+       &     top_flux_dn_lw(:,:)           ! longwave
 
   ! Configuration specific to this driver
   type(driver_config_type)     :: driver_config
@@ -105,7 +115,8 @@ program spartacus_surface_driver
 
   ! Read input variables from NetCDF file
   call read_input(file, config, driver_config, ncol, ntotlay, &
-       &  canopy_props, facet_props, volume_props)
+       &  canopy_props, facet_props, volume_props, &
+       &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw)
 
   ! Set first and last columns to process
   if (driver_config%iendcol < 1 .or. driver_config%iendcol > ncol) then
@@ -124,10 +135,12 @@ program spartacus_surface_driver
   if (config%do_sw) then
     call sw_norm_dir%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
     call sw_norm_diff%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
+    call sw_flux%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
   end if
   if (config%do_lw) then
     call lw_internal%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
     call lw_norm%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
+    call lw_flux%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
   end if
   
   ! --------------------------------------------------------
@@ -166,7 +179,7 @@ program spartacus_surface_driver
              &       lw_internal, lw_norm)
         
       end do
-        !$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
         
     else
       ! Run radiation scheme serially
@@ -181,11 +194,25 @@ program spartacus_surface_driver
       
     end if
 
+    ! Scale the normalized fluxes
+    if (config%do_sw) then
+      call sw_norm_dir%scale(canopy_props%nlay, top_flux_dn_direct_sw)
+      call sw_norm_diff%scale(canopy_props%nlay, &
+           &  top_flux_dn_sw - top_flux_dn_direct_sw)
+      call sw_flux%sum(sw_norm_dir, sw_norm_diff)
+    end if
+
+    if (config%do_lw) then
+      call lw_norm%scale(canopy_props%nlay, top_flux_dn_lw)
+      call lw_flux%sum(lw_internal, lw_norm)
+    end if
+
   end do
 
   ! --------------------------------------------------------
   ! Section 5: Check and save output
   ! --------------------------------------------------------
-
+  call save_canopy_fluxes(trim(file_name), config, canopy_props, &
+       &  sw_flux, lw_flux, iverbose=driver_config%iverbose)
 
 end program spartacus_surface_driver

@@ -46,11 +46,13 @@ module radsurf_canopy_flux
     procedure :: deallocate => deallocate_canopy_flux
     procedure :: scale      => scale_canopy_flux
     procedure :: zero       => zero_canopy_flux
+    procedure :: sum        => sum_canopy_flux
 
   end type canopy_flux_type
 
 contains
 
+  !---------------------------------------------------------------------
   subroutine allocate_canopy_flux(this, ncol, ntotlay, nspec, use_direct)
 
     class(canopy_flux_type), intent(inout) :: this
@@ -80,8 +82,13 @@ contains
     allocate(this%veg_abs(nspec,ntotlay))
     allocate(this%veg_air_abs(nspec,ntotlay))
 
+    this%nspec   = nspec
+    this%ncol    = ncol
+    this%ntotlay = ntotlay
+
   end subroutine allocate_canopy_flux
 
+  !---------------------------------------------------------------------
   subroutine deallocate_canopy_flux(this)
 
     class(canopy_flux_type), intent(inout) :: this
@@ -99,36 +106,63 @@ contains
 
   end subroutine deallocate_canopy_flux
   
+  !---------------------------------------------------------------------
   ! Typically the canopy_flux object initially contains normalized
   ! fluxes, e.g. for a top-of-canopy downwelling flux of unity.  Once
   ! the top-of-canopy downwelling flux is known, the canopy fluxes can
   ! be scaled.
-  subroutine scale_canopy_flux(this, factor)
-   
-    class(canopy_flux_type), intent(inout) :: this
-    real(kind=jprb),         intent(in)    :: factor
+  subroutine scale_canopy_flux(this, nlay, factor)
 
+    use radiation_io, only : nulerr, radiation_abort
+
+    class(canopy_flux_type), intent(inout) :: this
+    integer(kind=jpim),      intent(in)    :: nlay(:)     ! (ncol)
+    real(kind=jprb),         intent(in)    :: factor(:,:) ! (nspec,ncol)
+
+    integer(kind=jpim) :: ncol, istartcol, jcol
+
+    ! Index from layer to column
+    integer(kind=jpim) :: indcol(this%ntotlay)
+
+    if (ubound(factor,1) /= this%nspec) then
+      write(nulerr,'(a)') '*** Error: spectral resolution mismatch when scaling canopy fluxes'
+      print *, ubound(factor,1), this%nspec
+      call radiation_abort()
+    end if
+
+    ncol = this%ncol
+
+    ! Assign indices from layer to column
+    istartcol = 1
+    do jcol = 1,ncol
+      if (nlay(jcol) > 0) then
+        indcol(istartcol:istartcol-1+nlay(jcol)) = jcol
+        istartcol = istartcol + nlay(jcol)
+      end if
+    end do
+    
     this%ground_dn        = factor * this%ground_dn
     this%ground_net       = factor * this%ground_net
     if (allocated(this%ground_dn_direct)) then
       this%ground_dn_direct = factor * this%ground_dn_direct
     end if
     if (allocated(this%roof_in)) then
-      this%roof_in  = factor * this%roof_in
-      this%roof_net = factor * this%roof_net
-      this%wall_in  = factor * this%wall_in
-      this%wall_net = factor * this%wall_net
+      this%roof_in  = factor(:,indcol) * this%roof_in
+      this%roof_net = factor(:,indcol) * this%roof_net
+      this%wall_in  = factor(:,indcol) * this%wall_in
+      this%wall_net = factor(:,indcol) * this%wall_net
     end if
     if (allocated(this%clear_air_abs)) then
-      this%clear_air_abs = factor * this%clear_air_abs
+      this%clear_air_abs = factor(:,indcol) * this%clear_air_abs
     end if
     if (allocated(this%veg_abs)) then
-      this%veg_abs     = factor * this%veg_abs
-      this%veg_air_abs = factor * this%veg_air_abs
+      this%veg_abs     = factor(:,indcol) * this%veg_abs
+      this%veg_air_abs = factor(:,indcol) * this%veg_air_abs
     end if
 
   end subroutine scale_canopy_flux
 
+  !---------------------------------------------------------------------
   ! Set the fluxes to zero for a particular column
   subroutine zero_canopy_flux(this, icol, ilay1, ilay2)
    
@@ -160,5 +194,35 @@ contains
     end if
 
   end subroutine zero_canopy_flux
+
+  !---------------------------------------------------------------------
+  ! this = flux1 + flux2
+  subroutine sum_canopy_flux(this, flux1, flux2)
+
+    class(canopy_flux_type), intent(inout) :: this
+    type(canopy_flux_type),  intent(in)    :: flux1, flux2
+
+    logical :: use_direct
+
+    use_direct = allocated(flux1%ground_dn_direct)
+
+    if (.not. allocated(this%ground_dn)) then
+      call this%allocate(flux1%ncol, flux1%ntotlay, flux1%nspec, use_direct=use_direct)
+    end if
+
+    this%ground_dn = flux1%ground_dn + flux2%ground_dn
+    if (use_direct) then
+      this%ground_dn_direct = flux1%ground_dn_direct + flux2%ground_dn_direct
+    end if
+    this%ground_net = flux1%ground_net + flux2%ground_net
+    this%roof_in = flux1%roof_in + flux2%roof_in
+    this%roof_net = flux1%roof_net + flux2%roof_net
+    this%wall_in = flux1%wall_in + flux2%wall_in
+    this%wall_net = flux1%wall_net + flux2%wall_net
+    this%clear_air_abs = flux1%clear_air_abs + flux2%clear_air_abs
+    this%veg_abs = flux1%veg_abs + flux2%veg_abs
+    this%veg_air_abs = flux1%veg_air_abs + flux2%veg_air_abs
+
+  end subroutine sum_canopy_flux
 
 end module radsurf_canopy_flux

@@ -12,7 +12,8 @@ module spartacus_surface_read_input
 contains
 
   subroutine read_input(file, config, driver_config, ncol, ntotlay, &
-    &  canopy_props, facet_props, volume_props)
+    &  canopy_props, facet_props, volume_props, &
+    &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw)
 
     use parkind1,                  only : jprb, jpim
     use radiation_io,              only : nulout
@@ -22,7 +23,8 @@ contains
     use radsurf_canopy_properties, only : canopy_properties_type
     use radsurf_facet_properties,  only : facet_properties_type
     use radsurf_volume_properties, only : volume_properties_type
- 
+    use radiation_constants,       only : StefanBoltzmann
+
     implicit none
 
     type(netcdf_file),            intent(in)    :: file
@@ -32,11 +34,15 @@ contains
     type(facet_properties_type),  intent(inout) :: facet_props
     type(volume_properties_type), intent(inout) :: volume_props
 
+    ! Top-of-canopy downwelling fluxes
+    real(kind=jprb), intent(inout), allocatable, dimension(:,:) &
+         &  :: top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw
+
     ! Number of columns and layers of input data
     integer(kind=jpim), intent(out) :: ncol, ntotlay
 
     ! Height of layer interfaces
-    real(kind=jprb), allocatable :: height_i(:,:)
+    real(kind=jprb), allocatable :: height(:,:)
 
     integer :: jcol, ilay
 
@@ -66,15 +72,15 @@ contains
     canopy_props%ntotlay = sum(canopy_props%nlay)
     ntotlay = canopy_props%ntotlay
 
-    call file%get('height_i', height_i)
+    call file%get('height', height)
     allocate(canopy_props%dz(canopy_props%ntotlay))
     allocate(canopy_props%istartlay(ncol))
 
     ilay = 1
     do jcol = 1,ncol
       canopy_props%dz(ilay:ilay+canopy_props%nlay(jcol)-1) &
-           &  = height_i(2:canopy_props%nlay(jcol)+1,jcol) &
-           &   -height_i(1:canopy_props%nlay(jcol),jcol)
+           &  = height(2:canopy_props%nlay(jcol)+1,jcol) &
+           &   -height(1:canopy_props%nlay(jcol),jcol)
       canopy_props%istartlay(jcol) = ilay
       ilay = ilay + canopy_props%nlay(jcol)
     end do
@@ -174,6 +180,16 @@ contains
         volume_props%air_lw_ssa = 0.0_jprb
       end if
 
+      ! Get the top-of-canopy fluxes
+      if (file%exists('top_flux_lw_sw')) then
+        call read_2d(file, 'top_flux_dn_lw', top_flux_dn_lw)
+      else
+        ! Spectral fluxes not provided; check for sky temperature
+        ! which can provide a broadband longwave flux
+        call read_2d(file, 'sky_temperature', top_flux_dn_lw)
+        top_flux_dn_lw = StefanBoltzmann * top_flux_dn_lw**4
+      end if
+
     end if
 
     if (config%do_sw) then
@@ -242,8 +258,11 @@ contains
         volume_props%air_sw_ssa = 0.999_jprb
       end if
 
-    end if
+      ! Get the top-of-canopy fluxes
+      call read_2d(file, 'top_flux_dn_sw', top_flux_dn_sw)
+      call read_2d(file, 'top_flux_dn_direct_sw', top_flux_dn_direct_sw)
 
+    end if
     
   end subroutine read_input
 

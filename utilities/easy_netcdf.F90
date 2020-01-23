@@ -75,6 +75,7 @@ module easy_netcdf
     procedure :: put_global_attribute
     procedure :: put_real_scalar
     procedure :: put_real_vector
+    procedure :: put_int_vector
     procedure :: put_real_matrix
     procedure :: put_real_array3
     procedure :: put_real_scalar_indexed
@@ -83,7 +84,7 @@ module easy_netcdf
     generic   :: put => put_real_scalar, put_real_vector, &
          &              put_real_matrix, put_real_array3, &
          &              put_real_scalar_indexed, put_real_vector_indexed, &
-         &              put_real_matrix_indexed
+         &              put_real_matrix_indexed, put_int_vector
     procedure :: set_verbose
     procedure :: transpose_matrices
     procedure :: double_precision
@@ -2046,6 +2047,38 @@ contains
     end if
 
   end subroutine put_real_vector
+
+  !---------------------------------------------------------------------
+  ! Save an integer vector with name var_name in the file
+  subroutine put_int_vector(this, var_name, var)
+    class(netcdf_file)             :: this
+    character(len=*), intent(in)   :: var_name
+    integer,          intent(in)   :: var(:)
+
+    integer :: ivarid, ndims, istatus
+    integer(kind=jpib) :: ntotal
+    integer :: ndimlens(NF90_MAX_VAR_DIMS)
+
+    call this%end_define_mode()
+
+    ! Check the vector is of the right length
+    call this%get_variable_id(var_name, ivarid)
+    call this%get_array_dimensions(ivarid, ndims, ndimlens, ntotal)
+    if (ntotal /= size(var,kind=jpib)) then
+      write(nulerr,'(a,i0,a,a,a,i0)') '*** Error: attempt to write vector of length ', &
+           & size(var), ' to ', var_name, ' which has total length ', ntotal
+      call my_abort('Error writing NetCDF file')
+    end if
+
+    ! Save the vector
+    istatus = nf90_put_var(this%ncid, ivarid, var)
+    if (istatus /= NF90_NOERR) then
+      write(nulerr,'(a,a,a,a)') '*** Error writing vector ', var_name, ': ', &
+           &                    trim(nf90_strerror(istatus))
+      call my_abort('Error writing NetCDF file')
+    end if
+
+  end subroutine put_int_vector
 
 
   !---------------------------------------------------------------------
