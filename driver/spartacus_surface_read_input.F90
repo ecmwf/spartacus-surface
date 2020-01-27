@@ -93,10 +93,13 @@ contains
            &              canopy_props%building_fraction)
     end if
     if (config%do_vegetation) then
-      call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
-           &              canopy_props%veg_fraction)
-      ! FIX ME
-      ! canopy_props%veg_fraction = 0.5
+      if (driver_config%vegetation_fraction >= 0.0_jprb) then
+        allocate(canopy_props%veg_fraction(ntotlay))
+        canopy_props%veg_fraction = driver_config%vegetation_fraction
+      else
+        call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
+             &              canopy_props%veg_fraction)
+      end if
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
       if (driver_config%vegetation_fsd >= 0.0_jprb) then
