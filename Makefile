@@ -96,6 +96,9 @@ driver:
 test:
 	cd test && $(MAKE) test
 
+test_rami4pilps:
+	cd test/rami4pilps && $(MAKE) test
+
 test_code:
 	cd driver && $(MAKE) test_code
 
