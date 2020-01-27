@@ -133,14 +133,20 @@ program spartacus_surface_driver
 
   call bc_out%allocate(ncol, config%nsw, config%nlw)
   if (config%do_sw) then
-    call sw_norm_dir%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
-    call sw_norm_diff%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
-    call sw_flux%allocate(ncol, ntotlay, config%nsw, use_direct=.true.)
+    call sw_norm_dir%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call sw_norm_diff%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call sw_flux%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
   end if
   if (config%do_lw) then
-    call lw_internal%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
-    call lw_norm%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
-    call lw_flux%allocate(ncol, ntotlay, config%nlw, use_direct=.false.)
+    call lw_internal%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call lw_norm%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call lw_flux%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
+         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
   end if
   
   ! --------------------------------------------------------

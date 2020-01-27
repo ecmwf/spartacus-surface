@@ -115,16 +115,22 @@ contains
           ! Copy shortwave albedo
           bc_out%sw_albedo(:,jcol)        = facet_props%ground_sw_albedo(:,jcol)
           bc_out%sw_albedo_direct(:,jcol) = ground_sw_albedo_direct(:,jcol)
-          ! Rate of change of ground fluxes with respect to direct
-          ! flux at top-of-canopy
+          ! Rate of change of ground and top-of-canopy fluxes with
+          ! respect to direct flux at top-of-canopy
           sw_norm_dir%ground_dn_direct(:,jcol) = 1.0_jprb
           sw_norm_dir%ground_dn(:,jcol)  = 1.0_jprb
           sw_norm_dir%ground_net(:,jcol) = 1.0_jprb - ground_sw_albedo_direct(:,jcol)
-          ! Rate of change of ground fluxes with respect to diffuse
-          ! downward flux at top-of-canopy
+          sw_norm_dir%top_dn_direct(:,jcol) = 1.0_jprb
+          sw_norm_dir%top_dn(:,jcol)  = 1.0_jprb
+          sw_norm_dir%top_net(:,jcol) = 1.0_jprb - ground_sw_albedo_direct(:,jcol)
+          ! Rate of change of ground and top-of-canopy fluxes with
+          ! respect to diffuse downward flux at top-of-canopy
           sw_norm_diff%ground_dn_direct(:,jcol) = 0.0_jprb
           sw_norm_diff%ground_dn(:,jcol)  = 1.0_jprb
           sw_norm_diff%ground_net(:,jcol) = 1.0_jprb - facet_props%ground_sw_albedo(:,jcol)
+          sw_norm_diff%top_dn_direct(:,jcol) = 0.0_jprb
+          sw_norm_diff%top_dn(:,jcol)  = 1.0_jprb
+          sw_norm_diff%top_net(:,jcol) = 1.0_jprb - facet_props%ground_sw_albedo(:,jcol)
         end if
 
         if (config%do_lw) then
@@ -134,10 +140,14 @@ contains
           ! Longwave fluxes due to surface emission
           lw_internal%ground_dn(:,jcol)  = 0.0_jprb
           lw_internal%ground_net(:,jcol) = -facet_props%ground_lw_emission(:,jcol)
-          ! Rate of change of ground fluxes with respect to diffuse
-          ! downward flux at top-of-canopy
+          lw_internal%top_dn(:,jcol)  = 0.0_jprb
+          lw_internal%top_net(:,jcol) = -facet_props%ground_lw_emission(:,jcol)
+          ! Rate of change of ground and top-of-canopy fluxes with
+          ! respect to diffuse downward flux at top-of-canopy
           lw_norm%ground_dn(:,jcol) = 1.0_jprb
           lw_norm%ground_net(:,jcol) = facet_props%ground_lw_emissivity(:,jcol)
+          lw_norm%top_dn(:,jcol) = 1.0_jprb
+          lw_norm%top_net(:,jcol) = facet_props%ground_lw_emissivity(:,jcol)
         end if
 
       case (ITileForest)

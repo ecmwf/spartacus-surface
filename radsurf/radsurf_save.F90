@@ -168,6 +168,17 @@ contains
            &  long_name="Downwelling direct "//band_long_name//" flux at ground", &
            &  dim1_name="column")
     end if
+    call out_file%define_variable("top_flux_dn_"//band_name, units_str="W m-2", &
+         &  long_name="Downwelling "//band_long_name//" flux at top of canopy", &
+         &  dim1_name="column")
+    call out_file%define_variable("top_flux_net_"//band_name, units_str="W m-2", &
+         &  long_name="Net "//band_long_name//" flux at top of canopy", &
+         &  dim1_name="column")
+    if (allocated(flux%top_dn_direct)) then
+      call out_file%define_variable("top_flux_dn_direct_"//band_name, units_str="W m-2", &
+           &  long_name="Downwelling direct "//band_long_name//" flux at top of canopy", &
+           &  dim1_name="column")
+    end if
     if (allocated(flux%roof_in)) then
      call out_file%define_variable("roof_flux_in_"//band_name, units_str="W m-2", &
          &  long_name="Incoming "//band_long_name//" flux at roofs", &
@@ -221,6 +232,12 @@ contains
     if (allocated(flux%ground_dn_direct)) then
       call out_file%put("ground_flux_dn_direct_"//band_name, &
            &  sum(flux%ground_dn_direct,1))
+    end if
+    call out_file%put("top_flux_dn_"//band_name, sum(flux%top_dn,1))
+    call out_file%put("top_flux_net_"//band_name, sum(flux%top_net,1))
+    if (allocated(flux%top_dn_direct)) then
+      call out_file%put("top_flux_dn_direct_"//band_name, &
+           &  sum(flux%top_dn_direct,1))
     end if
     if (allocated(flux%roof_in)) then
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
