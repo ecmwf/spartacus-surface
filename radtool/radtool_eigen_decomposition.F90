@@ -94,7 +94,7 @@ contains
     integer :: ji, jj, jn
 
     ! Other indices
-    integer :: ka, kk, ll, lb, lll, n1, n2, in
+    integer :: ka, kk, ll, lb, lll, n1, n2, in, kkk
 
     ! Local scalars
     real(kind=jprd) :: column, ff, gg, hh
@@ -140,10 +140,16 @@ contains
         ll = 1
         kk = norder
 
+        ! The flow of the following is a bit complicated, but it is
+        ! better than the original which involved GOTO statements
         not_finished = .true.
 
         do while(not_finished) 
-          do jj = kk,1,-1
+          not_finished = .false.
+
+          kkk = kk
+
+          do jj = kkk,1,-1
             row = 0.0_jprd
 
             do ji = 1,kk
@@ -154,7 +160,7 @@ contains
 
             if (row == 0.0_jprd) then
 
-              wkd(kk) = ji
+              wkd(kk) = jj
               if (ji /= kk) then
                 do ji = 1,kk
                   tmp         = abal(ji,jj)
@@ -183,6 +189,7 @@ contains
 
         not_finished = .true.
         do while(not_finished)
+          not_finished = .false.
           lll = ll
           do jj = lll,kk
             column = 0.0_jprd
@@ -194,7 +201,7 @@ contains
             end do
 
             if (column == 0.0_jprd) then
-              wkd(kk) = jj
+              wkd(ll) = jj
               if (jj /= ll) then
                 do ji = 1,kk
                   tmp         = abal(ji,jj)
