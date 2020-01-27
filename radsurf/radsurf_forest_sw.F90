@@ -31,7 +31,8 @@ contains
     use radtool_matrix,             only : identity_minus_mat_x_mat, &
          &  mat_x_mat, singlemat_x_vec, mat_x_vec, rect_mat_x_vec, &
          &  solve_mat, rect_mat_x_mat, rect_expandedmat_x_mat, &
-         &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec
+         &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec, &
+         &  solve_rect_mat
     use radsurf_overlap,            only : calc_overlap_matrices
 
     use print_matrix_mod
@@ -414,7 +415,7 @@ contains
              &  trans_diff(:,:,:,jlay))))
         d_below(:,:,:,jlay+1) = ref_dir(:,:,:,jlay) &
              &  + rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,trans_diff(:,:,:,jlay), &
-             &  solve_mat(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
+             &  solve_rect_mat(nsw,nreg*ns,nreg,denominator(:,:,:,jlay), &
              &    rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_above(:,:,:,jlay), &
              &                       trans_dir_dir(:,:,:,jlay)) &
              &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
@@ -430,17 +431,17 @@ contains
              &                 v_overlap(:,:,jlay+1)))
       end do ! Loop over layers for upward pass to compute albedos
 
-      call print_array3('a_above', a_above(1,:,:,:))
-      call print_array3('d_above', d_above(1,:,:,:))
-      call print_array3('a_below', a_below(1,:,:,:))
-      call print_array3('d_below', d_below(1,:,:,:))
-      call print_array3('T', trans_diff(1,:,:,:))
-      call print_array3('R', ref_diff(1,:,:,:))
-      call print_array3('Sup', ref_dir(1,:,:,:))
-      call print_array3('Sdn', trans_dir_diff(1,:,:,:))
-      call print_array3('Ess', trans_dir_dir(1,:,:,:))
-      call print_array3('u_overlap',u_overlap)
-      call print_array3('v_overlap',v_overlap)
+      ! call print_array3('a_above', a_above(1,:,:,:))
+      ! call print_array3('d_above', d_above(1,:,:,:))
+      ! call print_array3('a_below', a_below(1,:,:,:))
+      ! call print_array3('d_below', d_below(1,:,:,:))
+      ! call print_array3('T', trans_diff(1,:,:,:))
+      ! call print_array3('R', ref_diff(1,:,:,:))
+      ! call print_array3('Sup', ref_dir(1,:,:,:))
+      ! call print_array3('Sdn', trans_dir_diff(1,:,:,:))
+      ! call print_array3('Ess', trans_dir_dir(1,:,:,:))
+      ! call print_array3('u_overlap',u_overlap)
+      ! call print_array3('v_overlap',v_overlap)
 
       ! Store top-of-canopy boundary conditions
       top_sw_albedo = 0.0_jprb
@@ -523,13 +524,13 @@ contains
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
         end do
 
-        print *, 'DIRECT'
-        print *, 'LAYER ', jlay
-        call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
-        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
-        call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
-        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
-        call print_vector('  flux_up_above ', flux_up_above(1,:))
+        ! print *, 'DIRECT'
+        ! print *, 'LAYER ', jlay
+        ! call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
+        ! call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+        ! call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
+        ! call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        ! call print_vector('  flux_up_above ', flux_up_above(1,:))
       end do
       sw_norm_dir%ground_dn_direct(:,icol) = sum(flux_dn_dir_above,2)
       sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_direct(:,icol) &
@@ -584,32 +585,32 @@ contains
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
         end do
 
-        print *, 'DIFFUSE'
-        print *, 'LAYER ', jlay
-        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
-        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
-        call print_vector('  flux_up_above ', flux_up_above(1,:))
+        ! print *, 'DIFFUSE'
+        ! print *, 'LAYER ', jlay
+        ! call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+        ! call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        ! call print_vector('  flux_up_above ', flux_up_above(1,:))
       end do
       sw_norm_diff%ground_dn_direct(:,icol) = 0.0_jprb
       sw_norm_diff%ground_dn(:,icol) = sum(flux_dn_diff_above,2)
       sw_norm_diff%ground_net(:,icol) = sw_norm_diff%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
     
-        print *, 'DIRECT'
-      call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
-      call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
-      call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
-      call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
-      call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
-      call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
+      !   print *, 'DIRECT'
+      ! call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
+      ! call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
+      ! call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
+      ! call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
+      ! call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
+      ! call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
 
-        print *, 'DIFFUSE'
-      call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
-      call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
-      call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
-      call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
-      call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
-      call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
+      !   print *, 'DIFFUSE'
+      ! call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
+      ! call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
+      ! call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
+      ! call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
+      ! call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
+      ! call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
 
 
     end associate
