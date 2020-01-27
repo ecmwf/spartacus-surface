@@ -235,6 +235,7 @@ contains
         call print_vector('ssa_reg',ssa_reg(1,:))
         call print_vector('veg_fraction',veg_fraction)
         call print_vector('veg_scale', veg_scale);
+        call print_matrix('frac', frac);
         
         ! Compute the normalized vegetation perimeter length
         if (config%use_symmetric_vegetation_scale_forest) then
@@ -315,12 +316,14 @@ contains
         do jreg_fr = 1,nreg
           do jreg_to = 1,nreg
             if (jreg_fr /= jreg_to) then
-              gamma0(:,jreg_fr,jreg_fr) = - tan0 * f_exchange(jreg_to,jreg_fr)
+              gamma0(:,jreg_fr,jreg_fr) = gamma0(:,jreg_fr,jreg_fr) &
+                   &  - tan0 * f_exchange(jreg_to,jreg_fr)
               gamma0(:,jreg_to,jreg_fr) = + tan0 * f_exchange(jreg_to,jreg_fr)
               do js = 1,ns
                 ifr = js + (jreg_fr-1)*ns
                 ito = js + (jreg_to-1)*ns
-                gamma1(:,ifr,ifr) = - lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
+                gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) &
+                     &  - lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
                 gamma1(:,ito,ifr) = + lg%tan_ang(js) * f_exchange(jreg_to,jreg_fr)
               end do
             end if
@@ -431,15 +434,15 @@ contains
              &                 v_overlap(:,:,jlay+1)))
       end do ! Loop over layers for upward pass to compute albedos
 
-      ! call print_array3('a_above', a_above(1,:,:,:))
-      ! call print_array3('d_above', d_above(1,:,:,:))
+      call print_array3('a_above', a_above(1,:,:,:))
+      call print_array3('d_above', d_above(1,:,:,:))
       ! call print_array3('a_below', a_below(1,:,:,:))
       ! call print_array3('d_below', d_below(1,:,:,:))
-      ! call print_array3('T', trans_diff(1,:,:,:))
-      ! call print_array3('R', ref_diff(1,:,:,:))
-      ! call print_array3('Sup', ref_dir(1,:,:,:))
-      ! call print_array3('Sdn', trans_dir_diff(1,:,:,:))
-      ! call print_array3('Ess', trans_dir_dir(1,:,:,:))
+      call print_array3('T', trans_diff(1,:,:,:))
+      call print_array3('R', ref_diff(1,:,:,:))
+      call print_array3('Sup', ref_dir(1,:,:,:))
+      call print_array3('Sdn', trans_dir_diff(1,:,:,:))
+      call print_array3('Ess', trans_dir_dir(1,:,:,:))
       ! call print_array3('u_overlap',u_overlap)
       ! call print_array3('v_overlap',v_overlap)
 
@@ -450,7 +453,10 @@ contains
       do js = 1,ns
         top_sw_albedo(:) = top_sw_albedo(:) + lg%hweight(js) * a_above(:,js,js,nlay+1)
       end do
-      top_sw_albedo_direct = d_above(:,1,1,nlay+1)
+      top_sw_albedo_direct = d_above(:,1,1,nlay+1) / cos_sza
+
+
+      print *, icol, 'albedos = ', top_sw_albedo, top_sw_albedo_direct
 
       ! --------------------------------------------------------
       ! Section 4: Compute normalized flux profile
@@ -469,6 +475,11 @@ contains
       flux_dn_dir_above(:,2:) = 0.0_jprb
       flux_dn_diff_above      = 0.0_jprb
       
+      sw_norm_dir%top_dn_direct(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
+      sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_direct(:,icol)
+      sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_direct(:,icol) &
+           &                            * (1.0_jprb-top_sw_albedo_direct)
+
       ! Loop down through layers
       do jlay = nlay,1,-1
         ! Translate the downwelling flux component across the
@@ -532,7 +543,7 @@ contains
         ! call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
         ! call print_vector('  flux_up_above ', flux_up_above(1,:))
       end do
-      sw_norm_dir%ground_dn_direct(:,icol) = sum(flux_dn_dir_above,2)
+      sw_norm_dir%ground_dn_direct(:,icol) = cos_sza * sum(flux_dn_dir_above,2)
       sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_direct(:,icol) &
            &  + sum(flux_dn_diff_above,2)
       sw_norm_dir%ground_net(:,icol) = sw_norm_dir%ground_dn(:,icol) &
@@ -547,6 +558,10 @@ contains
       flux_dn_dir_above          = 0.0_jprb ! No direct calculation now needed below
       flux_dn_diff_above         = 0.0_jprb
       flux_dn_diff_above(:,1:ns) = spread(lg%hweight,nsw,1)
+
+      sw_norm_diff%top_dn_direct(:,icol) = 0.0_jprb
+      sw_norm_diff%top_dn(:,icol)        = 1.0_jprb
+      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_sw_albedo
       
       ! Loop down through layers
       do jlay = nlay,1,-1
