@@ -164,7 +164,7 @@ contains
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
                &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
-               &  sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)
+               &  sw_norm_dir, sw_norm_diff)
         end if
 
       case (ITileUrban, ITileVegetatedUrban)

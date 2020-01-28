@@ -11,13 +11,28 @@ module radsurf_forest_sw
 
 contains
 
+  ! ------------------------------------------------------------------
+  ! This routine implements the SPARTACUS shortwave radiative transfer
+  ! algorithm for computing the propagation of solar radiation in a
+  ! forest canopy or other vegetation.
+  ! 
+  ! Sections:
+  !   1. Declare variables and arrays
+  !   2. Prepare general variables and arrays
+  !   3. First loop over layers
+  !     3a. Prepare the properties of the current layer
+  !     3b. Compute Gamma matrices
+  !     3c. Compute reflection/transmission matrices for this layer
+  !   4. Albedo of scene at each layer interface
+  !   5. Compute normalized flux profile
+  !
   subroutine spartacus_forest_sw(config, &
        &  nsw, ns, nreg, nlay, icol, ilay1, ilay2, &
        &  lg, cos_sza, &
        &  canopy_props, volume_props, &
-       &  ground_sw_albedo, ground_sw_albedo_direct, &
-       &  top_sw_albedo, top_sw_albedo_direct, &
-       &  sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)
+       &  ground_sw_albedo_diff, ground_sw_albedo_dir, &
+       &  top_sw_albedo_diff, top_sw_albedo_dir, &
+       &  sw_norm_dir, sw_norm_diff)
     
     use parkind1,                   only : jpim, jprb
     use yomhook,                    only : lhook, dr_hook
@@ -35,10 +50,21 @@ contains
          &  solve_rect_mat
     use radsurf_overlap,            only : calc_overlap_matrices
 
+!#define PRINT_ARRAYS 1
+
+#ifdef PRINT_ARRAYS
     use print_matrix_mod
+#endif
     
     implicit none
 
+    ! --------------------------------------------------------
+    ! Section 1: Declare variables and arrays
+    ! --------------------------------------------------------
+
+    ! Inputs
+
+    ! Algorithm configuration
     type(config_type),             intent(in)  :: config
     ! Number of spectral intervals, number of layers
     integer(kind=jpim),            intent(in)  :: nsw, nlay
@@ -50,16 +76,25 @@ contains
     type(legendre_gauss_type),     intent(in)  :: lg
     ! Cosine of the solar zenith angle
     real(kind=jprb),               intent(in)  :: cos_sza
-    ! Properties of the canopy
+    ! Geometric and other spectrally independent properties of the canopy
     type(canopy_properties_type),  intent(in)  :: canopy_props
+    ! Spectral properties of the air and vegetation
     type(volume_properties_type),  intent(in)  :: volume_props
-    real(kind=jprb), dimension(nsw),intent(in) :: ground_sw_albedo, ground_sw_albedo_direct
-    real(kind=jprb), dimension(nsw),intent(out):: top_sw_albedo, top_sw_albedo_direct
-    type(canopy_flux_type),        intent(inout), optional &
+    ! Spectral albedo of the ground to diffuse and direct radiation
+    real(kind=jprb), dimension(nsw),intent(in) :: ground_sw_albedo_diff, &
+         &                                        ground_sw_albedo_dir
+
+    ! Outputs
+
+    ! Top-of-canopy spectral albedo to diffuse and direct radiation
+    real(kind=jprb), dimension(nsw),intent(out):: top_sw_albedo_diff, &
+         &                                        top_sw_albedo_dir
+    ! Flux outputs
+    type(canopy_flux_type), intent(inout), optional &
          &  :: sw_norm_dir, &  ! SW fluxes normalized by top-of-canopy direct
-         &     sw_norm_diff, & ! SW fluxes normalized by top-of-canopy diffuse
-         &     lw_internal, &  ! LW fluxes from internal emission
-         &     lw_norm         ! LW fluxes normalized by top-of-canopy down
+         &     sw_norm_diff    ! SW fluxes normalized by top-of-canopy diffuse
+
+    ! Local variables and arrays
 
     ! Transmittance and reflectance of a layer to diffuse radiation
     real(kind=jprb), dimension(nsw,nreg*ns,nreg*ns,nlay) &
@@ -181,7 +216,7 @@ contains
          &  veg_sw_ssa   => volume_props%veg_sw_ssa(:,ilay1:ilay2))
 
       ! --------------------------------------------------------
-      ! Section 1: Prepare general variables and arrays
+      ! Section 2: Prepare general variables and arrays
       ! --------------------------------------------------------
       
       ! Tangent of solar zenith angle
@@ -198,14 +233,14 @@ contains
            &  config%min_vegetation_fraction);
       
       ! --------------------------------------------------------
-      ! Section 2: First loop over layers
+      ! Section 3: First loop over layers
       ! --------------------------------------------------------
       ! Loop up through the canopy computing the Gamma matrices, and
       ! from those the transmission and reflection matrices
       do jlay = 1,nlay
 
         ! --------------------------------------------------------
-        ! Section 2a: Prepare the properties of the current layer
+        ! Section 3a: Prepare the properties of the current layer
         ! --------------------------------------------------------
         ! Compute the extinction coefficient and single-scattering
         ! albedo of each region
@@ -230,12 +265,6 @@ contains
                &          + od_scaling(3,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
-
-        call print_vector('ext_reg',ext_reg(1,:))
-        call print_vector('ssa_reg',ssa_reg(1,:))
-        call print_vector('veg_fraction',veg_fraction)
-        call print_vector('veg_scale', veg_scale);
-        call print_matrix('frac', frac);
         
         ! Compute the normalized vegetation perimeter length
         if (config%use_symmetric_vegetation_scale_forest) then
@@ -274,9 +303,6 @@ contains
           ! is unused
           norm_perim(2:) = 0.0_jprb
         end if
-
-
-        call print_vector('norm_perim', norm_perim)
         
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
@@ -305,11 +331,9 @@ contains
             f_exchange(3,1) = norm_perim(jreg) * tan0 / (Pi * frac(1,jlay))
           end if
         end if
-        call print_matrix('f_exchange',f_exchange)
-        call print_vector('tan_ang',lg%tan_ang)
         
         ! --------------------------------------------------------
-        ! Section 2b: Compute Gamma matrices
+        ! Section 3b: Compute Gamma matrices
         ! --------------------------------------------------------
         ! Compute the Gamma matrices representing exchange of direct
         ! and diffuse radiation between regions (gamma0 and gamma1
@@ -374,13 +398,24 @@ contains
           end do
         end do
 
+#ifdef PRINT_ARRAYS
+        print *, 'PROPERTIES OF LAYER ', jlay
+        call print_vector('ext_reg',ext_reg(1,:))
+        call print_vector('ssa_reg',ssa_reg(1,:))
+        call print_vector('veg_fraction',veg_fraction)
+        call print_vector('veg_scale', veg_scale);
+        call print_matrix('frac', frac);
+        call print_vector('norm_perim', norm_perim)
+        call print_matrix('f_exchange',f_exchange)
+        call print_vector('tan_ang',lg%tan_ang)
         call print_matrix('gamma0',gamma0(1,:,:))
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
         call print_matrix('gamma3',gamma3(1,:,:))
-        
+#endif        
+
         ! --------------------------------------------------------
-        ! Section 2c: Compute reflection/transmission matrices for this layer
+        ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
         call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
              &  gamma0, gamma1, gamma2, gamma3, &
@@ -393,16 +428,16 @@ contains
       end do ! Loop over layers to compute reflectance/transmittance matrices
 
       ! --------------------------------------------------------
-      ! Section 3: Albedo of scene at each layer interface
+      ! Section 4: Albedo of scene at each layer interface
       ! --------------------------------------------------------
       ! Set the surface albedo
       a_above = 0.0_jprb
       d_above = 0.0_jprb
       do jreg = 1,nreg
         do js_to = 1,ns
-          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_direct * lg%hweight(js_to)
+          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_dir * lg%hweight(js_to)
           do js_fr = 1,ns
-            a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) = ground_sw_albedo * lg%hweight(js_to)
+            a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) = ground_sw_albedo_diff * lg%hweight(js_to)
           end do
         end do
       end do
@@ -437,10 +472,11 @@ contains
              &                 v_overlap(:,:,jlay+1)))
       end do ! Loop over layers for upward pass to compute albedos
 
+#ifdef PRINT_ARRAYS
       call print_array3('a_above', a_above(1,:,:,:))
       call print_array3('d_above', d_above(1,:,:,:))
-      ! call print_array3('a_below', a_below(1,:,:,:))
-      ! call print_array3('d_below', d_below(1,:,:,:))
+      call print_array3('a_below', a_below(1,:,:,:))
+      call print_array3('d_below', d_below(1,:,:,:))
       call print_array3('T', trans_diff(1,:,:,:))
       call print_array3('R', ref_diff(1,:,:,:))
       call print_array3('Sup', ref_dir(1,:,:,:))
@@ -448,21 +484,20 @@ contains
       call print_array3('Ess', trans_dir_dir(1,:,:,:))
       call print_array3('u_overlap',u_overlap)
       call print_array3('v_overlap',v_overlap)
+#endif
 
       ! Store top-of-canopy boundary conditions
-      top_sw_albedo = 0.0_jprb
+      top_sw_albedo_diff = 0.0_jprb
       ! Diffuse isotropic albedo is weighted average over the ns
       ! streams, noting that just above the "nlay+1" interface we are
       ! above the canopy so only need to consider the clear-sky region
       ! (indexed 1:ns).
-      top_sw_albedo = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
+      top_sw_albedo_diff = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
            &                    spread(lg%hweight,1,nsw)),2)
-      top_sw_albedo_direct = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
-
-      print *, icol, 'albedos = ', top_sw_albedo, top_sw_albedo_direct
+      top_sw_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
 
       ! --------------------------------------------------------
-      ! Section 4: Compute normalized flux profile
+      ! Section 5: Compute normalized flux profile
       ! --------------------------------------------------------
 
       ! Set to the flux components to zero initially
@@ -481,7 +516,7 @@ contains
       sw_norm_dir%top_dn_direct(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
       sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_direct(:,icol)
       sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_direct(:,icol) &
-           &                            * (1.0_jprb-top_sw_albedo_direct)
+           &                            * (1.0_jprb-top_sw_albedo_dir)
 
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -538,13 +573,15 @@ contains
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
         end do
 
-        ! print *, 'DIRECT'
-        ! print *, 'LAYER ', jlay
-        ! call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
-        ! call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
-        ! call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
-        ! call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
-        ! call print_vector('  flux_up_above ', flux_up_above(1,:))
+#ifdef PRINT_ARRAYS
+        print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
+        call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
+        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+        call print_vector('  flux_dn_dir_above ', flux_dn_dir_above(1,:))
+        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        call print_vector('  flux_up_above ', flux_up_above(1,:))
+#endif
+
       end do
       sw_norm_dir%ground_dn_direct(:,icol) = cos_sza * sum(flux_dn_dir_above,2)
       sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_direct(:,icol) &
@@ -564,7 +601,7 @@ contains
 
       sw_norm_diff%top_dn_direct(:,icol) = 0.0_jprb
       sw_norm_diff%top_dn(:,icol)        = 1.0_jprb
-      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_sw_albedo
+      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_sw_albedo_diff
       
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -603,33 +640,35 @@ contains
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
         end do
 
-        ! print *, 'DIFFUSE'
-        ! print *, 'LAYER ', jlay
-        ! call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
-        ! call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
-        ! call print_vector('  flux_up_above ', flux_up_above(1,:))
+#ifdef PRINT_ARRAYS
+        print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION AT LAYER ', jlay
+        call print_vector('  flux_dn_diff_below ', flux_dn_diff_below(1,:))
+        call print_vector('  flux_dn_diff_above ', flux_dn_diff_above(1,:))
+        call print_vector('  flux_up_above ', flux_up_above(1,:))
+#endif
+
       end do
       sw_norm_diff%ground_dn_direct(:,icol) = 0.0_jprb
       sw_norm_diff%ground_dn(:,icol) = sum(flux_dn_diff_above,2)
       sw_norm_diff%ground_net(:,icol) = sw_norm_diff%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
     
-      !   print *, 'DIRECT'
-      ! call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
-      ! call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
-      ! call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
-      ! call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
-      ! call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
-      ! call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
-
-      !   print *, 'DIFFUSE'
-      ! call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
-      ! call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
-      ! call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
-      ! call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
-      ! call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
-      ! call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
-
+#ifdef PRINT_ARRAYS
+      print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION'
+      call print_vector('  clear_air_abs ', sw_norm_dir%clear_air_abs(1,:))
+      call print_vector('  veg_air_abs ', sw_norm_dir%veg_air_abs(1,:))
+      call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
+      call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
+      call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
+      call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
+      print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION'
+      call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
+      call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
+      call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
+      call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
+      call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
+      call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
+#endif
 
     end associate
 
