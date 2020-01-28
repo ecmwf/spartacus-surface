@@ -105,6 +105,7 @@ test_code:
 clean: clean-tests clean-toplevel clean-utilities clean-mods
 
 clean-tests:
+	cd test/rami4pilps && $(MAKE) clean
 
 clean-toplevel:
 	cd radsurf && $(MAKE) clean

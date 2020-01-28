@@ -1,6 +1,6 @@
 &radsurf_driver
 do_parallel = true,
-vegetation_fsd = 0.0,
+vegetation_fsd = 0.29289,
 !ground_sw_albedo = 0.1217,
 !vegetation_fraction = 0.5,
 !vegetation_sw_ssa = 0.1301,
@@ -22,4 +22,5 @@ nsw = 1,
 nlw = 1,
 n_stream_forest = 1,
 n_stream_urban = 2,
+use_symmetric_vegetation_scale_forest = false,
 /
