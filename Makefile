@@ -93,8 +93,10 @@ libutilities:
 driver:
 	cd driver && $(MAKE)
 
-test:
-	cd test && $(MAKE) test
+test: test_rami4pilps test_simple
+
+test_simple:
+	cd test/simple && $(MAKE) test
 
 test_rami4pilps:
 	cd test/rami4pilps && $(MAKE) test
@@ -105,6 +107,7 @@ test_code:
 clean: clean-tests clean-toplevel clean-utilities clean-mods
 
 clean-tests:
+	cd test/simple && $(MAKE) clean
 	cd test/rami4pilps && $(MAKE) clean
 
 clean-toplevel:
