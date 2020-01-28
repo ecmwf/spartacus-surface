@@ -53,9 +53,9 @@ contains
       overlap_matrix(3,1) = overlap_matrix(2,1)
       ! Vegetated in both layers
       overlap_matrix(2,2) = 0.5_jprb * (f_upper + f_lower - pair_cover)
-      overlap_matrix(2,3) = overlap_matrix(2,2)
       overlap_matrix(3,3) = overlap_matrix(2,2)
-      overlap_matrix(3,2) = overlap_matrix(2,2)
+      overlap_matrix(2,3) = 0.0_jprb
+      overlap_matrix(3,2) = 0.0_jprb
     end if
 
   end function calc_overlap_matrix_max_ran
