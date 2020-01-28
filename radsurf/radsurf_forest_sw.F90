@@ -263,8 +263,11 @@ contains
                  &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
                  &  / veg_scale(jlay)
           else
+            !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+            !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+            ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
             norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+                 &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
           end if
         else
           ! Only one vegetated region so the other column of norm_perim
@@ -443,18 +446,18 @@ contains
       call print_array3('Sup', ref_dir(1,:,:,:))
       call print_array3('Sdn', trans_dir_diff(1,:,:,:))
       call print_array3('Ess', trans_dir_dir(1,:,:,:))
-      ! call print_array3('u_overlap',u_overlap)
-      ! call print_array3('v_overlap',v_overlap)
+      call print_array3('u_overlap',u_overlap)
+      call print_array3('v_overlap',v_overlap)
 
       ! Store top-of-canopy boundary conditions
       top_sw_albedo = 0.0_jprb
       ! Diffuse isotropic albedo is weighted average over the ns
-      ! streams
-      do js = 1,ns
-        top_sw_albedo(:) = top_sw_albedo(:) + lg%hweight(js) * a_above(:,js,js,nlay+1)
-      end do
-      top_sw_albedo_direct = d_above(:,1,1,nlay+1) / cos_sza
-
+      ! streams, noting that just above the "nlay+1" interface we are
+      ! above the canopy so only need to consider the clear-sky region
+      ! (indexed 1:ns).
+      top_sw_albedo = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
+           &                    spread(lg%hweight,1,nsw)),2)
+      top_sw_albedo_direct = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
 
       print *, icol, 'albedos = ', top_sw_albedo, top_sw_albedo_direct
 
