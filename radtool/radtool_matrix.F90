@@ -37,7 +37,7 @@ module radtool_matrix
        &     identity_minus_mat_x_mat, solve_vec, solve_mat, expm, &
        &     fast_expm_exchange_2, fast_expm_exchange_3, &
        &     rect_expandedmat_x_mat, rect_mat_x_expandedmat, &
-       &     rect_mat_x_mat, rect_mat_x_vec
+       &     rect_mat_x_mat, rect_mat_x_vec, rect_mat_x_singlemat
 
   private :: solve_vec_2, solve_vec_3, solve_mat_2, &
        &     solve_mat_3, lu_factorization, lu_substitution, solve_mat_n, &
@@ -351,18 +351,52 @@ contains
 
 
   !---------------------------------------------------------------------
-  ! Treat A as an m-by-m matrix and B as n m*s-by-p matrices (with the
+  ! Treat B as an o-by-p matrix and A as n m-by-o square matrices
+  ! (with the n dimension varying fastest) and perform matrix
+  ! multiplications on all matrix pairs
+  function rect_mat_x_singlemat(n,m,o,p,A,B) 
+    use yomhook, only : lhook, dr_hook
+
+    integer,    intent(in)                      :: n, m, o, p
+    real(jprb), intent(in), dimension(:,:,:)    :: A
+    real(jprb), intent(in), dimension(o,p)      :: B
+
+    real(jprb),             dimension(n,m,p) :: rect_mat_x_singlemat
+    integer    :: j1, j2, j3
+    real(jprb) :: hook_handle
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_singlemat',0,hook_handle)
+
+    ! Array-wise assignment
+    rect_mat_x_singlemat = 0.0_jprb
+
+    do j2 = 1,p
+      do j1 = 1,m
+        do j3 = 1,o
+          rect_mat_x_singlemat(:,j1,j2) = rect_mat_x_singlemat(:,j1,j2) &
+               &                        + A(:,j1,j3)*B(j3,j2)
+        end do
+      end do
+    end do
+
+    if (lhook) call dr_hook('radtool_matrix:rect_mat_x_singlemat',1,hook_handle)
+
+  end function rect_mat_x_singlemat
+
+
+  !---------------------------------------------------------------------
+  ! Treat A as an m-by-o matrix and B as n o*s-by-p matrices (with the
   ! n dimension varying fastest) and perform matrix multiplications on
   ! all n matrix pairs, expanding A such that element A(i,j) is
   ! replaced by A(i,j)*Is, where Is is the s-by-s identity matrix.
-  function rect_expandedmat_x_mat(n,m,s,p,A,B)
+  function rect_expandedmat_x_mat(n,m,o,s,p,A,B)
 
     use yomhook, only : lhook, dr_hook
 
-    integer,    intent(in)                      :: n, m, s, p
-    real(jprb), intent(in), dimension(m,m)      :: A
+    integer,    intent(in)                      :: n, m, o, s, p
+    real(jprb), intent(in), dimension(m,o)      :: A
     real(jprb), intent(in), dimension(:,:,:)    :: B
-    real(jprb),             dimension(n,m*s,p) :: rect_expandedmat_x_mat
+    real(jprb),             dimension(n,o*s,p) :: rect_expandedmat_x_mat
 
     integer    :: j1, j3    ! Indices of the unexpanded A
     integer    :: jj1, jj2  ! Indices of the output matrix
@@ -375,7 +409,7 @@ contains
     rect_expandedmat_x_mat = 0.0_jprb
 
     do j1 = 1,m
-      do j3 = 1,m
+      do j3 = 1,o
         if (A(j1,j3) /= 0.0_jprb) then
           offset2 = (j3-j1)*s
           do jj2 = 1,p
@@ -396,17 +430,17 @@ contains
 
 
   !---------------------------------------------------------------------
-  ! Treat B as an m-by-m matrix and A as n p-by-m*s matrices (with the
+  ! Treat B as an m-by-o matrix and A as n p-by-m*s matrices (with the
   ! n dimension varying fastest) and perform matrix multiplications on
   ! all n matrix pairs, expanding B such that element B(i,j) is
   ! replaced by B(i,j)*Is, where Is is the s-by-s identity matrix.
-  function rect_mat_x_expandedmat(n,m,s,p,A,B)
+  function rect_mat_x_expandedmat(n,m,o,s,p,A,B)
 
     use yomhook, only : lhook, dr_hook
 
-    integer,    intent(in)                      :: n, m, s, p
+    integer,    intent(in)                      :: n, m, o, s, p
     real(jprb), intent(in), dimension(:,:,:)    :: A
-    real(jprb), intent(in), dimension(m,m)      :: B
+    real(jprb), intent(in), dimension(m,o)      :: B
 
     real(jprb),             dimension(n,p,m*s) :: rect_mat_x_expandedmat
     integer    :: j2, j3   ! Indices of the unexpanded B
@@ -419,7 +453,7 @@ contains
     ! Array-wise assignment
     rect_mat_x_expandedmat = 0.0_jprb
 
-    do j2 = 1,m
+    do j2 = 1,o
       do j3 = 1,m
         if (B(j3,j2) /= 0.0_jprb) then
           offset3 = (j3-j2)*s

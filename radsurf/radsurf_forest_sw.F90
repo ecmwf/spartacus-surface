@@ -47,7 +47,7 @@ contains
          &  mat_x_mat, singlemat_x_vec, mat_x_vec, rect_mat_x_vec, &
          &  solve_mat, rect_mat_x_mat, rect_expandedmat_x_mat, &
          &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec, &
-         &  solve_rect_mat
+         &  solve_rect_mat, rect_mat_x_singlemat
     use radsurf_overlap,            only : calc_overlap_matrices
 
 !#define PRINT_ARRAYS 1
@@ -436,9 +436,11 @@ contains
       d_above = 0.0_jprb
       do jreg = 1,nreg
         do js_to = 1,ns
-          d_above(:,js_to+(jreg-1)*ns,jreg,1) = cos_sza * ground_sw_albedo_dir * lg%hweight(js_to)
+          d_above(:,js_to+(jreg-1)*ns,jreg,1) &
+               &  = cos_sza * ground_sw_albedo_dir * lg%hweight(js_to)
           do js_fr = 1,ns
-            a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) = ground_sw_albedo_diff * lg%hweight(js_to)
+            a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) &
+                 &  = ground_sw_albedo_diff * lg%hweight(js_to)
           end do
         end do
       end do
@@ -463,13 +465,13 @@ contains
              &   +rect_mat_x_mat(nsw,nreg*ns,nreg*ns,nreg,a_above(:,:,:,jlay), &
              &                       trans_dir_diff(:,:,:,jlay))))
         ! Overlap: Hogan (2019), equations 22 and 23
-        a_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,ns,nreg*ns, &
+        a_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,nreg,ns,nreg*ns, &
              &  u_overlap(:,:,jlay+1), &
-             &  rect_mat_x_expandedmat(nsw,nreg,ns,nreg*ns, a_below(:,:,:,jlay+1), &
+             &  rect_mat_x_expandedmat(nsw,nreg,nreg,ns,nreg*ns, a_below(:,:,:,jlay+1), &
              &                          v_overlap(:,:,jlay+1)))
-        d_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,ns,nreg, &
+        d_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,nreg,ns,nreg, &
              &  u_overlap(:,:,jlay+1), &
-             &  rect_mat_x_mat(nsw,nreg*ns,nreg,nreg,d_below(:,:,:,jlay+1), &
+             &  rect_mat_x_singlemat(nsw,nreg*ns,nreg,nreg,d_below(:,:,:,jlay+1), &
              &                 v_overlap(:,:,jlay+1)))
       end do ! Loop over layers for upward pass to compute albedos
 
