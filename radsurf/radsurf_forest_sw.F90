@@ -225,6 +225,7 @@ contains
       ! Set the area fraction of each region
       frac(1,1:nlay)  = 1.0_jprb - veg_fraction
       frac(2:,1:nlay) = spread(veg_fraction,1,nreg-1) / real(nreg-1,jprb)
+      ! Free atmosphere
       frac(1,nlay+1)  = 1.0_jprb
       frac(2:,nlay+1) = 0.0_jprb
 
@@ -251,7 +252,7 @@ contains
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
-        else
+        else if (nreg == 3) then
           ! Approximate method to approximate a Gamma distribution
           od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
@@ -375,7 +376,7 @@ contains
             do jreg = 1,nreg
               ifr = js_fr + (jreg-1)*ns
               ito = js_to + (jreg-1)*ns
-              gamma2(:,ito,ifr) = 0.5_jprb * lg%weight(js_fr) &
+              gamma2(:,ito,ifr) = 0.5_jprb * lg%weight(js_to) &
                    &  * ext_reg(:,jreg) * ssa_reg(:,jreg) / lg%mu(js_fr)
             end do
           end do
