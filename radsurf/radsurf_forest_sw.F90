@@ -527,7 +527,7 @@ contains
         ! interface at the top of the layer
         flux_dn_dir_below = singlemat_x_vec(nsw,nsw,nreg, &
              &  v_overlap(:,:,jlay+1), flux_dn_dir_above)
-        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,ns, &
+        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,nreg,ns, &
              &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
         flux_up_below = mat_x_vec(nsw,nsw,nreg*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below) &
              &  + rect_mat_x_vec(nsw,nreg*ns,nreg,d_below(:,:,:,jlay+1),flux_dn_dir_below)
@@ -610,13 +610,12 @@ contains
       do jlay = nlay,1,-1
         ! Translate the downwelling flux component across the
         ! interface at the top of the layer
-        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,ns, &
+        flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,nreg,ns, &
              &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
         flux_up_below = mat_x_vec(nsw,nsw,nreg*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below) 
         ! Compute fluxes at base of layer
         flux_dn_diff_above = solve_vec(nsw,nsw,nreg*ns,denominator(:,:,:,jlay), &
-             &  mat_x_vec(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay),flux_dn_diff_below) &
-             &  + mat_x_vec(nsw,nsw,nreg*ns,ref_diff(:,:,:,jlay),flux_reflected_dir))
+             &  mat_x_vec(nsw,nsw,nreg*ns,trans_diff(:,:,:,jlay),flux_dn_diff_below))
         flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
              &  flux_dn_diff_above)
 
