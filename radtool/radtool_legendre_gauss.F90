@@ -23,7 +23,8 @@ module radtool_legendre_gauss
          &     sin_ang, &  ! Sine of zenith angle of each stream
          &     tan_ang, &  ! Tangent of zenith angle of each stream
          &     weight, &   ! Weight of each stream in each hemisphere
-         &     hweight     ! Weight for isotropic emission by a horizontal surface
+         &     hweight, &  ! Weight for isotropic emission by a horizontal surface
+         &     vweight     ! Weight for isotropic emission by a vertical surface
 
     ! Number of streams in one hemisphere
     integer(kind=jpim) :: nstream = 0
@@ -52,13 +53,16 @@ contains
     allocate(this%tan_ang(nstream))
     allocate(this%weight(nstream))
     allocate(this%hweight(nstream))
+    allocate(this%vweight(nstream))
 
     call calc_legendre_gauss(nstream, 0.0_jprb, 1.0_jprb, this%mu, this%weight)
 
     this%sin_ang = sqrt(1.0_jprb - this%mu*this%mu)
     this%tan_ang = this%sin_ang / this%mu
     this%hweight = this%weight * this%mu
+    this%vweight = this%weight * this%sin_ang
     this%hweight = this%hweight / sum(this%hweight)
+    this%vweight = this%vweight / sum(this%vweight)
     
   end subroutine initialize_legendre_gauss
 
@@ -71,6 +75,7 @@ contains
     if (allocated(this%tan_ang)) deallocate(this%tan_ang)
     if (allocated(this%weight))  deallocate(this%weight)
     if (allocated(this%hweight)) deallocate(this%hweight)
+    if (allocated(this%vweight)) deallocate(this%vweight)
 
     this%nstream = 0
 

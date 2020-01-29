@@ -23,7 +23,7 @@ module radsurf_facet_properties
     real(kind=jprb), allocatable :: roof_sw_albedo(:,:) ! (nsw,ntotlay)
     real(kind=jprb), allocatable :: roof_sw_albedo_direct(:,:) ! (nsw,ntotlay)
     real(kind=jprb), allocatable :: wall_sw_albedo(:,:) ! (nsw,ntotlay)
-    real(kind=jprb), allocatable :: wall_specular_fraction(:,:) ! (nsw,ntotlay)
+    real(kind=jprb), allocatable :: wall_sw_specular_fraction(:,:) ! (nsw,ntotlay)
 
     ! Longwave spectral properties: emissivity...
     real(kind=jprb), allocatable :: ground_lw_emissivity(:,:) ! (nlw,ncol)
@@ -99,8 +99,8 @@ contains
       if (do_urban) then
         allocate(this%roof_sw_albedo(this%nsw,ntotlay))
         allocate(this%wall_sw_albedo(this%nsw,ntotlay))
-        allocate(this%wall_specular_fraction(this%nsw,ntotlay))
-        this%wall_specular_fraction = 0.0_jprb
+        allocate(this%wall_sw_specular_fraction(this%nsw,ntotlay))
+        this%wall_sw_specular_fraction = 0.0_jprb
       end if
       if (config%use_sw_direct_albedo) then
         allocate(this%ground_sw_albedo_direct(this%nsw,ncol))
@@ -142,7 +142,7 @@ contains
     if (allocated(this%roof_sw_albedo))          deallocate(this%roof_sw_albedo)
     if (allocated(this%roof_sw_albedo_direct))   deallocate(this%roof_sw_albedo_direct)
     if (allocated(this%wall_sw_albedo))          deallocate(this%wall_sw_albedo)
-    if (allocated(this%wall_specular_fraction))  deallocate(this%wall_specular_fraction)
+    if (allocated(this%wall_sw_specular_fraction))  deallocate(this%wall_sw_specular_fraction)
     if (allocated(this%ground_lw_emissivity))    deallocate(this%ground_lw_emissivity)
     if (allocated(this%roof_lw_emissivity))      deallocate(this%roof_lw_emissivity)
     if (allocated(this%wall_lw_emissivity))      deallocate(this%wall_lw_emissivity)

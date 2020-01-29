@@ -91,6 +91,15 @@ contains
     if (config%do_urban) then
       call read_packed_1d(file, 'building_fraction', canopy_props%nlay, &
            &              canopy_props%building_fraction)
+      call read_packed_1d(file, 'building_scale', canopy_props%nlay, &
+           &              canopy_props%building_scale)
+      if (file%exists('veg_contact_fraction')) then
+        call read_packed_1d(file, 'veg_contact_fraction', canopy_props%nlay, &
+             &              canopy_props%veg_contact_fraction)
+      else
+        allocate(canopy_props%veg_contact_fraction(ntotlay))
+        canopy_props%veg_contact_fraction = 0.0_jprb
+      end if
     end if
     if (config%do_vegetation) then
       if (driver_config%vegetation_fraction >= 0.0_jprb) then
@@ -222,6 +231,21 @@ contains
           facet_props%roof_sw_albedo = driver_config%roof_sw_albedo
         end if
 
+        if (file%exists('roof_sw_albedo_direct')) then
+          call read_packed_2d(file, 'roof_sw_albedo_direct', canopy_props%nlay, &
+               &              facet_props%roof_sw_albedo_direct)
+        else
+          if  (driver_config%iverbose >= 2) then
+            write(nulout,'(a)') '  Assuming roof albedo to direct albedo is the same as to diffuse'
+          end if
+          allocate(facet_props%roof_sw_albedo_direct(ubound(facet_props%roof_sw_albedo,1),ntotlay))
+          if (driver_config%roof_sw_albedo >= 0.0) then
+            facet_props%roof_sw_albedo_direct = driver_config%roof_sw_albedo
+          else
+            facet_props%roof_sw_albedo_direct = facet_props%roof_sw_albedo
+          end if
+        end if
+
         call read_packed_2d(file, 'wall_sw_albedo', canopy_props%nlay, facet_props%wall_sw_albedo)
         if (driver_config%wall_sw_albedo >= 0.0) then
           if  (driver_config%iverbose >= 2) then
@@ -230,6 +254,18 @@ contains
           end if
           facet_props%wall_sw_albedo = driver_config%wall_sw_albedo
         end if
+
+        if (file%exists('wall_sw_specular_fraction')) then
+          call read_packed_2d(file, 'wall_sw_specular_fraction', canopy_props%nlay, &
+               &              facet_props%wall_sw_specular_fraction)
+        else
+          allocate(facet_props%wall_sw_specular_fraction(ubound(facet_props%roof_sw_albedo,1),ntotlay))
+          facet_props%wall_sw_specular_fraction = 0.0_jprb
+          if  (driver_config%iverbose >= 2) then
+            write(nulout,'(a)') '  Assuming wall reflection is Lambertian (no specular component)'
+          end if
+        end if
+
       end if
 
       if (config%do_vegetation) then

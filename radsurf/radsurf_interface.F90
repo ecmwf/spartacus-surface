@@ -29,6 +29,7 @@ contains
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radsurf_forest_sw,          only : spartacus_forest_sw
+    use radsurf_urban_sw,           only : spartacus_urban_sw
 
     implicit none
 
@@ -167,10 +168,38 @@ contains
                &  sw_norm_dir, sw_norm_diff)
         end if
 
-      case (ITileUrban, ITileVegetatedUrban)
+      case (ITileUrban)
         if (config%iverbose >= 4) then
-          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': urban tile with ', &
+          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': unvegetated urban tile with ', &
                &  canopy_props%nlay(jcol), ' layers'
+        end if
+        ! if (config%do_sw) then
+        !   call spartacus_urban_sw(config, config%nswinternal, &
+        !        &  config%lg_urban%nstream, config%n_vegetation_region_urban, &
+        !        &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+        !        &  config%lg_urban, canopy_props%cos_sza(jcol), &
+        !        &  canopy_props, volume_props, facet_props, &
+        !        &  facet_props%ground_sw_albedo(:,jcol), &
+        !        &              ground_sw_albedo_direct(:,jcol), &
+        !        &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+        !        &  sw_norm_dir, sw_norm_diff)
+        ! end if
+
+      case (ITileVegetatedUrban)
+        if (config%iverbose >= 4) then
+          write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': vegetated urban tile with ', &
+               &  canopy_props%nlay(jcol), ' layers'
+        end if
+        if (config%do_sw) then
+          call spartacus_urban_sw(config, config%nswinternal, &
+               &  config%lg_urban%nstream, config%n_vegetation_region_urban+1, &
+               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+               &  config%lg_urban, canopy_props%cos_sza(jcol), &
+               &  canopy_props, volume_props, facet_props, &
+               &  facet_props%ground_sw_albedo(:,jcol), &
+               &              ground_sw_albedo_direct(:,jcol), &
+               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+               &  sw_norm_dir, sw_norm_diff)
         end if
 
 
