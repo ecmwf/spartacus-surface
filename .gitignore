@@ -2,3 +2,6 @@
 *.a
 *.so
 *~
+*_out.nc
+config_tmp.nam
+rami4pilps.nc

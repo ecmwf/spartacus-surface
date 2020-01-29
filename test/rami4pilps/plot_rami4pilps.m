@@ -1,8 +1,8 @@
 % Matlab script to plot the RAMI4PILPS case with different
 % SPARTACUS-Surface settings
 base = 'vis-snw-0.3'
-scenarios={[base '-1-1'], [base '-1-2'], [base '-2-1'], [base \
-							   '-2-2']};
+base = 'nir-med-0.3'
+scenarios={[base '-1-1'], [base '-1-2'], [base '-2-1'], [base '-2-2']};
 leg = {'1 region 2 stream','1 region 4 stream','2 region 2 stream','2 region 4 stream'};
 
 for iscen = 1:length(scenarios)
@@ -18,6 +18,7 @@ mu0 = in.cos_solar_zenith_angle;
 sza = acosd(mu0);
 stys = {'-','--','-.',':'};
 
+figure(2)
 clf
 for iscen = 1:length(scenarios)
   plot(-1,-1,['k' stys{iscen}]);

@@ -17,5 +17,5 @@ n_vegetation_region_urban = 2,
 nsw = 1,
 nlw = 1,
 n_stream_forest = 1,
-n_stream_urban = 2,
+n_stream_urban = 1,
 /

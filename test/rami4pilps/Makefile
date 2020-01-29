@@ -22,6 +22,7 @@ INPUT = $(BASENAME).nc
 
 # The default scene used by "make test_method"
 BASESCEN=vis-snw-0.3
+BASESCEN=nir-med-0.3
 
 test: test_method test_scenes
 
