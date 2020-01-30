@@ -264,14 +264,27 @@ contains
       frac(1,nlay+1)  = 1.0_jprb ! Free atmosphere
       if (do_vegetation) then
         frac(1,1:nlay) = frac(1,1:nlay) - canopy_props%veg_fraction(ilay1:ilay2)
-        frac(2:,1:nlay) = spread(1.0_jprb-frac(1,1:nlay),1,nreg-1) / real(nreg-1,jprb)
+        frac(2:,1:nlay) = spread(1.0_jprb - building_fraction &
+             &  - frac(1,1:nlay),1,nreg-1) / real(nreg-1,jprb)
         frac(2:,nlay+1) = 0.0_jprb
       end if
+
+#ifdef PRINT_ARRAYS
+      call print_vector('veg_fraction',veg_fraction)
+      call print_vector('building_fraction',building_fraction)
+      call print_vector('veg_scale', veg_scale);
+      call print_matrix('frac', frac);
+#endif
 
       ! Compute overlap matrices
       call calc_overlap_matrices_urban(nlay,nreg,frac,u_overlap,v_overlap, &
            &  config%min_vegetation_fraction);
-      
+
+#ifdef PRINT_ARRAYS
+      call print_array3('u_overlap',u_overlap)
+      call print_array3('v_overlap',v_overlap)
+#endif      
+
       ! --------------------------------------------------------
       ! Section 3: First loop over layers
       ! --------------------------------------------------------
@@ -498,13 +511,8 @@ contains
         print *, 'PROPERTIES OF LAYER ', jlay
         call print_vector('ext_reg',ext_reg(1,:))
         call print_vector('ssa_reg',ssa_reg(1,:))
-        call print_vector('veg_fraction',veg_fraction)
-        call print_vector('building_fraction',building_fraction)
-        call print_vector('veg_scale', veg_scale);
-        call print_matrix('frac', frac);
-        call print_vector('norm_perim', norm_perim)
         call print_matrix('f_exchange',f_exchange)
-        call print_vector('tan_ang',lg%tan_ang)
+        call print_vector('norm_perim', norm_perim)
         call print_matrix('gamma0',gamma0(1,:,:))
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
@@ -592,8 +600,6 @@ contains
       call print_array3('Sup', ref_dir(1,:,:,:))
       call print_array3('Sdn', trans_dir_diff(1,:,:,:))
       call print_array3('Ess', trans_dir_dir(1,:,:,:))
-      call print_array3('u_overlap',u_overlap)
-      call print_array3('v_overlap',v_overlap)
 #endif
 
       ! Store top-of-canopy boundary conditions
@@ -646,9 +652,7 @@ contains
         sw_norm_dir%roof_in(:,ilay) = cos_sza * flux_dn_dir_below(:,nreg+1) &
              &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
         sw_norm_dir%roof_net(:,ilay) = sw_norm_dir%roof_in(:,ilay) &
-             &  + sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
-        print *, 'A ROOF IN ', ilay, flux_dn_dir_below(:,:)
-        print *, 'B ROOF IN ', ilay, flux_dn_diff_below(:,:)
+             &  - sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
 
         ! Compute fluxes at base of layer, removing the roof region
         ! from the "_below" flux arrays
@@ -738,7 +742,7 @@ contains
         sw_norm_diff%roof_in(:,ilay) = &
              &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
         sw_norm_diff%roof_net(:,ilay) = sw_norm_diff%roof_in(:,ilay) &
-             &  + sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
+             &  - sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
 
         ! Compute fluxes at base of layer, removing the roof region
         ! from the "_below" flux arrays

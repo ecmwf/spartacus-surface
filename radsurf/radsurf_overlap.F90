@@ -320,10 +320,11 @@ contains
 
     if (lhook) call dr_hook('radsurf_overlap:calc_overlap_matrices_urban',0,hook_handle)
 
-    ! The ground is treated as one roof region, so the fractions
-    ! are assigned as such
+    ! The ground is treated as one roof region equal in size to the
+    ! non-building regions in the lowest layer, so the fractions are
+    ! assigned as such
     frac_lower(1:nreg) = 0.0_jprb
-    frac_lower(nreg+1) = 1.0_jprb
+    frac_lower(nreg+1) = sum(region_fracs(:,1))
 
     ! Loop up through the canopy, where jlay indexes each layer
     ! interface starting at 1 for the ground, as well as indexing each
