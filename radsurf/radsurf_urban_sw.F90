@@ -52,7 +52,7 @@ contains
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
 
-!#define PRINT_ARRAYS 1
+#define PRINT_ARRAYS 1
 
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
@@ -499,6 +499,7 @@ contains
         call print_vector('ext_reg',ext_reg(1,:))
         call print_vector('ssa_reg',ssa_reg(1,:))
         call print_vector('veg_fraction',veg_fraction)
+        call print_vector('building_fraction',building_fraction)
         call print_vector('veg_scale', veg_scale);
         call print_matrix('frac', frac);
         call print_vector('norm_perim', norm_perim)
@@ -567,7 +568,7 @@ contains
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
                &  = spread(roof_sw_albedo(:,jlay) * lg%hweight(js), 2, ns)
           d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-               &  = cos_sza * roof_sw_albedo(:,jlay) * lg%hweight(js)
+               &  = cos_sza * roof_sw_albedo_direct(:,jlay) * lg%hweight(js)
         end do
 
         ! Overlap: Hogan (2019), equations 22 and 23
@@ -629,6 +630,9 @@ contains
 
       ! Loop down through layers
       do jlay = nlay,1,-1
+        ! Find index into output arrays
+        ilay = ilay1 + jlay - 1
+
         ! Translate the downwelling flux component across the
         ! interface at the top of the layer
         flux_dn_dir_below = rect_singlemat_x_vec(nsw,nreg+1,nreg, &
@@ -637,6 +641,14 @@ contains
              &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
         flux_up_below = mat_x_vec(nsw,nsw,(nreg+1)*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below) &
              &  + rect_mat_x_vec(nsw,(nreg+1)*ns,nreg+1,d_below(:,:,:,jlay+1),flux_dn_dir_below)
+
+        ! Store the fluxes into the exposed roof
+        sw_norm_dir%roof_in(:,ilay) = cos_sza * flux_dn_dir_below(:,nreg+1) &
+             &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
+        sw_norm_dir%roof_net(:,ilay) = sw_norm_dir%roof_in(:,ilay) &
+             &  + sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
+        print *, 'A ROOF IN ', ilay, flux_dn_dir_below(:,:)
+        print *, 'B ROOF IN ', ilay, flux_dn_diff_below(:,:)
 
         ! Compute fluxes at base of layer, removing the roof region
         ! from the "_below" flux arrays
@@ -662,7 +674,6 @@ contains
              &  + rect_mat_x_vec(nsw,nreg*ns,nreg,int_dir_diff(:,:,:,jlay), &
              &                   flux_dn_dir_below(:,1:nreg) - flux_dn_dir_above)
 
-        ilay = ilay1 + jlay - 1
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
              &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
@@ -714,11 +725,20 @@ contains
       
       ! Loop down through layers
       do jlay = nlay,1,-1
+        ! Find index into output arrays
+        ilay = ilay1 + jlay - 1
+
         ! Translate the downwelling flux component across the
         ! interface at the top of the layer
         flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg+1,nreg,ns, &
              &  v_overlap(:,:,jlay+1), flux_dn_diff_above)
         flux_up_below = mat_x_vec(nsw,nsw,(nreg+1)*ns,a_below(:,:,:,jlay+1),flux_dn_diff_below)
+
+        ! Store the fluxes into the exposed roof
+        sw_norm_diff%roof_in(:,ilay) = &
+             &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
+        sw_norm_diff%roof_net(:,ilay) = sw_norm_diff%roof_in(:,ilay) &
+             &  + sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
 
         ! Compute fluxes at base of layer, removing the roof region
         ! from the "_below" flux arrays
@@ -733,7 +753,6 @@ contains
         int_flux_diff= mat_x_vec(nsw,nsw,nreg*ns,int_diff(:,:,:,jlay), flux_dn_diff_below(:,1:nreg*ns) &
              &                   - flux_dn_diff_above - flux_up_below(:,1:nreg*ns) + flux_up_above)
 
-        ilay = ilay1 + jlay - 1
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
              &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
