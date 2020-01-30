@@ -174,10 +174,12 @@ program spartacus_surface_driver
         iendcol = min(istartcol + driver_config%nblocksize - 1, &
              &        driver_config%iendcol)
         
+#ifndef NO_OPENMP
         if (driver_config%iverbose >= 3) then
           write(nulout,'(a,i0,a,i0,a,i0)')  'Thread ', omp_get_thread_num(), &
                &  ' processing columns ', istartcol, '-', iendcol
         end if
+#endif
 
         ! Call the SPARTACUS-Surface radiation scheme
         call radsurf(config, canopy_props, facet_props, volume_props, bc_out, &
