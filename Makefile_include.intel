@@ -1,0 +1,13 @@
+FC = ifort
+CPPFLAGS = 
+
+ifndef DEBUG
+OPTFLAGS = -O3 
+else
+OPTFLAGS = -O0
+endif
+
+WARNFLAGS = -warn all
+BASICFLAGS = -module ../mod -convert big_endian
+DEBUGFLAGS = -g
+OMPFLAG = -qopenmp

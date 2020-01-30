@@ -19,7 +19,7 @@ all: $(LIBSURF)
 $(LIBSURF): $(OBJECTS)
 	ar r $(LIBSURF) $(OBJECTS)
 
-%.o: %.F90
+%.o: %.F90 ../mod/radtool_*.mod
 	$(FC) $(FCFLAGS) -c $<
 
 clean:
