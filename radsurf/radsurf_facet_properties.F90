@@ -164,7 +164,7 @@ contains
     class(facet_properties_type), intent(inout) :: this
     type(canopy_properties_type), intent(in)    :: canopy_props
     
-    integer :: jlay, jcol, ntotlay, ncol
+    integer :: ntotlay, ncol
 
     ntotlay = canopy_props%ntotlay
     ncol    = canopy_props%ncol

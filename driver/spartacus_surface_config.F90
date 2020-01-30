@@ -61,7 +61,6 @@ contains
   ! argument is missing then on error the program will be aborted.
   subroutine read_config_from_namelist(this, file_name, is_success)
 
-    use yomhook,      only : lhook, dr_hook
     use radiation_io, only : nulerr, radiation_abort
 
     class(driver_config_type), intent(inout), target :: this

@@ -102,7 +102,7 @@ contains
 
     ! Loop indices for column, layer, region and the regions in the
     ! upper and lower layers for an interface
-    integer  :: jcol, jlay, jupper, jlower
+    integer  :: jlay, jupper, jlower
 
     ! Overlap matrix (non-directional)
     real(jprb) :: overlap_matrix(nreg,nreg)
@@ -188,8 +188,6 @@ contains
 
     ! Combined vegetation cover of pair of layers
     real(jprb) :: pair_cover
-
-    real(jprb) :: veg_unit
 
     if (nreg == 1) then
       ! No vegetation
@@ -309,7 +307,7 @@ contains
 
     ! Loop indices for column, layer, region and the regions in the
     ! upper and lower layers for an interface
-    integer  :: jcol, jlay, jupper, jlower
+    integer  :: jlay, jupper, jlower
 
     ! Overlap matrix (non-directional)
     real(jprb) :: overlap_matrix(nreg,nreg+1)

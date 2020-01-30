@@ -319,8 +319,6 @@ contains
 
     real(kind=jprb), allocatable :: var_1d(:)
 
-    integer(kind=jpim) :: jcol, nband
-    
     if (allocated(var)) deallocate(var)
     
     if (file%get_rank(varname) == 1) then
@@ -386,7 +384,7 @@ contains
 
     real(kind=jprb), allocatable :: var_unpacked_2d(:,:)
     real(kind=jprb), allocatable :: var_unpacked_3d(:,:,:)
-    integer(kind=jpim) :: ntotlay, ilay, jcol,nband
+    integer(kind=jpim) :: ntotlay, ilay, jcol, nband
     
     ntotlay = sum(nlay)
     

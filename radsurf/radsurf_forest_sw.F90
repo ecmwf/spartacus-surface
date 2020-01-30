@@ -192,7 +192,7 @@ contains
     real(kind=jprb) :: int_flux_diff(nsw,nreg*ns), int_flux_dir(nsw,nreg)
 
     ! Loop counters
-    integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, jsw, js, js_fr, js_to
+    integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, js, js_fr, js_to
 
     ! Index to layer inside canopy_flux object
     integer(kind=jpim) :: ilay

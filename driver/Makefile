@@ -12,7 +12,7 @@ test_code: $(TEST)
 $(EXECUTABLE): $(OBJECTS) ../lib/*.a
 	$(FC) $(OBJECTS) $(LIBS) -o $(EXECUTABLE)
 
-$(TEST): $(TEST).F90 ../lib/*.a
+$(TEST): $(TEST).F90 ../mod/rad*.mod
 	$(FC) $(FCFLAGS) $(TEST).F90 $(LIBS) -o $(TEST)
 
 %.o: %.F90 ../mod/*.mod
