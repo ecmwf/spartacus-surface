@@ -120,8 +120,10 @@ contains
     ! in Eq. 47
     real(kind=jprb), dimension(nmat,ndiff,ndiff) :: cprime_upper, cprime_lower
 
+#ifdef FAST_BUT_INCORRECT
     ! Similar but for computing s_up and s_dn
     real(kind=jprb), dimension(nmat,ndiff,ndir) :: cdir_upper, cdir_lower
+#endif
 
     ! Positive eigenvalues of the full Gamma matrix
     real(kind=jprb) :: lambda(nmat,ndiff)
@@ -140,8 +142,10 @@ contains
 
     real(kind=jprb), dimension(nmat,ndiff,ndiff) :: gamma2_inv_gamma1_d
 
+#ifdef FAST_BUT_INCORRECT
     real(kind=jprb), dimension(nmat,ndiff,ndir) :: g3_d_inv_g0, g4_inv_g0
-    
+#endif
+
     ! If the full gamma matrix is
     !        gamma = [ -gamma1  -gamma2  -gamma3  ]
     !                [  gamma2   gamma1   gamma3  ]

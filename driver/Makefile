@@ -15,7 +15,7 @@ $(EXECUTABLE): $(OBJECTS) ../lib/*.a
 $(TEST): $(TEST).F90 ../mod/rad*.mod
 	$(FC) $(FCFLAGS) $(TEST).F90 $(LIBS) -o $(TEST)
 
-%.o: %.F90 ../mod/*.mod
+%.o: %.F90 ../mod/rad*.mod
 	$(FC) $(FCFLAGS) -c $<
 
 clean:

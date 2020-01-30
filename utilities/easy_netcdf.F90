@@ -1570,9 +1570,8 @@ contains
     character(len=*), intent(in)  :: var_name, attr_name
     real(jprb),       intent(out) :: attr
 
-    integer :: i_attr_len, ivarid
+    integer :: ivarid
     integer :: istatus
-    integer :: j
 
     istatus = nf90_inq_varid(this%ncid, var_name, ivarid)
     if (istatus /= NF90_NOERR) then
@@ -1645,9 +1644,7 @@ contains
     integer, intent(in) :: iunit    ! Unit to print information to
 
     character(len=4000) :: attr_str
-    integer :: i_attr_len
     integer :: istatus
-    integer :: j
 
     if (this%iverbose >= 4) then
       istatus = nf90_get_att(this%ncid, ivarid, 'long_name', attr_str)
