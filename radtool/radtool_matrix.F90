@@ -430,7 +430,7 @@ contains
     integer,    intent(in)                      :: n, m, o, s, p
     real(jprb), intent(in), dimension(m,o)      :: A
     real(jprb), intent(in), dimension(:,:,:)    :: B
-    real(jprb),             dimension(n,o*s,p) :: rect_expandedmat_x_mat
+    real(jprb),             dimension(n,m*s,p)  :: rect_expandedmat_x_mat
 
     integer    :: j1, j3    ! Indices of the unexpanded A
     integer    :: jj1, jj2  ! Indices of the output matrix
@@ -476,7 +476,7 @@ contains
     real(jprb), intent(in), dimension(:,:,:)    :: A
     real(jprb), intent(in), dimension(m,o)      :: B
 
-    real(jprb),             dimension(n,p,m*s) :: rect_mat_x_expandedmat
+    real(jprb),             dimension(n,p,o*s) :: rect_mat_x_expandedmat
     integer    :: j2, j3   ! Indices of the unexpanded B
     integer    :: jj1, jj2 ! Indices of the output matrix
     integer    :: offset3
@@ -520,7 +520,7 @@ contains
     integer,    intent(in)                   :: n, m, k, s
     real(jprb), intent(in), dimension(m,k)   :: A
     real(jprb), intent(in), dimension(:,:)   :: b
-    real(jprb),             dimension(n,m)   :: rect_expandedmat_x_vec
+    real(jprb),             dimension(n,m*s) :: rect_expandedmat_x_vec
 
     integer    :: j1, j3    ! Indices of the unexpanded A
     integer    :: jj1       ! Indices of the output vector
