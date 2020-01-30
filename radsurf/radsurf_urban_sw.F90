@@ -52,7 +52,7 @@ contains
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
 
-#define PRINT_ARRAYS 1
+!#define PRINT_ARRAYS 1
 
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
@@ -147,7 +147,7 @@ contains
 
     ! Rate of interception of radiation in each region with wall,
     ! excluding tangent term
-    real(kind=jprb) :: f_wall(nreg)
+    real(kind=jprb) :: f_wall(nreg,nlay)
 
     ! Fraction of energy intercepting a wall that is absorbed and
     ! extinguished
@@ -416,12 +416,12 @@ contains
         end if
 
         ! Compute rate of interception of wall, excluding tangent term
-        f_wall = 0.0_jprb
+        f_wall(:,jlay) = 0.0_jprb
         do jreg = 1,nreg
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
-            f_wall(jreg) = 0.0_jprb
+            f_wall(jreg,jlay) = 0.0_jprb
           else
-            f_wall(jreg) = norm_perim_wall(jreg) / (Pi * frac(jreg,jlay))
+            f_wall(jreg,jlay) = norm_perim_wall(jreg) / (Pi * frac(jreg,jlay))
           end if
         end do
 
@@ -462,11 +462,11 @@ contains
         ! due to extinction through the regions
         do jreg = 1,nreg
           gamma0(:,jreg,jreg) = gamma0(:,jreg,jreg) - ext_reg(:,jreg)/cos_sza &
-               &                   - tan0 * f_wall(jreg) * wall_ext
+               &                   - tan0 * f_wall(jreg,jlay) * wall_ext
           do js = 1,ns
             ifr = js + (jreg-1)*ns
             gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) - ext_reg(:,jreg)/lg%mu(js) &
-                 &                 - lg%tan_ang(js) * f_wall(jreg) * wall_ext
+                 &                 - lg%tan_ang(js) * f_wall(jreg,jlay) * wall_ext
 
           end do
         end do
@@ -484,7 +484,7 @@ contains
               gamma2(:,ito,ifr) = 0.5_jprb * (lg%weight(js_to) &
                    &  * ext_reg(:,jreg) * ssa_reg(:,jreg) / lg%mu(js_fr) &
                    &  + lg%vweight(js_to) * lg%tan_ang(js_fr) &
-                   &       * f_wall(jreg) * wall_factor)
+                   &       * f_wall(jreg,jlay) * wall_factor)
             end do
           end do
         end do
@@ -503,7 +503,7 @@ contains
             ! of Hogan (2019) cancels with the one in Eq. 11.
             gamma3(:,ito,jreg) = 0.5_jprb * (lg%weight(js) &
                  &             * ext_reg(:,jreg) * ssa_reg(:,jreg) &
-                 &     + lg%vweight(js) * sin0 * f_wall(jreg) * wall_factor)
+                 &     + lg%vweight(js) * sin0 * f_wall(jreg,jlay) * wall_factor)
           end do
         end do
 
@@ -697,6 +697,17 @@ contains
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
         end do
 
+        ! Inward and net flux into walls
+        do jreg = 1,nreg
+          sw_norm_dir%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
+               &  + f_wall(jreg,jlay) &
+               &  * (tan0 * int_flux_dir(:,jreg) &
+               &     + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &           * spread(lg%tan_ang,1,nsw)))
+        end do
+        sw_norm_dir%wall_net(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
+             &  * (1.0_jprb - wall_sw_albedo(:,jlay))
+
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
         call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
@@ -772,6 +783,16 @@ contains
                &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
         end do
+
+        ! Inward and net flux into walls
+        do jreg = 1,nreg
+          sw_norm_diff%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
+               &  + f_wall(jreg,jlay) &
+               &  * (sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &           * spread(lg%tan_ang,1,nsw)))
+        end do
+        sw_norm_diff%wall_net(:,ilay) = sw_norm_diff%wall_in(:,ilay) &
+             &  * (1.0_jprb - wall_sw_albedo(:,jlay))
 
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION AT LAYER ', jlay
