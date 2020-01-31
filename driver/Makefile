@@ -19,7 +19,7 @@ $(TEST): $(TEST).F90 ../mod/rad*.mod
 	$(FC) $(FCFLAGS) -c $<
 
 clean:
-	rm -f *.o $(TEST)
+	rm -f *.o $(TEST) $(EXECUTABLE)
 
 spartacus_surface_driver.o: spartacus_surface_read_input.o
 spartacus_surface_driver.o spartacus_surface_read_input.o: spartacus_surface_config.o
