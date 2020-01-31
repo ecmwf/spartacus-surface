@@ -701,7 +701,7 @@ contains
         do jreg = 1,nreg
           sw_norm_dir%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
-               &  * (tan0 * int_flux_dir(:,jreg) &
+               &  * (sin0 * int_flux_dir(:,jreg) &
                &     + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                &           * spread(lg%tan_ang,1,nsw)))
         end do
