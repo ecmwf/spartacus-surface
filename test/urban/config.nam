@@ -1,0 +1,20 @@
+&radsurf_driver
+do_parallel = true,
+vegetation_fsd = 0.5,
+!vegetation_sw_extinction = 0.25,
+top_flux_dn_sw = 1.0,
+top_flux_dn_direct_sw = 1.0,
+/
+
+&radsurf
+iverbose = 4,
+do_sw = true,
+do_lw = false,
+use_sw_direct_albedo = false,
+do_vegetation = true,
+do_urban = true,
+n_vegetation_region_urban = 2,
+nsw = 1,
+nlw = 1,
+n_stream_urban = 1,
+/

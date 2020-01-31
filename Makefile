@@ -93,13 +93,16 @@ libutilities:
 driver:
 	cd driver && $(MAKE)
 
-test: test_rami4pilps test_simple
+test: test_simple test_rami4pilps test_urban
 
 test_simple:
 	cd test/simple && $(MAKE) test
 
 test_rami4pilps:
 	cd test/rami4pilps && $(MAKE) test
+
+test_urban:
+	cd test/urban && $(MAKE) test
 
 test_code:
 	cd driver && $(MAKE) test_code
@@ -109,6 +112,7 @@ clean: clean-tests clean-toplevel clean-utilities clean-mods
 clean-tests:
 	cd test/simple && $(MAKE) clean
 	cd test/rami4pilps && $(MAKE) clean
+	cd test/urban && $(MAKE) clean
 
 clean-toplevel:
 	cd radsurf && $(MAKE) clean
