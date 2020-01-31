@@ -45,6 +45,9 @@ module spartacus_surface_config
      real(kind=jprb) :: vegetation_sw_ssa        = -1.0
      real(kind=jprb) :: vegetation_lw_extinction = -1.0
      real(kind=jprb) :: vegetation_lw_ssa        = -1.0
+     real(kind=jprb) :: top_flux_dn_sw           = -1.0
+     real(kind=jprb) :: top_flux_dn_direct_sw    = -1.0
+     real(kind=jprb) :: top_flux_dn_lw           = -1.0
      
    contains
      procedure :: read => read_config_from_namelist
@@ -75,12 +78,15 @@ contains
     real(kind=jprb),    pointer :: ground_sw_albedo, roof_sw_albedo, wall_sw_albedo
     real(kind=jprb),    pointer :: ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
     real(kind=jprb),    pointer :: vegetation_sw_extinction, vegetation_sw_ssa
+    real(kind=jprb),    pointer :: top_flux_dn_sw, top_flux_dn_direct_sw
+    real(kind=jprb),    pointer :: top_flux_dn_lw
 
     namelist /radsurf_driver/ do_parallel, nblocksize, nrepeat, istartcol, iendcol, &
          &  iverbose, cos_solar_zenith_angle, vegetation_fsd, &
          &  ground_sw_albedo, roof_sw_albedo, wall_sw_albedo, &
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
-         &  vegetation_sw_extinction, vegetation_sw_ssa, vegetation_fraction
+         &  vegetation_sw_extinction, vegetation_sw_ssa, vegetation_fraction, &
+         &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw
 
     do_parallel            => this%do_parallel
     nblocksize             => this%nblocksize
@@ -99,6 +105,9 @@ contains
     vegetation_fsd         => this%vegetation_fsd
     vegetation_sw_extinction=>this%vegetation_sw_extinction
     vegetation_sw_ssa      => this%vegetation_sw_ssa
+    top_flux_dn_sw         => this%top_flux_dn_sw
+    top_flux_dn_direct_sw  => this%top_flux_dn_direct_sw
+    top_flux_dn_lw         => this%top_flux_dn_lw
 
     ! Open the namelist file and read the radiation_driver namelist
     open(unit=10, iostat=iosopen, file=trim(file_name))

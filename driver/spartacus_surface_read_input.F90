@@ -298,8 +298,18 @@ contains
       end if
 
       ! Get the top-of-canopy fluxes
-      call read_2d(file, 'top_flux_dn_sw', top_flux_dn_sw)
-      call read_2d(file, 'top_flux_dn_direct_sw', top_flux_dn_direct_sw)
+      if (driver_config%top_flux_dn_sw >= 0.0_jprb) then
+        allocate(top_flux_dn_sw(config%nsw, ncol))
+        top_flux_dn_sw = driver_Config%top_flux_dn_sw
+      else
+        call read_2d(file, 'top_flux_dn_sw', top_flux_dn_sw)
+      end if
+      if (driver_config%top_flux_dn_direct_sw >= 0.0_jprb) then
+        allocate(top_flux_dn_direct_sw(config%nsw, ncol))
+        top_flux_dn_direct_sw = driver_Config%top_flux_dn_direct_sw
+      else
+        call read_2d(file, 'top_flux_dn_direct_sw', top_flux_dn_direct_sw)
+      end if
 
     end if
     
