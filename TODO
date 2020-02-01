@@ -1,0 +1,9 @@
+FEATURES
+
+Longwave forest
+Longwave urban
+Gas optics
+
+BUG FIXES
+
+Eigen decomposition correctly treats multiple spectral intervals
