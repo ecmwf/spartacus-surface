@@ -191,7 +191,7 @@ contains
 
     if (nreg == 1) then
       ! No vegetation
-      overlap_matrix(1:2,1) = frac_lower(1:2)
+      overlap_matrix(1,1:2) = frac_lower(1:2)
     else if (nreg == 2) then
       pair_cover = max(frac_upper(2),frac_lower(2))
       ! Assume minimum overlap of trees and buildings
