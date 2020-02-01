@@ -23,8 +23,20 @@
 
 module radtool_eigen_decomposition
 
+  ! See below for the interpretation of this preprocessor variable
+  !#define EIGEN_OUTER_STACKING
+  
 contains
 
+  ! This routine performs an Eigen decomposition of "nmat" matrices
+  ! dimensioned "norder-x-norder", stored in the input array "amat".
+  ! The resulting Eigenvalues are stored in "eigenvalue" and
+  ! Eigenvectors as the column vectors comprising "eigenvector". This
+  ! routine assumes that the eigenvalues must be real, appropriate for
+  ! radiative transfer problems.  If EIGEN_OUTER_STACKING is defined
+  ! then the matrix number is the outer dimension (slowest varying in
+  ! memory) of the input and output arrays, otherwise it is the inner
+  ! dimension (fastest varying in memory).
   subroutine eigen_decomposition_real(norder, nmat, amat, &
        &                              eigenvalue, eigenvector, &
        &                              nerror, ierror)
@@ -47,15 +59,25 @@ contains
     integer,         intent(in)  :: norder
     ! Number of matrices to decompose
     integer,         intent(in)  :: nmat
-    ! Matrices to be decomposed
-    real(kind=jprb), intent(in)  :: amat(norder,norder,nmat)
 
+    ! Matrices to be decomposed
+#ifdef EIGEN_OUTER_STACKING
+    real(kind=jprb), intent(in)  :: amat(norder,norder,nmat)
+#else
+    real(kind=jprb), intent(in)  :: amat(nmat,norder,norder)
+#endif
+    
     ! Outputs
 
     ! Returned eigenvalues and eigenvectors
+#ifdef EIGEN_OUTER_STACKING
     real(kind=jprb), intent(out) :: eigenvalue(norder,nmat)
     real(kind=jprb), intent(out) :: eigenvector(norder,norder,nmat)
-
+#else
+    real(kind=jprb), intent(out) :: eigenvalue(nmat,norder)
+    real(kind=jprb), intent(out) :: eigenvector(nmat,norder,norder)
+#endif
+    
     ! Return the number of matrices that could not be eigen-decomposed
     integer, optional, intent(out) :: nerror
 
@@ -133,7 +155,11 @@ contains
         ! isolating an eigenvalue and push them down
 
         ! Initialize balanced matrix
+#ifdef EIGEN_OUTER_STACKING        
         abal = amat(:,:,jmat)
+#else
+        abal = amat(jmat,:,:)
+#endif
 
         rnorm = 0.0_jprd
 
@@ -680,14 +706,21 @@ contains
         end if
 
         ! Put results into output arrays
+#ifdef EIGEN_OUTER_STACKING
         eigenvalue(:,jmat) = eigenval(:)
         eigenvector(:,:,jmat) = eigenvec(:,:)
-
-      end do ! jmat
+#else
+        eigenvalue(jmat,:) = eigenval(:)
+        eigenvector(jmat,:,:) = eigenvec(:,:)
+#endif
+        
+      end do ! Loop over matrices
 
     else if (norder == 2) then
       ! Special case: 2x2 matrices
       do jmat = 1,nmat
+        
+#ifdef EIGEN_OUTER_STACKING
         discriminant = (amat(1,1,jmat)-amat(2,2,jmat)) ** 2 &
              & + 4.0_jprd*amat(1,2,jmat)*amat(2,1,jmat)
         if (discriminant < 0.0_jprd) then
@@ -722,13 +755,54 @@ contains
           eigenvector(2,1,jmat) = amat(2,1,jmat) / (eigenvalue(1,jmat)-amat(2,2,jmat))
           eigenvector(1,2,jmat) = amat(1,2,jmat) / (eigenvalue(2,jmat)-amat(1,1,jmat))
         end if
+#else
+        discriminant = (amat(jmat,1,1)-amat(jmat,2,2)) ** 2 &
+             & + 4.0_jprd*amat(jmat,1,2)*amat(jmat,2,1)
+        if (discriminant < 0.0_jprd) then
+          if (present(nerror)) then
+            nerror = nerror + 1
+          end if
+          if (present(ierror)) then
+            ierror(jmat) = 2
+          end if
+        end if
 
-      end do
+        eigenvalue(jmat,1) = 0.5_jprd*(amat(jmat,1,1)+amat(jmat,2,2))
+        eigenvalue(jmat,2) = eigenvalue(jmat,1)
+        half_sqrt_disc = 0.5_jprd*sqrt(discriminant)
+        if (amat(jmat,1,1) >= amat(jmat,2,2)) then
+          eigenvalue(jmat,1) = eigenvalue(jmat,1) + half_sqrt_disc
+          eigenvalue(jmat,2) = eigenvalue(jmat,2) - half_sqrt_disc
+        else
+          eigenvalue(jmat,1) = eigenvalue(jmat,1) - half_sqrt_disc
+          eigenvalue(jmat,2) = eigenvalue(jmat,2) + half_sqrt_disc
+        end if
+        eigenvector(jmat,1,1) = 1.0_jprd
+        eigenvector(jmat,2,2) = 1.0_jprd
+        if (amat(jmat,1,1) == amat(jmat,2,2) .and. &
+             &  (amat(jmat,2,1) == 0.0_jprd .or. amat(jmat,1,2) == 0.0_jprd)) then
+          rnorm = 1.0_jprd / (Tol * &
+               &  abs(amat(jmat,1,1)) + abs(amat(jmat,2,1)) &
+               & +abs(amat(jmat,1,2)) + abs(amat(jmat,2,2)))
+          eigenvector(jmat,2,1) = amat(jmat,2,1) * rnorm
+          eigenvector(jmat,1,2) = amat(jmat,1,2) * rnorm
+        else
+          eigenvector(jmat,2,1) = amat(jmat,2,1) / (eigenvalue(jmat,1)-amat(jmat,2,2))
+          eigenvector(jmat,1,2) = amat(jmat,1,2) / (eigenvalue(jmat,2)-amat(jmat,1,1))
+        end if
+#endif
+        
+      end do ! Loop over matrices
 
     else if (norder == 1) then
       ! Special case: 1x1 matrices
+#ifdef EIGEN_OUTER_STACKING
       eigenvalue(1,1:nmat) = amat(1,1,1:nmat)
       eigenvector(1,1,1:nmat) = 1.0_jprd
+#else
+      eigenvalue(1:nmat,1) = amat(1:nmat,1,1)
+      eigenvector(1:nmat,1,1) = 1.0_jprd
+#endif     
     else
       ! norder not a positive number
       if (present(nerror)) then
