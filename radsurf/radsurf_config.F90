@@ -73,8 +73,9 @@ module radsurf_config
     ! Minimum vegetation fraction below which vegetation is ignored
     real(kind=jprb) :: min_vegetation_fraction = 1.0e-6
 
-    ! Do we save spectral fluxes to output file?
-    logical :: do_save_spectral_flux = .false.
+    ! Do we save broadband and spectral fluxes to output file?
+    logical :: do_save_broadband_flux = .true.
+    logical :: do_save_spectral_flux  = .false.
 
     integer(kind=jpim) :: iverbose = 3
 
@@ -117,17 +118,22 @@ contains
 
     ! Namelist variables mirroring values in config_type
     
-    logical, pointer :: do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban, &
-         &  use_symmetric_vegetation_scale_forest, use_symmetric_vegetation_scale_urban, &
-         &  do_save_spectral_flux
+    logical, pointer :: do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
+         &  do_urban, &
+         &  use_symmetric_vegetation_scale_forest, &
+         &  use_symmetric_vegetation_scale_urban, &
+         &  do_save_spectral_flux, do_save_broadband_flux
     integer(kind=jpim), pointer :: nsw, nlw, n_stream_forest, &
          &  n_stream_urban, iverbose, n_vegetation_region_forest, &
          &  n_vegetation_region_urban
 
-    namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, do_urban, &
-         &  nsw, nlw, n_stream_forest, n_stream_urban, iverbose, do_save_spectral_flux, &
+    namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
+         &  do_urban, &
+         &  nsw, nlw, n_stream_forest, n_stream_urban, iverbose, &
+         &  do_save_spectral_flux, do_save_broadband_flux, &
          &  n_vegetation_region_forest, n_vegetation_region_urban, &
-         &  use_symmetric_vegetation_scale_forest, use_symmetric_vegetation_scale_urban
+         &  use_symmetric_vegetation_scale_forest, &
+         &  use_symmetric_vegetation_scale_urban
 
     real(jprb) :: hook_handle
 
@@ -143,6 +149,7 @@ contains
     n_stream_forest      => this%n_stream_forest
     n_stream_urban       => this%n_stream_urban
     do_save_spectral_flux=> this%do_save_spectral_flux
+    do_save_broadband_flux=>this%do_save_broadband_flux
     iverbose             => this%iverbose
     n_vegetation_region_forest => this%n_vegetation_region_forest
     n_vegetation_region_urban  => this%n_vegetation_region_urban

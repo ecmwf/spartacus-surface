@@ -38,6 +38,7 @@ contains
     type(netcdf_file)      :: out_file
     integer(kind=jpim)     :: jcol, jlay, ncol, nlay, ninterface, itotlay
     logical                :: do_spectral_sw, do_spectral_lw
+    logical                :: do_broadband_sw, do_broadband_lw
 
     ! Temporary variable at layer interfaces
     real(kind=jprb), allocatable :: tmp(:,:)
@@ -51,15 +52,19 @@ contains
     if (config%do_sw) then
       do_spectral_sw = (config%do_save_spectral_flux &
            &            .and. flux_sw%nspec > 1)
+      do_broadband_sw = config%do_save_broadband_flux
     else
       do_spectral_sw = .false.
+      do_broadband_sw = .false.
     end if
 
     if (config%do_lw) then
       do_spectral_lw = (config%do_save_spectral_flux &
            &            .and. flux_lw%nspec > 1)
+      do_broadband_sw = config%do_save_broadband_flux
     else
       do_spectral_lw = .false.
+      do_broadband_sw = .false.
     end if
 
     ncol = canopy_props%ncol
@@ -76,7 +81,13 @@ contains
     call out_file%define_dimension("column", ncol)
     call out_file%define_dimension("layer", nlay)
     call out_file%define_dimension("layer_interface", ninterface)
-
+    if (do_spectral_sw) then
+      call out_file%define_dimension("band_sw", flux_sw%nspec)
+    end if
+    if (do_spectral_lw) then
+      call out_file%define_dimension("band_lw", flux_lw%nspec)
+    end if
+    
     ! Put global attributes
     call out_file%put_global_attributes( &
          &  title_str="Radiative fluxes from the SPARTACUS-Surface radiation model", &
@@ -98,7 +109,7 @@ contains
     call out_file%put_attribute("surface_type", "definition", &
          &    "0: Flat"//NEW_LINE('A') &
          &  //"1: Forest"//NEW_LINE('A') &
-         &  //"2: Urban"//NEW_LINE('A') &
+         &  //"2: Unvegetated urban"//NEW_LINE('A') &
          &  //"3: Vegetated urban")
     call out_file%define_variable("nlayer", data_type_name="short", &
          &  dim1_name="column", long_name="Number of active layers")
@@ -106,13 +117,13 @@ contains
     ! Define shortwave variables
     if (config%do_sw) then
       call define_canopy_flux_variables(out_file, "sw", "shortwave", flux_sw, &
-           &  do_spectral_sw)
+           &  do_broadband_sw, do_spectral_sw)
     end if
 
     ! Define longwave variables
     if (config%do_lw) then
       call define_canopy_flux_variables(out_file, "lw", "longwave", flux_lw, &
-           &  do_spectral_lw)
+           &  do_broadband_lw, do_spectral_lw)
      end if
 
     ! Write general variables
@@ -132,13 +143,13 @@ contains
     ! Write shortwave variables
     if (config%do_sw) then
       call write_canopy_flux_variables(out_file, "sw", nlay, &
-       &  canopy_props%nlay, flux_sw, do_spectral_sw)
+       &  canopy_props%nlay, flux_sw, do_broadband_sw, do_spectral_sw)
     end if
 
     ! Write longwave variables
     if (config%do_lw) then
       call write_canopy_flux_variables(out_file, "lw", nlay, &
-       &  canopy_props%nlay, flux_lw, do_spectral_lw)
+       &  canopy_props%nlay, flux_lw, do_broadband_lw, do_spectral_lw)
     end if
 
     ! Close file
@@ -147,7 +158,7 @@ contains
   end subroutine save_canopy_fluxes
 
   subroutine define_canopy_flux_variables(out_file, band_name, band_long_name, &
-       &  flux, do_spectral)
+       &  flux, do_broadband, do_spectral)
 
     use easy_netcdf
     use radsurf_canopy_flux,      only : canopy_flux_type
@@ -155,7 +166,7 @@ contains
     type(netcdf_file),      intent(inout) :: out_file
     character(len=*),       intent(in)    :: band_name, band_long_name
     type(canopy_flux_type), intent(in)    :: flux
-    logical,                intent(in)    :: do_spectral
+    logical,                intent(in)    :: do_broadband, do_spectral
 
     call out_file%define_variable("ground_flux_dn_"//band_name, units_str="W m-2", &
          &  long_name="Downwelling "//band_long_name//" flux at ground", &
@@ -212,7 +223,7 @@ contains
 
 
   subroutine write_canopy_flux_variables(out_file, band_name, nmaxlay, &
-       &  nlay, flux, do_spectral)
+       &  nlay, flux, do_broadband, do_spectral)
 
     use easy_netcdf
     use radsurf_canopy_flux,      only : canopy_flux_type
@@ -222,7 +233,7 @@ contains
     integer(kind=jpim),     intent(in)    :: nmaxlay
     integer(kind=jpim),     intent(in)    :: nlay(:)
     type(canopy_flux_type), intent(in)    :: flux
-    logical,                intent(in)    :: do_spectral
+    logical,                intent(in)    :: do_broadband, do_spectral
 
     ! Temporary variable at layer interfaces
     real(kind=jprb) :: tmp(nmaxlay, flux%ncol)
