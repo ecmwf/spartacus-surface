@@ -318,7 +318,8 @@ contains
                &          + od_scaling(3,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
-        
+
+        norm_perim = 0.0_jprb
         if (nreg > 1) then
           ! Compute the normalized vegetation perimeter length
           if (config%use_symmetric_vegetation_scale_forest) then
@@ -367,24 +368,26 @@ contains
         norm_perim_wall = 0.0_jprb
         norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
-        if (nreg > 1 .and. veg_contact_fraction(jlay) > 0.0_jprb) then
-          ! Compute normalized length of interface between wall and
-          ! any vegetation
-          norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
-               &                    norm_perim_wall(1))
-          if (nreg == 2) then
-            norm_perim_wall(2) = norm_perim_wall_veg
-            norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
-          else
-            norm_perim_wall(2) = norm_perim_wall_veg &
-                 &  * (1.0_jprb - config%vegetation_isolation_factor_forest)
-            norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
-            norm_perim_wall(3) = norm_perim_wall_veg &
-                 &  * config%vegetation_isolation_factor_forest
-            norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
+        if (nreg > 1) then
+          if (veg_contact_fraction(jlay) > 0.0_jprb) then
+            ! Compute normalized length of interface between wall and
+            ! any vegetation
+            norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
+                 &                    norm_perim_wall(1))
+            if (nreg == 2) then
+              norm_perim_wall(2) = norm_perim_wall_veg
+              norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
+            else
+              norm_perim_wall(2) = norm_perim_wall_veg &
+                   &  * (1.0_jprb - config%vegetation_isolation_factor_forest)
+              norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
+              norm_perim_wall(3) = norm_perim_wall_veg &
+                   &  * config%vegetation_isolation_factor_forest
+              norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
+            end if
+            ! Reduce length of interface between wall and clear-air
+            norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
           end if
-          ! Reduce length of interface between wall and clear-air
-          norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
         end if
 
         ! Compute the rates of exchange between regions, excluding the
@@ -683,19 +686,21 @@ contains
              &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
              &    * (int_flux_dir(:,1) & ! / cos_sza &
              &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
-        do jreg = 2,nreg
-          ! Absorption by clear-air in the vegetated regions
-          sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
-               &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
-               &    * (int_flux_dir(:,jreg) & ! / cos_sza &
-               &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
-          sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
-               &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
-               &    * (int_flux_dir(:,jreg) & ! / cos_sza &
-               &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
-        end do
+        if (do_vegetation) then
+          do jreg = 2,nreg
+            ! Absorption by clear-air in the vegetated regions
+            sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
+                 &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+                 &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+                 &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
+            sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
+                 &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+                 &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+                 &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
+          end do
+        end if
 
         ! Inward and net flux into walls
         do jreg = 1,nreg
@@ -772,17 +777,19 @@ contains
         sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
              &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
              &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2)
-        do jreg = 2,nreg
-          ! Absorption by clear-air in the vegetated regions
-          sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
-               &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
-               &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
-          sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
-               &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
-               &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
-        end do
+        if (do_vegetation) then
+          do jreg = 2,nreg
+            ! Absorption by clear-air in the vegetated regions
+            sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
+                 &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+                 &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
+            sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
+                 &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+                 &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
+          end do
+        end if
 
         ! Inward and net flux into walls
         do jreg = 1,nreg
