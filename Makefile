@@ -53,7 +53,7 @@ endif
 
 # Consolidate flags
 export FC
-export FCFLAGS = $(WARNFLAGS) $(BASICFLAGS) $(CPPFLAGS) -I../include \
+export FCFLAGS = $(WARNFLAGS) $(BASICFLAGS) $(CPPFLAGS) \
 	$(OPTFLAGS) $(DEBUGFLAGS) $(NETCDF_INCLUDE) $(OMPFLAG)
 export LIBS    = $(LDFLAGS) -L../lib -lradsurf -lradtool -lutilities \
 	-lifsaux $(FCLIBS) $(NETCDF_LIB) $(OMPFLAG)
@@ -70,13 +70,6 @@ help:
 	@echo "where <prof> is one of gfortran, pgi etc."
 
 build: libifsaux libutilities libradtool libradsurf driver
-
-deps: clean-deps
-	cd ifsaux && $(MAKE) deps
-	cd ifsrrtm && $(MAKE) deps
-
-clean-deps:
-	rm -f include/*.intfb.h
 
 libifsaux:
 	cd ifsaux && $(MAKE)
