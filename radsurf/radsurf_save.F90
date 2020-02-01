@@ -226,7 +226,7 @@ contains
 
     ! Temporary variable at layer interfaces
     real(kind=jprb) :: tmp(nmaxlay, flux%ncol)
-
+    
     call out_file%put("ground_flux_dn_"//band_name, sum(flux%ground_dn,1))
     call out_file%put("ground_flux_net_"//band_name, sum(flux%ground_net,1))
     if (allocated(flux%ground_dn_direct)) then

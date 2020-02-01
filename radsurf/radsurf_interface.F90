@@ -173,6 +173,10 @@ contains
           write(nulout,'(a,i0,a,i0,a)') '  Column ', jcol, ': unvegetated urban tile with ', &
                &  canopy_props%nlay(jcol), ' layers'
         end if
+
+        call sw_norm_dir%zero(jcol,ilay1,ilay2)
+        call sw_norm_diff%zero(jcol,ilay1,ilay2)
+
         ! if (config%do_sw) then
         !   call spartacus_urban_sw(config, config%nswinternal, &
         !        &  config%lg_urban%nstream, config%n_vegetation_region_urban, &
