@@ -114,7 +114,7 @@ contains
     ! at the end representing the free atmosphere above
     real(kind=jprb), dimension(nreg,nlay+1) :: frac
     
-    ! Components of the Gamma matrices
+    ! Components of the Gamma matrix
     real(kind=jprb), dimension(nsw,nreg,nreg)       :: gamma0
     real(kind=jprb), dimension(nsw,nreg*ns,nreg*ns) :: gamma1, gamma2
     real(kind=jprb), dimension(nsw,nreg*ns,nreg)    :: gamma3
@@ -322,7 +322,7 @@ contains
         norm_perim = 0.0_jprb
         if (nreg > 1) then
           ! Compute the normalized vegetation perimeter length
-          if (config%use_symmetric_vegetation_scale_forest) then
+          if (config%use_symmetric_vegetation_scale_urban) then
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
                  &        / veg_scale(jlay)
           else
@@ -334,8 +334,8 @@ contains
           if (nreg > 2) then
             ! Share the clear-air/vegetation perimeter between the two
             ! vegetated regions
-            norm_perim(nreg) = config%vegetation_isolation_factor_forest * norm_perim(1)
-            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+            norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
+            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                  &          * norm_perim(1) 
             ! We assume that the horizontal scale of the vegetation
             ! inhomogeneities is the same as the scale of the tree
@@ -344,16 +344,16 @@ contains
             ! formula as before but with the fraction associated with
             ! one of the two vegetated regions, which is half the
             ! total vegetation fraction.
-            if (config%use_symmetric_vegetation_scale_forest) then
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+            if (config%use_symmetric_vegetation_scale_urban) then
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
                    &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
                    &  / veg_scale(jlay)
             else
-              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
               !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
               ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
             end if
           else
@@ -379,10 +379,10 @@ contains
               norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
             else
               norm_perim_wall(2) = norm_perim_wall_veg &
-                   &  * (1.0_jprb - config%vegetation_isolation_factor_forest)
+                   &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
               norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
               norm_perim_wall(3) = norm_perim_wall_veg &
-                   &  * config%vegetation_isolation_factor_forest
+                   &  * config%vegetation_isolation_factor_urban
               norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
             end if
             ! Reduce length of interface between wall and clear-air
