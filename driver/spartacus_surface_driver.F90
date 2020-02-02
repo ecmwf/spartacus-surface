@@ -30,6 +30,7 @@ program spartacus_surface_driver
   use radsurf_canopy_flux,          only : canopy_flux_type
   use radsurf_interface,            only : radsurf
   use radsurf_save,                 only : save_canopy_fluxes
+  use radsurf_simple_spectrum,      only : calc_simple_spectrum_lw
   use easy_netcdf
 
   implicit none
@@ -181,6 +182,12 @@ program spartacus_surface_driver
         end if
 #endif
 
+        if (config%do_lw) then
+          ! Gas optics and spectral emission
+          call calc_simple_spectrum_lw(config, canopy_props, facet_props, &
+               &  volume_props, istartcol, iendcol)
+        end if
+        
         ! Call the SPARTACUS-Surface radiation scheme
         call radsurf(config, canopy_props, facet_props, volume_props, bc_out, &
              &       istartcol, iendcol, sw_norm_dir, sw_norm_diff, &

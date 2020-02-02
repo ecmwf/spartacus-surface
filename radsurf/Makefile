@@ -9,7 +9,8 @@ SOURCES = \
 	radsurf_forest_sw.F90 \
 	radsurf_urban_sw.F90 \
 	radsurf_overlap.F90 \
-	radsurf_save.F90
+	radsurf_save.F90 \
+	radsurf_simple_spectrum.F90
 
 OBJECTS := $(SOURCES:.F90=.o)
 LIBSURF = ../lib/libradsurf.a
@@ -40,3 +41,5 @@ radsurf_urban_sw.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_canopy_flux.o radsurf_overlap.o radsurf_facet_properties.o
 radsurf_save.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_canopy_flux.o
+radsurf_simple_spectrum.o: radsurf_config.o radsurf_canopy_properties.o \
+	radsurf_facet_properties.o radsurf_volume_properties.o

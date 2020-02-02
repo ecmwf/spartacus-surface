@@ -30,7 +30,7 @@ contains
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radsurf_forest_sw,          only : spartacus_forest_sw
     use radsurf_urban_sw,           only : spartacus_urban_sw
-
+    
     implicit none
 
     type(config_type),             intent(in)  :: config
@@ -87,6 +87,7 @@ contains
       ground_sw_albedo_direct => facet_props%ground_sw_albedo
     end if
 
+    ! Loop through columns calculating radiative transfer on each
     do jcol = icol1,icol2
 
       irep = canopy_props%i_representation(jcol)
