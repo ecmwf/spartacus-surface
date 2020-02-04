@@ -16,5 +16,5 @@ do_urban = true,
 n_vegetation_region_urban = 2,
 nsw = 1,
 nlw = 1,
-n_stream_urban = 1,
+n_stream_sw_urban = 1,
 /

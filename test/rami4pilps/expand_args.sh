@@ -35,7 +35,7 @@ if [ "$VREGS" ]; then
 fi
 
 if [ "$STREAMS" ]; then
-    STR="n_stream_forest=$STREAMS"
+    STR="n_stream_sw_forest=$STREAMS"
 else
     STR=""
 fi

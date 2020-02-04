@@ -49,8 +49,10 @@ module radsurf_config
 
     ! Number of diffuse streams to use in a single hemisphere for a
     ! forest and an urban tile
-    integer(kind=jpim) :: n_stream_forest = 4
-    integer(kind=jpim) :: n_stream_urban  = 4
+    integer(kind=jpim) :: n_stream_sw_forest = 4
+    integer(kind=jpim) :: n_stream_sw_urban  = 4
+    integer(kind=jpim) :: n_stream_lw_forest = 4
+    integer(kind=jpim) :: n_stream_lw_urban  = 4
 
     ! If true, the normalized perimeter length is
     ! 4*frac*(1-frac)/scale, if false it is 4*frac/scale
@@ -85,7 +87,10 @@ module radsurf_config
     ! represent the spectral variation of atmospheric absorption
     integer(kind=jpim) :: nswinternal, nlwinternal
 
-    type(legendre_gauss_type) :: lg_urban, lg_forest
+    ! Legendre-Gauss structures for each combination of tile type and
+    ! spectral region
+    type(legendre_gauss_type) :: lg_sw_urban, lg_sw_forest
+    type(legendre_gauss_type) :: lg_lw_urban, lg_lw_forest
 
    contains
      procedure :: read => read_config_from_namelist
@@ -123,13 +128,14 @@ contains
          &  use_symmetric_vegetation_scale_forest, &
          &  use_symmetric_vegetation_scale_urban, &
          &  do_save_spectral_flux, do_save_broadband_flux
-    integer(kind=jpim), pointer :: nsw, nlw, n_stream_forest, &
-         &  n_stream_urban, iverbose, n_vegetation_region_forest, &
+    integer(kind=jpim), pointer :: nsw, nlw, n_stream_sw_forest, &
+         &  n_stream_sw_urban, n_stream_lw_forest, n_stream_lw_urban, &
+         &  iverbose, n_vegetation_region_forest, &
          &  n_vegetation_region_urban
 
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
-         &  do_urban, &
-         &  nsw, nlw, n_stream_forest, n_stream_urban, iverbose, &
+         &  do_urban, nsw, nlw, n_stream_sw_forest, n_stream_sw_urban, &
+         &  n_stream_lw_forest, n_stream_lw_urban, iverbose, &
          &  do_save_spectral_flux, do_save_broadband_flux, &
          &  n_vegetation_region_forest, n_vegetation_region_urban, &
          &  use_symmetric_vegetation_scale_forest, &
@@ -146,8 +152,10 @@ contains
     do_urban             => this%do_urban
     nsw                  => this%nsw
     nlw                  => this%nlw
-    n_stream_forest      => this%n_stream_forest
-    n_stream_urban       => this%n_stream_urban
+    n_stream_sw_forest   => this%n_stream_sw_forest
+    n_stream_sw_urban    => this%n_stream_sw_urban
+    n_stream_lw_forest   => this%n_stream_lw_forest
+    n_stream_lw_urban    => this%n_stream_lw_urban
     do_save_spectral_flux=> this%do_save_spectral_flux
     do_save_broadband_flux=>this%do_save_broadband_flux
     iverbose             => this%iverbose
@@ -228,8 +236,10 @@ contains
     this%nswinternal = this%nsw
     this%nlwinternal = this%nlw
 
-    call this%lg_forest%initialize(this%n_stream_forest)
-    call this%lg_urban%initialize(this%n_stream_urban)
+    call this%lg_sw_forest%initialize(this%n_stream_sw_forest)
+    call this%lg_sw_urban%initialize(this%n_stream_sw_urban)
+    call this%lg_lw_forest%initialize(this%n_stream_lw_forest)
+    call this%lg_lw_urban%initialize(this%n_stream_lw_urban)
     
     if (lhook) call dr_hook('radsurf_config:consolidate',1,hook_handle)
     

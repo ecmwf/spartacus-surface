@@ -12,11 +12,11 @@ INPUT = $(BASENAME)_sza.nc
 test: test_streams
 
 test_streams: $(INPUT)
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_urban=1
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=1
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_1stream_out.nc
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_urban=2
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=2
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_2stream_out.nc
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_urban=4
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=4
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_4stream_out.nc
 
 # Duplicate the profiles in russell_square.nc to add a range of solar

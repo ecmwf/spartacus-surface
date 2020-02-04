@@ -157,14 +157,14 @@ contains
         if (config%iverbose >= 4) then
           write(nulout,'(i5,a,i0,a,i0,a,i0,a)') jcol, ': Forest,            ', &
                &  canopy_props%nlay(jcol), ' layers, ', &
-               &  config%lg_forest%nstream, ' diffuse streams per hemisphere, ', &
+               &  config%lg_sw_forest%nstream, ' diffuse streams per hemisphere, ', &
                &  config%n_vegetation_region_forest+1, ' regions'
         end if
         if (config%do_sw) then
           call spartacus_forest_sw(config, config%nswinternal, &
-               &  config%lg_forest%nstream, config%n_vegetation_region_forest+1, &
+               &  config%lg_sw_forest%nstream, config%n_vegetation_region_forest+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_forest, canopy_props%cos_sza(jcol), &
+               &  config%lg_sw_forest, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, &
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
@@ -176,16 +176,16 @@ contains
         if (config%iverbose >= 4) then
           write(nulout,'(i5,a,i0,a,i0,a)') jcol, ': Unvegetated urban, ', &
                &  canopy_props%nlay(jcol), ' layers, ', &
-               &  config%lg_urban%nstream, ' diffuse streams per hemisphere, 1 region'
+               &  config%lg_sw_urban%nstream, ' diffuse streams per hemisphere, 1 region'
         end if
 
         if (config%do_sw) then
           call sw_norm_dir%zero(jcol,ilay1,ilay2)
           call sw_norm_diff%zero(jcol,ilay1,ilay2)
           call spartacus_urban_sw(config, config%nswinternal, &
-               &  config%lg_urban%nstream, 1, &
+               &  config%lg_sw_urban%nstream, 1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_urban, canopy_props%cos_sza(jcol), &
+               &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, facet_props, &
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
@@ -196,9 +196,9 @@ contains
           call lw_internal%zero(jcol,ilay1,ilay2)
           call lw_norm%zero(jcol,ilay1,ilay2)
           call spartacus_urban_lw(config, config%nlwinternal, &
-               &  config%lg_urban%nstream, 1, &
+               &  config%lg_lw_urban%nstream, 1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_urban, canopy_props, volume_props, facet_props, &
+               &  config%lg_lw_urban, canopy_props, volume_props, facet_props, &
                &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
                &  lw_internal, lw_norm)
         end if
@@ -207,14 +207,14 @@ contains
         if (config%iverbose >= 4) then
           write(nulout,'(i5,a,i0,a,i0,a,i0,a)') jcol, ': Vegetated urban,   ', &
                &  canopy_props%nlay(jcol), ' layers, ', &
-               &  config%lg_urban%nstream, ' diffuse streams per hemisphere, ', &
+               &  config%lg_sw_urban%nstream, ' diffuse streams per hemisphere, ', &
                &  config%n_vegetation_region_urban+1, ' regions'
         end if
         if (config%do_sw) then
           call spartacus_urban_sw(config, config%nswinternal, &
-               &  config%lg_urban%nstream, config%n_vegetation_region_urban+1, &
+               &  config%lg_sw_urban%nstream, config%n_vegetation_region_urban+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_urban, canopy_props%cos_sza(jcol), &
+               &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
                &  canopy_props, volume_props, facet_props, &
                &  facet_props%ground_sw_albedo(:,jcol), &
                &              ground_sw_albedo_direct(:,jcol), &
@@ -223,9 +223,9 @@ contains
         end if
         if (config%do_lw) then
           call spartacus_urban_lw(config, config%nlwinternal, &
-               &  config%lg_urban%nstream, config%n_vegetation_region_urban+1, &
+               &  config%lg_lw_urban%nstream, config%n_vegetation_region_urban+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_urban, canopy_props, volume_props, facet_props, &
+               &  config%lg_lw_urban, canopy_props, volume_props, facet_props, &
                &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
                &  lw_internal, lw_norm)
         end if
