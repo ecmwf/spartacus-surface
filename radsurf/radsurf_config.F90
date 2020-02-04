@@ -13,6 +13,9 @@ module radsurf_config
 
   implicit none
 
+  ! Length of string buffer for printing config information
+  integer, parameter :: NPrintStringLen = 60
+  
   !---------------------------------------------------------------------
   ! Derived type containing all the configuration information needed
   ! to run the radiation scheme.  The intention is that this is fixed
@@ -95,6 +98,7 @@ module radsurf_config
    contains
      procedure :: read => read_config_from_namelist
      procedure :: consolidate => consolidate_config
+     procedure :: print => print_config
      
   end type config_type
 
@@ -245,5 +249,135 @@ contains
     
   end subroutine consolidate_config
 
+
+  !---------------------------------------------------------------------
+  ! Print configuration information to standard output
+  subroutine print_config(this, iverbose)
+
+    use radiation_io, only : nulout
+
+    class(config_type), intent(in) :: this
+
+    integer, optional,  intent(in) :: iverbose
+    integer                        :: i_local_verbose
+
+    if (present(iverbose)) then
+      i_local_verbose = iverbose
+    else
+      i_local_verbose = this%iverbose
+    end if
+
+    if (i_local_verbose >= 2) then
+      !---------------------------------------------------------------------
+      write(nulout, '(a)') 'General settings:'
+      call print_logical('  Represent vegetation', &
+           &  'do_vegetation', this%do_vegetation)
+      call print_logical('  Represent urban areas', &
+           &  'do_urban', this%do_urban)
+      call print_logical('  Do shortwave calculations', &
+           &  'do_sw', this%do_sw)
+      call print_logical('  Do longwave calculations', &
+           &  'do_sw', this%do_lw)
+      if (this%do_sw) then
+        call print_integer('  Number of shortwave intervals', &
+             &  'nsw', this%nsw)
+      end if
+      if (this%do_lw) then
+        call print_integer('  Number of longwave intervals', &
+             &  'nlw', this%nlw)
+      end if
+      
+      if (this%do_vegetation) then
+        call print_real('  Minimum vegetation fraction', &
+             &  'min_vegetation_fraction', this%min_vegetation_fraction)
+        write(nulout, '(a)') 'Settings for forests:'
+        call print_integer('  Number of vegetation regions', &
+             &  'n_vegetation_region_forest', this%n_vegetation_region_forest)
+        call print_logical('  Use symmetric vegetation scale', &
+             &  'use_symmetric_vegetation_scale_forest', &
+             &  this%use_symmetric_vegetation_scale_forest)
+        call print_real('  Vegetation isolation factor', &
+             &  'vegetation_isolation_factor_forest', &
+             &  this%vegetation_isolation_factor_forest)
+        if (this%do_sw) then
+          call print_integer('  Shortwave diffuse streams per hemisphere', &
+               &  'n_stream_sw_forest', this%n_stream_sw_forest)
+        end if
+        if (this%do_lw) then
+          call print_integer('  Longwave streams per hemisphere', &
+               &  'n_stream_lw_forest', this%n_stream_lw_forest)
+        end if
+      end if
+
+      if (this%do_urban) then
+        write(nulout, '(a)') 'Settings for urban areas:'
+        if (this%do_vegetation) then
+          call print_integer('  Number of vegetation regions', &
+               &  'n_vegetation_region_urban', this%n_vegetation_region_urban)
+          call print_logical('  Use symmetric vegetation scale', &
+               &  'use_symmetric_vegetation_scale_urban', &
+               &  this%use_symmetric_vegetation_scale_urban)
+          call print_real('  Vegetation isolation factor', &
+               &  'vegetation_isolation_factor_urban', &
+               &  this%vegetation_isolation_factor_urban)
+        end if
+        if (this%do_sw) then
+          call print_integer('  Shortwave diffuse streams per hemisphere', &
+               &  'n_stream_sw_urban', this%n_stream_sw_urban)
+        end if
+        if (this%do_lw) then
+          call print_integer('  Longwave streams per hemisphere', &
+               &  'n_stream_lw_urban', this%n_stream_lw_urban)
+        end if
+      end if
+     
+    end if
+
+  end subroutine print_config
   
+  !---------------------------------------------------------------------
+  ! Print one line of information: logical
+  subroutine print_logical(message_str, name, val)
+    use radiation_io, only : nulout
+    character(len=*),   intent(in) :: message_str
+    character(len=*),   intent(in) :: name
+    logical,            intent(in) :: val
+    character(4)                   :: on_or_off
+    character(NPrintStringLen)     :: str
+    if (val) then
+      on_or_off = ' ON '
+    else
+      on_or_off = ' OFF'
+    end if
+    write(str, '(a,a4)') message_str, on_or_off
+    write(nulout,'(a,a,a,a,l1,a)') str, ' (', name, '=', val,')'
+  end subroutine print_logical
+
+
+  !---------------------------------------------------------------------
+  ! Print one line of information: integer
+  subroutine print_integer(message_str, name, val)
+    use radiation_io, only : nulout
+    character(len=*),   intent(in) :: message_str
+    character(len=*),   intent(in) :: name
+    integer,            intent(in) :: val
+    character(NPrintStringLen)     :: str
+    write(str, '(a,a,i0)') message_str, ' = ', val
+    write(nulout,'(a,a,a,a)') str, ' (', name, ')'
+  end subroutine print_integer
+
+
+  !---------------------------------------------------------------------
+  ! Print one line of information: real
+  subroutine print_real(message_str, name, val)
+    use parkind1,     only : jprb
+    use radiation_io, only : nulout
+    character(len=*),   intent(in) :: message_str
+    character(len=*),   intent(in) :: name
+    real(jprb),         intent(in) :: val
+    character(NPrintStringLen)     :: str
+    write(str, '(a,a,g8.3)') message_str, ' = ', val
+    write(nulout,'(a,a,a,a)') str, ' (', name, ')'
+  end subroutine print_real
+
 end module radsurf_config

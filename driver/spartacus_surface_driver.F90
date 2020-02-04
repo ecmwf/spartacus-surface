@@ -90,10 +90,27 @@ program spartacus_surface_driver
 
   ! Read "radsurf" namelist into radiation configuration type
   call config%read(file_name=file_name)
-  call config%consolidate()
-
+  
   ! Read "radsurf_driver" namelist into radiation driver config type
   call driver_config%read(file_name)
+
+  ! Print out configuration information
+  if (driver_config%iverbose >= 2) then
+    write(nulout,'(a)') '-------------------------- OFFLINE SPARTACUS-SURFACE RADIATION SCHEME --------------------------'
+    write(nulout,'(a)') 'Copyright (C) 2019-2020 European Centre for Medium-Range Weather Forecasts'
+    write(nulout,'(a)') 'Contact: Robin Hogan (r.j.hogan@ecmwf.int)'
+#ifdef SINGLE_PRECISION
+    write(nulout,'(a)') 'Floating-point precision: single'
+#else
+    write(nulout,'(a)') 'Floating-point precision: double'
+#endif
+    call config%print(driver_config%iverbose)
+    write(nulout,'(a)') '------------------------------------------------------------------------------------------------'
+  end if
+
+  ! Act on any information in the configuration, e.g. loading config
+  ! files
+  call config%consolidate()
   
   ! --------------------------------------------------------
   ! Section 3: Read input data file
