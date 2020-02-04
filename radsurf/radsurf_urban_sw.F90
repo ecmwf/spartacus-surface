@@ -414,7 +414,7 @@ contains
           if (frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(3,1) = 0.0_jprb
           else
-            f_exchange(3,1) = norm_perim(jreg) * tan0 / (Pi * frac(1,jlay))
+            f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
           end if
         end if
 
@@ -605,12 +605,10 @@ contains
       call print_array3('Ess', trans_dir_dir(1,:,:,:))
 #endif
 
-      ! Store top-of-canopy boundary conditions
-      top_sw_albedo_diff = 0.0_jprb
-      ! Diffuse isotropic albedo is weighted average over the ns
-      ! streams, noting that just above the "nlay+1" interface we are
-      ! above the canopy so only need to consider the clear-sky region
-      ! (indexed 1:ns).
+      ! Store top-of-canopy boundary conditions.  Diffuse isotropic
+      ! albedo is weighted average over the ns streams, noting that
+      ! just above the "nlay+1" interface we are above the canopy so
+      ! only need to consider the clear-sky region (indexed 1:ns).
       top_sw_albedo_diff = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
            &                    spread(lg%hweight,1,nsw)),2)
       top_sw_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
