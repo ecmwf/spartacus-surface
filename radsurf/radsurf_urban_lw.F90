@@ -50,7 +50,7 @@ contains
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
 
-!#define PRINT_ARRAYS 1
+#define PRINT_ARRAYS 1
 
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
@@ -579,9 +579,7 @@ contains
 
 #ifdef PRINT_ARRAYS
       call print_array3('a_above', a_above(1,:,:,:))
-      call print_array3('d_above', d_above(1,:,:,:))
       call print_array3('a_below', a_below(1,:,:,:))
-      call print_array3('d_below', d_below(1,:,:,:))
       call print_array3('T', trans(1,:,:,:))
       call print_array3('R', ref(1,:,:,:))
 #endif
@@ -650,10 +648,13 @@ contains
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_internal%clear_air_abs(:,ilay) = lw_internal%clear_air_abs(:,ilay) &
              &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) &
-             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2)
+             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2) &
+             &  - int_source(:,1,jlay)
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
+
+            ! FIX emission (-int_source): all attributed to vegetation!
             lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
                  &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
@@ -661,7 +662,8 @@ contains
             lw_internal%veg_abs(:,ilay) = lw_internal%veg_abs(:,ilay) &
                  &  + veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay)
+                 &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
+                 &  - int_source(:,jreg,jlay)
           end do
         end if
 
@@ -676,7 +678,7 @@ contains
              &  * wall_lw_emissivity(:,jlay)
 
 #ifdef PRINT_ARRAYS
-        print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
+        print *, 'ABSOLUTE FLUXES DUE TO INTERNAL EMISSION AT LAYER ', jlay
         call print_vector('  flux_dn_below ', flux_dn_below(1,:))
         call print_vector('  flux_dn_above ', flux_dn_above(1,:))
         call print_vector('  flux_up_above ', flux_up_above(1,:))
@@ -769,7 +771,7 @@ contains
            &  - sum(flux_up_above,2)
     
 #ifdef PRINT_ARRAYS
-      print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION'
+      print *, 'ABSOLUTE FLUXES DUE TO INTERNAL EMISSION'
       call print_vector('  clear_air_abs ', lw_internal%clear_air_abs(1,:))
       call print_vector('  veg_air_abs ', lw_internal%veg_air_abs(1,:))
       call print_vector('  veg_abs ', lw_internal%veg_abs(1,:))

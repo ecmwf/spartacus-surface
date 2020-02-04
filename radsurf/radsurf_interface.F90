@@ -179,10 +179,9 @@ contains
                &  config%lg_urban%nstream, ' diffuse streams per hemisphere, 1 region'
         end if
 
-        call sw_norm_dir%zero(jcol,ilay1,ilay2)
-        call sw_norm_diff%zero(jcol,ilay1,ilay2)
-
         if (config%do_sw) then
+          call sw_norm_dir%zero(jcol,ilay1,ilay2)
+          call sw_norm_diff%zero(jcol,ilay1,ilay2)
           call spartacus_urban_sw(config, config%nswinternal, &
                &  config%lg_urban%nstream, 1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
@@ -193,7 +192,17 @@ contains
                &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
-
+        if (config%do_lw) then
+          call lw_internal%zero(jcol,ilay1,ilay2)
+          call lw_norm%zero(jcol,ilay1,ilay2)
+          call spartacus_urban_lw(config, config%nlwinternal, &
+               &  config%lg_urban%nstream, 1, &
+               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+               &  config%lg_urban, canopy_props, volume_props, facet_props, &
+               &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
+               &  lw_internal, lw_norm)
+        end if
+        
       case (ITileVegetatedUrban)
         if (config%iverbose >= 4) then
           write(nulout,'(i5,a,i0,a,i0,a,i0,a)') jcol, ': Vegetated urban,   ', &
