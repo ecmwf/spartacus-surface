@@ -26,6 +26,10 @@ module radtool_legendre_gauss
          &     hweight, &  ! Weight for isotropic emission by a horizontal surface
          &     vweight     ! Weight for isotropic emission by a vertical surface
 
+    ! Term to ensure asymptotic longwave flux in deep canyons in
+    ! vacuum equals the Planck flux from walls
+    real(kind=jprb) :: vadjustment
+    
     ! Number of streams in one hemisphere
     integer(kind=jpim) :: nstream = 0
 
@@ -40,6 +44,8 @@ contains
 
   subroutine initialize_legendre_gauss(this, nstream)
 
+    use radiation_constants, only : Pi
+    
     class(legendre_gauss_type), intent(inout) :: this
     integer(kind=jpim),         intent(in)    :: nstream
 
@@ -63,6 +69,8 @@ contains
     this%vweight = this%weight * this%sin_ang
     this%hweight = this%hweight / sum(this%hweight)
     this%vweight = this%vweight / sum(this%vweight)
+
+    this%vadjustment = (4.0 / Pi) * sum(this%weight * this%sin_ang)
     
   end subroutine initialize_legendre_gauss
 
