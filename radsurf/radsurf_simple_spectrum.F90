@@ -28,7 +28,7 @@ contains
     type(config_type),             intent(in) :: config
     type(canopy_properties_type),  intent(in) :: canopy_props
     type(facet_properties_type),   intent(inout) :: facet_props
-    type(volume_properties_type),  intent(in) :: volume_props
+    type(volume_properties_type),  intent(inout) :: volume_props
     integer(kind=jpim),            intent(in) :: istartcol, iendcol
     
     ! Start and end layers for current column
@@ -51,6 +51,12 @@ contains
       facet_props%wall_lw_emission(1,ilay1:ilay2) = StefanBoltzmann &
            &  * facet_props%wall_lw_emissivity(1,ilay1:ilay2) &
            &  * canopy_props%wall_temperature(ilay1:ilay2) ** 4
+      volume_props%air_lw_planck(1,ilay1:ilay2) = StefanBoltzmann &
+           &  * canopy_props%air_temperature(ilay1:ilay2) ** 4
+      if (config%do_vegetation) then
+        volume_props%veg_lw_planck(1,ilay1:ilay2) = StefanBoltzmann &
+             &  * canopy_props%veg_temperature(ilay1:ilay2) ** 4
+      end if
     end if
 
   end subroutine calc_simple_spectrum_lw

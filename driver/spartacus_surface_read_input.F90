@@ -186,10 +186,28 @@ contains
       end if
 
       if (config%do_vegetation .or. config%do_urban) then
-        allocate(volume_props%air_lw_ext(config%nsw, ntotlay))
+        call read_packed_1d(file, 'air_temperature', canopy_props%nlay, &
+             &  canopy_props%air_temperature)
+        if (file%exists('veg_temperature')) then
+          call read_packed_1d(file, 'veg_temperature', canopy_props%nlay, &
+               &  canopy_props%veg_temperature)
+        else
+          if  (driver_config%iverbose >= 2) then
+            write(nulout,'(a,g10.3)') '  Setting vegetation temperature equal to air temperature'
+          end if
+          allocate(canopy_props%veg_temperature(ntotlay))
+          canopy_props%veg_temperature = canopy_props%air_temperature
+        end if
+        allocate(volume_props%air_lw_ext(config%nlw, ntotlay))
         volume_props%air_lw_ext = 1.0e-5_jprb
-        allocate(volume_props%air_lw_ssa(config%nsw, ntotlay))
+        allocate(volume_props%air_lw_ssa(config%nlw, ntotlay))
         volume_props%air_lw_ssa = 0.0_jprb
+        allocate(volume_props%air_lw_planck(config%nlw, ntotlay))
+        volume_props%air_lw_planck = 0.0_jprb
+        if (config%do_vegetation) then
+          allocate(volume_props%veg_lw_planck(config%nlw, ntotlay))
+          volume_props%veg_lw_planck = 0.0_jprb
+        end if
       end if
 
       ! Get the top-of-canopy fluxes
@@ -202,7 +220,7 @@ contains
         top_flux_dn_lw = StefanBoltzmann * top_flux_dn_lw**4
       end if
 
-    end if
+    end if ! do_lw
 
     if (config%do_sw) then
       ! Read ground properties needed for shortwave calculations
