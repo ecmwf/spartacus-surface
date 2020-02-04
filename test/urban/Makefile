@@ -9,7 +9,11 @@ BASENAME = russell_square
 BASE_PROFILE = $(BASENAME).nc
 INPUT = $(BASENAME)_sza.nc
 
-test: test_streams
+test: test_single test_streams
+
+test_single:
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) cos_solar_zenith_angle=0.5
+	$(SPSURF) $(CONFIG_TMP) $(BASE_PROFILE) $(BASENAME)_single_out.nc
 
 test_streams: $(INPUT)
 	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=1

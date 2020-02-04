@@ -97,6 +97,9 @@ test_rami4pilps:
 test_urban:
 	cd test/urban && $(MAKE) test
 
+test_urban_single:
+	cd test/urban && $(MAKE) test_single
+
 test_code:
 	cd driver && $(MAKE) test_code
 

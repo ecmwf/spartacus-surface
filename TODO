@@ -1,12 +1,15 @@
 FEATURES
 
+Vegetation extinction should be wavelength independent and stored in canopy_props
+Compute leaf sunlit fraction (wavelength independent)
 Broadband or spectral fluxes each optional
-Longwave forest
-Longwave urban
 Gas optics
-Closed forest
+Closed forest: optimization by looking for veg cover = 0 or 1
 
 BUG FIXES
+
+Longwave forest
+Longwave urban
 
 
 CHECK

@@ -52,7 +52,7 @@ contains
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
 
-!#define PRINT_ARRAYS 1
+#define PRINT_ARRAYS 1
 
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
@@ -516,6 +516,7 @@ contains
         call print_vector('ssa_reg',ssa_reg(1,:))
         call print_matrix('f_exchange',f_exchange)
         call print_vector('norm_perim', norm_perim)
+        call print_vector('norm_perim_wall', norm_perim_wall)
         call print_matrix('gamma0',gamma0(1,:,:))
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
