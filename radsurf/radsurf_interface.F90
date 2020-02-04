@@ -30,6 +30,7 @@ contains
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radsurf_forest_sw,          only : spartacus_forest_sw
     use radsurf_urban_sw,           only : spartacus_urban_sw
+    use radsurf_urban_lw,           only : spartacus_urban_lw
     
     implicit none
 
@@ -211,7 +212,14 @@ contains
                &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
-
+        if (config%do_lw) then
+          call spartacus_urban_lw(config, config%nlwinternal, &
+               &  config%lg_urban%nstream, config%n_vegetation_region_urban+1, &
+               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+               &  config%lg_urban, canopy_props, volume_props, facet_props, &
+               &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
+               &  lw_internal, lw_norm)
+        end if
 
       end select
 
