@@ -12,7 +12,7 @@ module spartacus_surface_read_input
 contains
 
   subroutine read_input(file, config, driver_config, ncol, ntotlay, &
-    &  canopy_props, facet_props, volume_props, &
+    &  canopy_props, sw_spectral_props, lw_spectral_props, &
     &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw)
 
     use parkind1,                  only : jprb, jpim
@@ -21,8 +21,8 @@ contains
     use radsurf_config,            only : config_type
     use spartacus_surface_config,  only : driver_config_type
     use radsurf_canopy_properties, only : canopy_properties_type
-    use radsurf_facet_properties,  only : facet_properties_type
-    use radsurf_volume_properties, only : volume_properties_type
+    use radsurf_sw_spectral_properties,  only : sw_spectral_properties_type
+    use radsurf_lw_spectral_properties,  only : lw_spectral_properties_type
     use radiation_constants,       only : StefanBoltzmann
 
     implicit none
@@ -31,8 +31,8 @@ contains
     type(config_type),            intent(in)    :: config
     type(driver_config_type),     intent(in)    :: driver_config
     type(canopy_properties_type), intent(inout) :: canopy_props
-    type(facet_properties_type),  intent(inout) :: facet_props
-    type(volume_properties_type), intent(inout) :: volume_props
+    type(sw_spectral_properties_type), intent(inout) :: sw_spectral_props
+    type(lw_spectral_properties_type), intent(inout) :: lw_spectral_props
 
     ! Top-of-canopy downwelling fluxes
     real(kind=jprb), intent(inout), allocatable, dimension(:,:) &
@@ -41,14 +41,14 @@ contains
     ! Number of columns and layers of input data
     integer(kind=jpim), intent(out) :: ncol, ntotlay
 
-    ! Height of layer interfaces
+    ! Height of layer interface
     real(kind=jprb), allocatable :: height(:,:)
 
     integer :: jcol, ilay
 
     call canopy_props%deallocate()
-    call facet_props%deallocate()
-    call volume_props%deallocate()
+    call sw_spectral_props%deallocate()
+    call lw_spectral_props%deallocate()
 
     call file%get('nlayer', canopy_props%nlay)
 
@@ -140,48 +140,48 @@ contains
              &              canopy_props%wall_temperature)
       end if
 
-      call read_2d(file, 'ground_lw_emissivity', facet_props%ground_lw_emissivity)
+      call read_2d(file, 'ground_lw_emissivity', lw_spectral_props%ground_emissivity)
       if (driver_config%ground_lw_emissivity >= 0.0) then
         if  (driver_config%iverbose >= 2) then
           write(nulout,'(a,g10.3)') '  Overriding ground longwave emissivity with ', &
                &  driver_config%ground_lw_emissivity
         end if
-        facet_props%ground_lw_emissivity = driver_config%ground_lw_emissivity
+        lw_spectral_props%ground_emissivity = driver_config%ground_lw_emissivity
       end if
 
       if (config%do_urban) then
         ! Read urban properties needed for longwave calculations
         
-        call read_packed_2d(file, 'roof_lw_emissivity', canopy_props%nlay, facet_props%roof_lw_emissivity)
+        call read_packed_2d(file, 'roof_lw_emissivity', canopy_props%nlay, lw_spectral_props%roof_emissivity)
         if (driver_config%roof_lw_emissivity >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding roof longwave emissivity with ', &
                  &  driver_config%roof_lw_emissivity
           end if
-          facet_props%roof_lw_emissivity = driver_config%roof_lw_emissivity
+          lw_spectral_props%roof_emissivity = driver_config%roof_lw_emissivity
         end if
 
         call read_packed_2d(file, 'wall_lw_emissivity', canopy_props%nlay, &
-             &              facet_props%wall_lw_emissivity)
+             &              lw_spectral_props%wall_emissivity)
         if (driver_config%wall_lw_emissivity >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding wall longwave emissivity with ', &
                  &  driver_config%wall_lw_emissivity
           end if
-          facet_props%wall_lw_emissivity = driver_config%wall_lw_emissivity
+          lw_spectral_props%wall_emissivity = driver_config%wall_lw_emissivity
         end if
       end if
 
       if (config%do_vegetation) then
         ! Read vegetation properties needed for longwave calculations
         call read_packed_2d(file, 'veg_lw_ssa', canopy_props%nlay, &
-             &  volume_props%veg_lw_ssa)
+             &  lw_spectral_props%veg_ssa)
         if (driver_config%vegetation_lw_ssa >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation longwave single-scattering albedo with ', &
                  &  driver_config%vegetation_lw_ssa
           end if
-          volume_props%veg_lw_ssa = driver_config%vegetation_lw_ssa
+          lw_spectral_props%veg_ssa = driver_config%vegetation_lw_ssa
         end if
       end if
 
@@ -198,15 +198,15 @@ contains
           allocate(canopy_props%veg_temperature(ntotlay))
           canopy_props%veg_temperature = canopy_props%air_temperature
         end if
-        allocate(volume_props%air_lw_ext(config%nlw, ntotlay))
-        volume_props%air_lw_ext = 1.0e-5_jprb
-        allocate(volume_props%air_lw_ssa(config%nlw, ntotlay))
-        volume_props%air_lw_ssa = 0.0_jprb
-        allocate(volume_props%air_lw_planck(config%nlw, ntotlay))
-        volume_props%air_lw_planck = 0.0_jprb
+        allocate(lw_spectral_props%air_ext(config%nlw, ntotlay))
+        lw_spectral_props%air_ext = 1.0e-5_jprb
+        allocate(lw_spectral_props%air_ssa(config%nlw, ntotlay))
+        lw_spectral_props%air_ssa = 0.0_jprb
+        allocate(lw_spectral_props%air_planck(config%nlw, ntotlay))
+        lw_spectral_props%air_planck = 0.0_jprb
         if (config%do_vegetation) then
-          allocate(volume_props%veg_lw_planck(config%nlw, ntotlay))
-          volume_props%veg_lw_planck = 0.0_jprb
+          allocate(lw_spectral_props%veg_planck(config%nlw, ntotlay))
+          lw_spectral_props%veg_planck = 0.0_jprb
         end if
       end if
 
@@ -224,61 +224,61 @@ contains
 
     if (config%do_sw) then
       ! Read ground properties needed for shortwave calculations
-      call read_2d(file, 'ground_sw_albedo', facet_props%ground_sw_albedo)
+      call read_2d(file, 'ground_sw_albedo', sw_spectral_props%ground_albedo)
       if (driver_config%ground_sw_albedo >= 0.0) then
         if  (driver_config%iverbose >= 2) then
           write(nulout,'(a,g10.3)') '  Overriding ground shortwave albedo with ', &
                &  driver_config%ground_sw_albedo
         end if
-        facet_props%ground_sw_albedo = driver_config%ground_sw_albedo
+        sw_spectral_props%ground_albedo = driver_config%ground_sw_albedo
       end if
 
       if (file%exists('ground_sw_albedo_direct')) then
-        call read_2d(file, 'ground_sw_albedo_direct', facet_props%ground_sw_albedo_direct)
+        call read_2d(file, 'ground_sw_albedo_direct', sw_spectral_props%ground_albedo_dir)
       end if
 
       if (config%do_urban) then
         ! Read urban properties needed for shortwave calculations
         call read_packed_2d(file, 'roof_sw_albedo', canopy_props%nlay, &
-             &              facet_props%roof_sw_albedo)
+             &              sw_spectral_props%roof_albedo)
         if (driver_config%roof_sw_albedo >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding roof shortwave albedo with ', &
                  &  driver_config%roof_sw_albedo
           end if
-          facet_props%roof_sw_albedo = driver_config%roof_sw_albedo
+          sw_spectral_props%roof_albedo = driver_config%roof_sw_albedo
         end if
 
         if (file%exists('roof_sw_albedo_direct')) then
           call read_packed_2d(file, 'roof_sw_albedo_direct', canopy_props%nlay, &
-               &              facet_props%roof_sw_albedo_direct)
+               &              sw_spectral_props%roof_albedo_dir)
         else
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a)') '  Assuming roof albedo to direct albedo is the same as to diffuse'
           end if
-          allocate(facet_props%roof_sw_albedo_direct(ubound(facet_props%roof_sw_albedo,1),ntotlay))
+          allocate(sw_spectral_props%roof_albedo_dir(ubound(sw_spectral_props%roof_albedo,1),ntotlay))
           if (driver_config%roof_sw_albedo >= 0.0) then
-            facet_props%roof_sw_albedo_direct = driver_config%roof_sw_albedo
+            sw_spectral_props%roof_albedo_dir = driver_config%roof_sw_albedo
           else
-            facet_props%roof_sw_albedo_direct = facet_props%roof_sw_albedo
+            sw_spectral_props%roof_albedo_dir = sw_spectral_props%roof_albedo
           end if
         end if
 
-        call read_packed_2d(file, 'wall_sw_albedo', canopy_props%nlay, facet_props%wall_sw_albedo)
+        call read_packed_2d(file, 'wall_sw_albedo', canopy_props%nlay, sw_spectral_props%wall_albedo)
         if (driver_config%wall_sw_albedo >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding wall shortwave albedo with ', &
                  &  driver_config%wall_sw_albedo
           end if
-          facet_props%wall_sw_albedo = driver_config%wall_sw_albedo
+          sw_spectral_props%wall_albedo = driver_config%wall_sw_albedo
         end if
 
         if (file%exists('wall_sw_specular_fraction')) then
           call read_packed_2d(file, 'wall_sw_specular_fraction', canopy_props%nlay, &
-               &              facet_props%wall_sw_specular_fraction)
+               &              sw_spectral_props%wall_specular_frac)
         else
-          allocate(facet_props%wall_sw_specular_fraction(ubound(facet_props%roof_sw_albedo,1),ntotlay))
-          facet_props%wall_sw_specular_fraction = 0.0_jprb
+          allocate(sw_spectral_props%wall_specular_frac(ubound(sw_spectral_props%roof_albedo,1),ntotlay))
+          sw_spectral_props%wall_specular_frac = 0.0_jprb
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a)') '  Assuming wall reflection is Lambertian (no specular component)'
           end if
@@ -289,33 +289,33 @@ contains
       if (config%do_vegetation) then
         ! Read vegetation properties needed for shortwave calculations
         call read_packed_2d(file, 'veg_sw_ssa', canopy_props%nlay, &
-             &  volume_props%veg_sw_ssa)
+             &  sw_spectral_props%veg_ssa)
         if (driver_config%vegetation_sw_ssa >= 0.0) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation shortwave single-scattering albedo with ', &
                  &  driver_config%vegetation_sw_ssa
           end if
-          volume_props%veg_sw_ssa = driver_config%vegetation_sw_ssa
+          sw_spectral_props%veg_ssa = driver_config%vegetation_sw_ssa
         end if
       end if
 
       if (config%do_vegetation .or. config%do_urban) then
-        allocate(volume_props%air_sw_ext(config%nsw, ntotlay))
-        volume_props%air_sw_ext = 1.0e-5_jprb
-        allocate(volume_props%air_sw_ssa(config%nsw, ntotlay))
-        volume_props%air_sw_ssa = 0.999_jprb
+        allocate(sw_spectral_props%air_ext(config%nsw, ntotlay))
+        sw_spectral_props%air_ext = 1.0e-5_jprb
+        allocate(sw_spectral_props%air_ssa(config%nsw, ntotlay))
+        sw_spectral_props%air_ssa = 0.999_jprb
       end if
 
       ! Get the top-of-canopy fluxes
       if (driver_config%top_flux_dn_sw >= 0.0_jprb) then
         allocate(top_flux_dn_sw(config%nsw, ncol))
-        top_flux_dn_sw = driver_Config%top_flux_dn_sw
+        top_flux_dn_sw = driver_config%top_flux_dn_sw
       else
         call read_2d(file, 'top_flux_dn_sw', top_flux_dn_sw)
       end if
       if (driver_config%top_flux_dn_direct_sw >= 0.0_jprb) then
         allocate(top_flux_dn_direct_sw(config%nsw, ncol))
-        top_flux_dn_direct_sw = driver_Config%top_flux_dn_direct_sw
+        top_flux_dn_direct_sw = driver_config%top_flux_dn_direct_sw
       else
         call read_2d(file, 'top_flux_dn_direct_sw', top_flux_dn_direct_sw)
       end if

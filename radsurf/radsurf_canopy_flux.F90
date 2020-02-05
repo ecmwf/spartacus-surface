@@ -23,16 +23,16 @@ module radsurf_canopy_flux
     ! Flux components are dn/in for fluxes into a surface, and net for
     ! fluxes into minus out of a surface, where "top" is the top of
     ! the canopy
-    real(kind=jprb), allocatable :: ground_dn(:,:)        ! (nspec,ncol)
-    real(kind=jprb), allocatable :: ground_dn_direct(:,:) ! (nspec,ncol)
-    real(kind=jprb), allocatable :: ground_net(:,:)       ! (nspec,ncol)
-    real(kind=jprb), allocatable :: top_dn(:,:)           ! (nspec,ncol)
-    real(kind=jprb), allocatable :: top_dn_direct(:,:)    ! (nspec,ncol)
-    real(kind=jprb), allocatable :: top_net(:,:)          ! (nspec,ncol)
-    real(kind=jprb), allocatable :: roof_in(:,:)          ! (nspec,ntotlay)
-    real(kind=jprb), allocatable :: roof_net(:,:)         ! (nspec,ntotlay)
-    real(kind=jprb), allocatable :: wall_in(:,:)          ! (nspec,ntotlay)
-    real(kind=jprb), allocatable :: wall_net(:,:)         ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: ground_dn(:,:)     ! (nspec,ncol)
+    real(kind=jprb), allocatable :: ground_dn_dir(:,:) ! (nspec,ncol)
+    real(kind=jprb), allocatable :: ground_net(:,:)    ! (nspec,ncol)
+    real(kind=jprb), allocatable :: top_dn(:,:)        ! (nspec,ncol)
+    real(kind=jprb), allocatable :: top_dn_dir(:,:)    ! (nspec,ncol)
+    real(kind=jprb), allocatable :: top_net(:,:)       ! (nspec,ncol)
+    real(kind=jprb), allocatable :: roof_in(:,:)       ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: roof_net(:,:)      ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: wall_in(:,:)       ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: wall_net(:,:)      ! (nspec,ntotlay)
 
     ! Absorption by the clear-air region, the vegetation in the
     ! vegetated region, and the air in the vegetated region
@@ -90,8 +90,8 @@ contains
     allocate(this%top_dn(nspec,ncol))
     allocate(this%top_net(nspec,ncol))
     if (use_direct_local) then
-      allocate(this%ground_dn_direct(nspec,ncol))
-      allocate(this%top_dn_direct(nspec,ncol))
+      allocate(this%ground_dn_dir(nspec,ncol))
+      allocate(this%top_dn_dir(nspec,ncol))
     end if
     if (do_urban_local) then
       allocate(this%roof_in(nspec,ntotlay))
@@ -116,10 +116,10 @@ contains
     class(canopy_flux_type), intent(inout) :: this
 
     if (allocated(this%ground_dn))        deallocate(this%ground_dn)
-    if (allocated(this%ground_dn_direct)) deallocate(this%ground_dn_direct)
+    if (allocated(this%ground_dn_dir))    deallocate(this%ground_dn_dir)
     if (allocated(this%ground_net))       deallocate(this%ground_net)
     if (allocated(this%top_dn))           deallocate(this%top_dn)
-    if (allocated(this%top_dn_direct))    deallocate(this%top_dn_direct)
+    if (allocated(this%top_dn_dir))       deallocate(this%top_dn_dir)
     if (allocated(this%top_net))          deallocate(this%top_net)
     if (allocated(this%roof_in))          deallocate(this%roof_in)
     if (allocated(this%roof_net))         deallocate(this%roof_net)
@@ -170,9 +170,9 @@ contains
     this%ground_net       = factor * this%ground_net
     this%top_dn           = factor * this%top_dn
     this%top_net          = factor * this%top_net
-    if (allocated(this%ground_dn_direct)) then
-      this%ground_dn_direct = factor * this%ground_dn_direct
-      this%top_dn_direct = factor * this%top_dn_direct
+    if (allocated(this%ground_dn_dir)) then
+      this%ground_dn_dir = factor * this%ground_dn_dir
+      this%top_dn_dir = factor * this%top_dn_dir
     end if
     if (allocated(this%roof_in)) then
       this%roof_in  = factor(:,indcol) * this%roof_in
@@ -202,9 +202,9 @@ contains
     this%ground_net(:,icol)       = 0.0_jprb
     this%top_dn(:,icol)           = 0.0_jprb
     this%top_net(:,icol)          = 0.0_jprb
-    if (allocated(this%ground_dn_direct)) then
-      this%ground_dn_direct(:,icol) = 0.0_jprb
-      this%top_dn_direct(:,icol)    = 0.0_jprb
+    if (allocated(this%ground_dn_dir)) then
+      this%ground_dn_dir(:,icol) = 0.0_jprb
+      this%top_dn_dir(:,icol)    = 0.0_jprb
     end if
     if (present(ilay1) .and. present(ilay2)) then
       if (ilay2 >= ilay1) then
@@ -235,7 +235,7 @@ contains
 
     logical :: use_direct
 
-    use_direct = allocated(flux1%ground_dn_direct)
+    use_direct = allocated(flux1%ground_dn_dir)
 
     if (.not. allocated(this%ground_dn)) then
       call this%allocate(flux1%ncol, flux1%ntotlay, flux1%nspec, use_direct=use_direct)
@@ -246,8 +246,8 @@ contains
     this%top_dn     = flux1%top_dn + flux2%top_dn
     this%top_net    = flux1%top_net + flux2%top_net
     if (use_direct) then
-      this%ground_dn_direct = flux1%ground_dn_direct + flux2%ground_dn_direct
-      this%top_dn_direct    = flux1%top_dn_direct + flux2%top_dn_direct
+      this%ground_dn_dir = flux1%ground_dn_dir + flux2%ground_dn_dir
+      this%top_dn_dir    = flux1%top_dn_dir + flux2%top_dn_dir
     end if
     if (allocated(this%roof_in)) then
       this%roof_in = flux1%roof_in + flux2%roof_in

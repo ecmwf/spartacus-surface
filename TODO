@@ -1,6 +1,5 @@
 FEATURES
 
-Vegetation extinction should be wavelength independent and stored in canopy_props
 Compute leaf sunlit fraction (wavelength independent)
 Broadband or spectral fluxes each optional
 Gas optics
@@ -16,4 +15,5 @@ CHECK
 
 Unvegetated urban
 Eigen decomposition correctly treats multiple spectral intervals
+Vegetation extinction should be wavelength independent and stored in canopy_props
 

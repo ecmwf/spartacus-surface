@@ -23,8 +23,8 @@ program spartacus_surface_driver
   use radsurf_config,               only : config_type
   use spartacus_surface_config,     only : driver_config_type
   use radsurf_canopy_properties,    only : canopy_properties_type
-  use radsurf_facet_properties,     only : facet_properties_type
-  use radsurf_volume_properties,    only : volume_properties_type
+  use radsurf_sw_spectral_properties,only: sw_spectral_properties_type
+  use radsurf_lw_spectral_properties,only: lw_spectral_properties_type
   use radsurf_boundary_conds_out,   only : boundary_conds_out_type
   use spartacus_surface_read_input, only : read_input
   use radsurf_canopy_flux,          only : canopy_flux_type
@@ -38,9 +38,9 @@ program spartacus_surface_driver
   ! Derived types for the inputs to the radiation scheme
   type(config_type)            :: config
   type(canopy_properties_type) :: canopy_props
-  type(facet_properties_type)  :: facet_props
-  type(volume_properties_type) :: volume_props
-  type(boundary_conds_out_type):: bc_out
+  type(sw_spectral_properties_type) :: sw_spectral_props
+  type(lw_spectral_properties_type) :: lw_spectral_props
+    type(boundary_conds_out_type):: bc_out
   ! Canopy flux components, the last three normalized by top-of-canopy
   ! downwelling
   type(canopy_flux_type)       :: lw_internal, lw_norm, sw_norm_diff, sw_norm_dir
@@ -133,7 +133,7 @@ program spartacus_surface_driver
 
   ! Read input variables from NetCDF file
   call read_input(file, config, driver_config, ncol, ntotlay, &
-       &  canopy_props, facet_props, volume_props, &
+       &  canopy_props, sw_spectral_props, lw_spectral_props, &
        &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw)
 
   ! Set first and last columns to process
@@ -171,7 +171,7 @@ program spartacus_surface_driver
   ! Section 4: Call radiation scheme
   ! --------------------------------------------------------
 
-  call facet_props%calc_monochromatic_emission(canopy_props)
+  call lw_spectral_props%calc_monochromatic_emission(canopy_props)
 
   ! Option of repeating calculation multiple time for more accurate
   ! profiling
@@ -201,12 +201,13 @@ program spartacus_surface_driver
 
         if (config%do_lw) then
           ! Gas optics and spectral emission
-          call calc_simple_spectrum_lw(config, canopy_props, facet_props, &
-               &  volume_props, istartcol, iendcol)
+          call calc_simple_spectrum_lw(config, canopy_props, lw_spectral_props, &
+               &                       istartcol, iendcol)
         end if
         
         ! Call the SPARTACUS-Surface radiation scheme
-        call radsurf(config, canopy_props, facet_props, volume_props, bc_out, &
+        call radsurf(config, canopy_props, &
+             &       sw_spectral_props, lw_spectral_props, bc_out, &
              &       istartcol, iendcol, sw_norm_dir, sw_norm_diff, &
              &       lw_internal, lw_norm)
         
@@ -220,7 +221,8 @@ program spartacus_surface_driver
       end if
       
       ! Call the SPARTACUS-Surface radiation scheme
-      call radsurf(config, canopy_props, facet_props, volume_props, bc_out, &
+      call radsurf(config, canopy_props, &
+           &       sw_spectral_props, lw_spectral_props, bc_out, &
            &       istartcol, iendcol, sw_norm_dir, sw_norm_diff, &
            &       lw_internal, lw_norm)
       

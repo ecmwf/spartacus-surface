@@ -18,7 +18,7 @@ module radsurf_volume_properties
   type volume_properties_type
 
     ! Shortwave spectral properties
-    real(kind=jprb), allocatable :: air_sw_ext(:,:) ! m-1 (nsw,ntotlay,ncol)
+    real(kind=jprb), allocatable :: air_sw_ext(:,:) ! m-1 (nsw,ntotlay)
     real(kind=jprb), allocatable :: air_sw_ssa(:,:) !     (nsw,ntotlay)
     real(kind=jprb), allocatable :: veg_sw_ssa(:,:) !     (nsw,ntotlay)
 

@@ -11,7 +11,8 @@ module radsurf_interface
 
 contains
 
-  subroutine radsurf(config, canopy_props, facet_props, volume_props, &
+  subroutine radsurf(config, canopy_props, &
+       &             sw_spectral_props, lw_spectral_props, &
        &             bc_out, &
        &             istartcol, iendcol, &
        &             sw_norm_dir, sw_norm_diff, &
@@ -24,8 +25,8 @@ contains
     use radsurf_canopy_properties,  only : ITileFlat,  ITileForest, &
          &                                 ITileUrban, ITileVegetatedUrban, &
          &                                 canopy_properties_type
-    use radsurf_facet_properties,   only : facet_properties_type
-    use radsurf_volume_properties,  only : volume_properties_type
+    use radsurf_sw_spectral_properties, only : sw_spectral_properties_type
+    use radsurf_lw_spectral_properties, only : lw_spectral_properties_type
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radsurf_forest_sw,          only : spartacus_forest_sw
@@ -36,8 +37,8 @@ contains
 
     type(config_type),             intent(in)  :: config
     type(canopy_properties_type),  intent(in)  :: canopy_props
-    type(facet_properties_type),   intent(in), target  :: facet_props
-    type(volume_properties_type),  intent(in)  :: volume_props
+    type(lw_spectral_properties_type), intent(in), target :: lw_spectral_props
+    type(sw_spectral_properties_type), intent(in), target :: sw_spectral_props
     type(boundary_conds_out_type), intent(inout) :: bc_out
     type(canopy_flux_type),        intent(inout), optional &
          &  :: sw_norm_dir, &  ! SW fluxes normalized by top-of-canopy direct
@@ -63,7 +64,7 @@ contains
     logical :: do_canopy
 
     ! Direct ground shortwave albedo, in case not provided by user
-    real(kind=jprb), pointer :: ground_sw_albedo_direct(:,:) ! (nswinterval,ncol)
+    real(kind=jprb), pointer :: ground_sw_albedo_dir(:,:) ! (nswinterval,ncol)
 
     real(jprb) :: hook_handle
 
@@ -83,9 +84,9 @@ contains
     end if
 
     if (config%use_sw_direct_albedo) then
-      ground_sw_albedo_direct => facet_props%ground_sw_albedo_direct
+      ground_sw_albedo_dir => sw_spectral_props%ground_albedo_dir
     else
-      ground_sw_albedo_direct => facet_props%ground_sw_albedo
+      ground_sw_albedo_dir => sw_spectral_props%ground_albedo
     end if
 
     ! Loop through columns calculating radiative transfer on each
@@ -116,41 +117,41 @@ contains
 
         if (config%do_sw) then
           ! Copy shortwave albedo
-          bc_out%sw_albedo(:,jcol)        = facet_props%ground_sw_albedo(:,jcol)
-          bc_out%sw_albedo_direct(:,jcol) = ground_sw_albedo_direct(:,jcol)
+          bc_out%sw_albedo(:,jcol)        = sw_spectral_props%ground_albedo(:,jcol)
+          bc_out%sw_albedo_dir(:,jcol) = ground_sw_albedo_dir(:,jcol)
           ! Rate of change of ground and top-of-canopy fluxes with
           ! respect to direct flux at top-of-canopy
-          sw_norm_dir%ground_dn_direct(:,jcol) = 1.0_jprb
+          sw_norm_dir%ground_dn_dir(:,jcol) = 1.0_jprb
           sw_norm_dir%ground_dn(:,jcol)  = 1.0_jprb
-          sw_norm_dir%ground_net(:,jcol) = 1.0_jprb - ground_sw_albedo_direct(:,jcol)
-          sw_norm_dir%top_dn_direct(:,jcol) = 1.0_jprb
+          sw_norm_dir%ground_net(:,jcol) = 1.0_jprb - ground_sw_albedo_dir(:,jcol)
+          sw_norm_dir%top_dn_dir(:,jcol) = 1.0_jprb
           sw_norm_dir%top_dn(:,jcol)  = 1.0_jprb
-          sw_norm_dir%top_net(:,jcol) = 1.0_jprb - ground_sw_albedo_direct(:,jcol)
+          sw_norm_dir%top_net(:,jcol) = 1.0_jprb - ground_sw_albedo_dir(:,jcol)
           ! Rate of change of ground and top-of-canopy fluxes with
           ! respect to diffuse downward flux at top-of-canopy
-          sw_norm_diff%ground_dn_direct(:,jcol) = 0.0_jprb
+          sw_norm_diff%ground_dn_dir(:,jcol) = 0.0_jprb
           sw_norm_diff%ground_dn(:,jcol)  = 1.0_jprb
-          sw_norm_diff%ground_net(:,jcol) = 1.0_jprb - facet_props%ground_sw_albedo(:,jcol)
-          sw_norm_diff%top_dn_direct(:,jcol) = 0.0_jprb
+          sw_norm_diff%ground_net(:,jcol) = 1.0_jprb - sw_spectral_props%ground_albedo(:,jcol)
+          sw_norm_diff%top_dn_dir(:,jcol) = 0.0_jprb
           sw_norm_diff%top_dn(:,jcol)  = 1.0_jprb
-          sw_norm_diff%top_net(:,jcol) = 1.0_jprb - facet_props%ground_sw_albedo(:,jcol)
+          sw_norm_diff%top_net(:,jcol) = 1.0_jprb - sw_spectral_props%ground_albedo(:,jcol)
         end if
 
         if (config%do_lw) then
           ! Copy longwave albedo and upward emission
-          bc_out%lw_emissivity(:,jcol)   = facet_props%ground_lw_emissivity(:,jcol)
-          bc_out%lw_emission(:,jcol)     = facet_props%ground_lw_emission(:,jcol)
+          bc_out%lw_emissivity(:,jcol)   = lw_spectral_props%ground_emissivity(:,jcol)
+          bc_out%lw_emission(:,jcol)     = lw_spectral_props%ground_emission(:,jcol)
           ! Longwave fluxes due to surface emission
           lw_internal%ground_dn(:,jcol)  = 0.0_jprb
-          lw_internal%ground_net(:,jcol) = -facet_props%ground_lw_emission(:,jcol)
+          lw_internal%ground_net(:,jcol) = -lw_spectral_props%ground_emission(:,jcol)
           lw_internal%top_dn(:,jcol)  = 0.0_jprb
-          lw_internal%top_net(:,jcol) = -facet_props%ground_lw_emission(:,jcol)
+          lw_internal%top_net(:,jcol) = -lw_spectral_props%ground_emission(:,jcol)
           ! Rate of change of ground and top-of-canopy fluxes with
           ! respect to diffuse downward flux at top-of-canopy
           lw_norm%ground_dn(:,jcol) = 1.0_jprb
-          lw_norm%ground_net(:,jcol) = facet_props%ground_lw_emissivity(:,jcol)
+          lw_norm%ground_net(:,jcol) = lw_spectral_props%ground_emissivity(:,jcol)
           lw_norm%top_dn(:,jcol) = 1.0_jprb
-          lw_norm%top_net(:,jcol) = facet_props%ground_lw_emissivity(:,jcol)
+          lw_norm%top_net(:,jcol) = lw_spectral_props%ground_emissivity(:,jcol)
         end if
 
       case (ITileForest)
@@ -165,10 +166,10 @@ contains
                &  config%lg_sw_forest%nstream, config%n_vegetation_region_forest+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
                &  config%lg_sw_forest, canopy_props%cos_sza(jcol), &
-               &  canopy_props, volume_props, &
-               &  facet_props%ground_sw_albedo(:,jcol), &
-               &              ground_sw_albedo_direct(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+               &  canopy_props, sw_spectral_props, &
+               &  sw_spectral_props%ground_albedo(:,jcol), &
+               &              ground_sw_albedo_dir(:,jcol), &
+               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
 
@@ -186,10 +187,10 @@ contains
                &  config%lg_sw_urban%nstream, 1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
                &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
-               &  canopy_props, volume_props, facet_props, &
-               &  facet_props%ground_sw_albedo(:,jcol), &
-               &              ground_sw_albedo_direct(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+               &  canopy_props, sw_spectral_props, &
+               &  sw_spectral_props%ground_albedo(:,jcol), &
+               &              ground_sw_albedo_dir(:,jcol), &
+               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
         if (config%do_lw) then
@@ -198,7 +199,7 @@ contains
           call spartacus_urban_lw(config, config%nlwinternal, &
                &  config%lg_lw_urban%nstream, 1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_lw_urban, canopy_props, volume_props, facet_props, &
+               &  config%lg_lw_urban, canopy_props, lw_spectral_props, &
                &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
                &  lw_internal, lw_norm)
         end if
@@ -215,17 +216,17 @@ contains
                &  config%lg_sw_urban%nstream, config%n_vegetation_region_urban+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
                &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
-               &  canopy_props, volume_props, facet_props, &
-               &  facet_props%ground_sw_albedo(:,jcol), &
-               &              ground_sw_albedo_direct(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_direct(:,jcol), &
+               &  canopy_props, sw_spectral_props, &
+               &  sw_spectral_props%ground_albedo(:,jcol), &
+               &                    ground_sw_albedo_dir(:,jcol), &
+               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
         if (config%do_lw) then
           call spartacus_urban_lw(config, config%nlwinternal, &
                &  config%lg_lw_urban%nstream, config%n_vegetation_region_urban+1, &
                &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_lw_urban, canopy_props, volume_props, facet_props, &
+               &  config%lg_lw_urban, canopy_props, lw_spectral_props, &
                &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
                &  lw_internal, lw_norm)
         end if

@@ -28,7 +28,7 @@ contains
   !
   subroutine spartacus_urban_lw(config, &
        &  nlw, ns, nreg, nlay, icol, ilay1, ilay2, &
-       &  lg, canopy_props, volume_props, facet_props, &
+       &  lg, canopy_props, lw_spectral_props, &
        &  top_emissivity, top_emission, &
        &  lw_internal, lw_norm)
     
@@ -38,8 +38,7 @@ contains
     use radsurf_config,             only : config_type
     use radtool_legendre_gauss,     only : legendre_gauss_type
     use radsurf_canopy_properties,  only : canopy_properties_type
-    use radsurf_volume_properties,  only : volume_properties_type
-    use radsurf_facet_properties,   only : facet_properties_type
+    use radsurf_lw_spectral_properties,  only : lw_spectral_properties_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radtool_calc_matrices_lw_eig,only: calc_matrices_lw_eig
     use radiation_constants,        only : Pi
@@ -77,8 +76,7 @@ contains
     ! Geometric and other spectrally independent properties of the canopy
     type(canopy_properties_type),  intent(in)  :: canopy_props
     ! Spectral properties of the air, vegetation and urban facets
-    type(volume_properties_type),  intent(in)  :: volume_props
-    type(facet_properties_type),   intent(in)  :: facet_props
+    type(lw_spectral_properties_type),  intent(in)  :: lw_spectral_props
 
     ! Outputs
 
@@ -225,19 +223,19 @@ contains
          &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
          &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_ssa               => volume_props%veg_lw_ssa(:,ilay1:ilay2), &
-         &  veg_planck            => volume_props%veg_lw_planck(:,ilay1:ilay2), &
+         &  veg_ssa               => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
+         &  veg_planck            => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
-         &  air_ext               => volume_props%air_lw_ext(:,ilay1:ilay2), &
-         &  air_ssa               => volume_props%air_lw_ssa(:,ilay1:ilay2), &
-         &  air_planck            => volume_props%air_lw_planck(:,ilay1:ilay2), &
-         &  ground_emissivity     => facet_props%ground_lw_emissivity(:,icol), &
-         &  ground_emission       => facet_props%ground_lw_emission(:,icol), &
-         &  roof_emissivity       => facet_props%roof_lw_emissivity(:,ilay1:ilay2), &
-         &  roof_emission         => facet_props%roof_lw_emission(:,ilay1:ilay2), &
-         &  wall_emissivity       => facet_props%wall_lw_emissivity(:,ilay1:ilay2), &
-         &  wall_emission         => facet_props%wall_lw_emission(:,ilay1:ilay2))
+         &  air_ext               => lw_spectral_props%air_ext(:,ilay1:ilay2), &
+         &  air_ssa               => lw_spectral_props%air_ssa(:,ilay1:ilay2), &
+         &  air_planck            => lw_spectral_props%air_planck(:,ilay1:ilay2), &
+         &  ground_emissivity     => lw_spectral_props%ground_emissivity(:,icol), &
+         &  ground_emission       => lw_spectral_props%ground_emission(:,icol), &
+         &  roof_emissivity       => lw_spectral_props%roof_emissivity(:,ilay1:ilay2), &
+         &  roof_emission         => lw_spectral_props%roof_emission(:,ilay1:ilay2), &
+         &  wall_emissivity       => lw_spectral_props%wall_emissivity(:,ilay1:ilay2), &
+         &  wall_emission         => lw_spectral_props%wall_emission(:,ilay1:ilay2))
 
 
       ! --------------------------------------------------------
@@ -582,6 +580,9 @@ contains
       call print_array3('a_below', a_below(1,:,:,:))
       call print_array3('T', trans(1,:,:,:))
       call print_array3('R', ref(1,:,:,:))
+      call print_matrix('source_lay', source_lay(1,:,:))
+      call print_array3('int_flux_mat', int_flux_mat(1,:,:,:))
+      call print_matrix('int_source', int_source(1,:,:))
 #endif
 
       ! Store top-of-canopy boundary conditions.  Isotropic emissivity
@@ -772,17 +773,17 @@ contains
     
 #ifdef PRINT_ARRAYS
       print *, 'ABSOLUTE FLUXES DUE TO INTERNAL EMISSION'
-      call print_vector('  clear_air_abs ', lw_internal%clear_air_abs(1,:))
-      call print_vector('  veg_air_abs ', lw_internal%veg_air_abs(1,:))
-      call print_vector('  veg_abs ', lw_internal%veg_abs(1,:))
-      call print_vector('  ground_dn', lw_internal%ground_dn(1,:))
-      call print_vector('  ground_net', lw_internal%ground_net(1,:))
+      call print_vector('  clear_air_abs ', lw_internal%clear_air_abs(1,ilay1:ilay2))
+      call print_vector('  veg_air_abs ', lw_internal%veg_air_abs(1,ilay1:ilay2))
+      call print_vector('  veg_abs ', lw_internal%veg_abs(1,ilay1:ilay2))
+      print *, '  ground_dn  = ', lw_internal%ground_dn(1,icol)
+      print *, '  ground_net = ', lw_internal%ground_net(1,icol)
       print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION'
-      call print_vector('  clear_air_abs ', lw_norm%clear_air_abs(1,:))
-      call print_vector('  veg_air_abs ', lw_norm%veg_air_abs(1,:))
-      call print_vector('  veg_abs ', lw_norm%veg_abs(1,:))
-      call print_vector('  ground_dn', lw_norm%ground_dn(1,:))
-      call print_vector('  ground_net', lw_norm%ground_net(1,:))
+      call print_vector('  clear_air_abs ', lw_norm%clear_air_abs(1,ilay1:ilay2))
+      call print_vector('  veg_air_abs ', lw_norm%veg_air_abs(1,ilay1:ilay2))
+      call print_vector('  veg_abs ', lw_norm%veg_abs(1,ilay1:ilay2))
+      print *, '  ground_dn  = ', lw_norm%ground_dn(1,icol)
+      print *, '  ground_net = ', lw_norm%ground_net(1,icol)
 #endif
 
     end associate

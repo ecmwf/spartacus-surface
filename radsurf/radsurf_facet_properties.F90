@@ -34,7 +34,7 @@ module radsurf_facet_properties
     real(kind=jprb), allocatable :: roof_lw_emission(:,:) ! (nlw,ntotlay)
     real(kind=jprb), allocatable :: wall_lw_emission(:,:) ! (nlw,ntotlay)
 
-    ! Number of columns and maximum number of layers
+    ! Number of columns and total number of layers
     integer(kind=jpim) :: ncol, ntotlay
 
     ! Number of shortwave albedo and longwave emissivity bands

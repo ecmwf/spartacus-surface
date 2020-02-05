@@ -29,7 +29,7 @@ contains
   subroutine spartacus_urban_sw(config, &
        &  nsw, ns, nreg, nlay, icol, ilay1, ilay2, &
        &  lg, cos_sza, &
-       &  canopy_props, volume_props, facet_props, &
+       &  canopy_props, sw_spectral_props, &
        &  ground_albedo_diff, ground_albedo_dir, &
        &  top_albedo_diff, top_albedo_dir, &
        &  sw_norm_dir, sw_norm_diff)
@@ -40,8 +40,7 @@ contains
     use radsurf_config,             only : config_type
     use radtool_legendre_gauss,     only : legendre_gauss_type
     use radsurf_canopy_properties,  only : canopy_properties_type
-    use radsurf_volume_properties,  only : volume_properties_type
-    use radsurf_facet_properties,   only : facet_properties_type
+    use radsurf_sw_spectral_properties,  only : sw_spectral_properties_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radtool_calc_matrices_sw_eig,only: calc_matrices_sw_eig
     use radiation_constants,        only : Pi
@@ -81,8 +80,7 @@ contains
     ! Geometric and other spectrally independent properties of the canopy
     type(canopy_properties_type),  intent(in)  :: canopy_props
     ! Spectral properties of the air, vegetation and urban facets
-    type(volume_properties_type),  intent(in)  :: volume_props
-    type(facet_properties_type),   intent(in)  :: facet_props
+    type(sw_spectral_properties_type),  intent(in)  :: sw_spectral_props
     ! Spectral albedo of the ground to diffuse and direct radiation
     real(kind=jprb), dimension(nsw),intent(in) :: ground_albedo_diff, &
          &                                        ground_albedo_dir
@@ -236,15 +234,15 @@ contains
          &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
          &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_ssa               => volume_props%veg_sw_ssa(:,ilay1:ilay2), &
+         &  veg_ssa               => sw_spectral_props%veg_ssa(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
-         &  air_ext               => volume_props%air_sw_ext(:,ilay1:ilay2), &
-         &  air_ssa               => volume_props%air_sw_ssa(:,ilay1:ilay2), &
-         &  roof_albedo           => facet_props%roof_sw_albedo(:,ilay1:ilay2), &
-         &  roof_albedo_direct    => facet_props%roof_sw_albedo_direct(:,ilay1:ilay2), &
-         &  wall_albedo           => facet_props%wall_sw_albedo(:,ilay1:ilay2), &
-         &  wall_specular_frac    => facet_props%wall_sw_specular_fraction(:,ilay1:ilay2))
+         &  air_ext               => sw_spectral_props%air_ext(:,ilay1:ilay2), &
+         &  air_ssa               => sw_spectral_props%air_ssa(:,ilay1:ilay2), &
+         &  roof_albedo           => sw_spectral_props%roof_albedo(:,ilay1:ilay2), &
+         &  roof_albedo_dir       => sw_spectral_props%roof_albedo_dir(:,ilay1:ilay2), &
+         &  wall_albedo           => sw_spectral_props%wall_albedo(:,ilay1:ilay2), &
+         &  wall_specular_frac    => sw_spectral_props%wall_specular_frac(:,ilay1:ilay2))
 
       ! --------------------------------------------------------
       ! Section 2: Prepare general variables and arrays
@@ -580,7 +578,7 @@ contains
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
                &  = spread(roof_albedo(:,jlay) * lg%hweight(js), 2, ns)
           d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-               &  = cos_sza * roof_albedo_direct(:,jlay) * lg%hweight(js)
+               &  = cos_sza * roof_albedo_dir(:,jlay) * lg%hweight(js)
         end do
 
         ! Overlap: Hogan (2019), equations 22 and 23
@@ -631,9 +629,9 @@ contains
       flux_dn_dir_above(:,2:) = 0.0_jprb
       flux_dn_diff_above      = 0.0_jprb
       
-      sw_norm_dir%top_dn_direct(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
-      sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_direct(:,icol)
-      sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_direct(:,icol) &
+      sw_norm_dir%top_dn_dir(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
+      sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_dir(:,icol)
+      sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_dir(:,icol) &
            &                            * (1.0_jprb-top_albedo_dir)
 
       ! Loop down through layers
@@ -722,8 +720,8 @@ contains
 #endif
 
       end do
-      sw_norm_dir%ground_dn_direct(:,icol) = cos_sza * sum(flux_dn_dir_above,2)
-      sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_direct(:,icol) &
+      sw_norm_dir%ground_dn_dir(:,icol) = cos_sza * sum(flux_dn_dir_above,2)
+      sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_dir(:,icol) &
            &  + sum(flux_dn_diff_above,2)
       sw_norm_dir%ground_net(:,icol) = sw_norm_dir%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
@@ -738,7 +736,7 @@ contains
       flux_dn_diff_above         = 0.0_jprb
       flux_dn_diff_above(:,1:ns) = spread(lg%hweight,nsw,1)
 
-      sw_norm_diff%top_dn_direct(:,icol) = 0.0_jprb
+      sw_norm_diff%top_dn_dir(:,icol) = 0.0_jprb
       sw_norm_diff%top_dn(:,icol)        = 1.0_jprb
       sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_albedo_diff
       
@@ -808,7 +806,7 @@ contains
 #endif
 
       end do
-      sw_norm_diff%ground_dn_direct(:,icol) = 0.0_jprb
+      sw_norm_diff%ground_dn_dir(:,icol) = 0.0_jprb
       sw_norm_diff%ground_dn(:,icol) = sum(flux_dn_diff_above,2)
       sw_norm_diff%ground_net(:,icol) = sw_norm_diff%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
@@ -820,14 +818,14 @@ contains
       call print_vector('  veg_abs ', sw_norm_dir%veg_abs(1,:))
       call print_vector('  ground_dn', sw_norm_dir%ground_dn(1,:))
       call print_vector('  ground_net', sw_norm_dir%ground_net(1,:))
-      call print_vector('  ground_dn_direct', sw_norm_dir%ground_dn_direct(1,:))
+      call print_vector('  ground_dn_dir', sw_norm_dir%ground_dn_dir(1,:))
       print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION'
       call print_vector('  clear_air_abs ', sw_norm_diff%clear_air_abs(1,:))
       call print_vector('  veg_air_abs ', sw_norm_diff%veg_air_abs(1,:))
       call print_vector('  veg_abs ', sw_norm_diff%veg_abs(1,:))
       call print_vector('  ground_dn', sw_norm_diff%ground_dn(1,:))
       call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
-      call print_vector('  ground_dn_direct', sw_norm_diff%ground_dn_direct(1,:))
+      call print_vector('  ground_dn_dir', sw_norm_diff%ground_dn_dir(1,:))
 #endif
 
     end associate

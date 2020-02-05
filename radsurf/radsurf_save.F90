@@ -174,7 +174,7 @@ contains
     call out_file%define_variable("ground_flux_net_"//band_name, units_str="W m-2", &
          &  long_name="Net "//band_long_name//" flux at ground", &
          &  dim1_name="column")
-    if (allocated(flux%ground_dn_direct)) then
+    if (allocated(flux%ground_dn_dir)) then
       call out_file%define_variable("ground_flux_dn_direct_"//band_name, units_str="W m-2", &
            &  long_name="Downwelling direct "//band_long_name//" flux at ground", &
            &  dim1_name="column")
@@ -185,7 +185,7 @@ contains
     call out_file%define_variable("top_flux_net_"//band_name, units_str="W m-2", &
          &  long_name="Net "//band_long_name//" flux at top of canopy", &
          &  dim1_name="column")
-    if (allocated(flux%top_dn_direct)) then
+    if (allocated(flux%top_dn_dir)) then
       call out_file%define_variable("top_flux_dn_direct_"//band_name, units_str="W m-2", &
            &  long_name="Downwelling direct "//band_long_name//" flux at top of canopy", &
            &  dim1_name="column")
@@ -240,15 +240,15 @@ contains
     
     call out_file%put("ground_flux_dn_"//band_name, sum(flux%ground_dn,1))
     call out_file%put("ground_flux_net_"//band_name, sum(flux%ground_net,1))
-    if (allocated(flux%ground_dn_direct)) then
+    if (allocated(flux%ground_dn_dir)) then
       call out_file%put("ground_flux_dn_direct_"//band_name, &
-           &  sum(flux%ground_dn_direct,1))
+           &  sum(flux%ground_dn_dir,1))
     end if
     call out_file%put("top_flux_dn_"//band_name, sum(flux%top_dn,1))
     call out_file%put("top_flux_net_"//band_name, sum(flux%top_net,1))
-    if (allocated(flux%top_dn_direct)) then
+    if (allocated(flux%top_dn_dir)) then
       call out_file%put("top_flux_dn_direct_"//band_name, &
-           &  sum(flux%top_dn_direct,1))
+           &  sum(flux%top_dn_dir,1))
     end if
     if (allocated(flux%roof_in)) then
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
