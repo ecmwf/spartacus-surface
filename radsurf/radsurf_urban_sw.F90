@@ -30,8 +30,8 @@ contains
        &  nsw, ns, nreg, nlay, icol, ilay1, ilay2, &
        &  lg, cos_sza, &
        &  canopy_props, volume_props, facet_props, &
-       &  ground_sw_albedo_diff, ground_sw_albedo_dir, &
-       &  top_sw_albedo_diff, top_sw_albedo_dir, &
+       &  ground_albedo_diff, ground_albedo_dir, &
+       &  top_albedo_diff, top_albedo_dir, &
        &  sw_norm_dir, sw_norm_diff)
     
     use parkind1,                   only : jpim, jprb
@@ -84,14 +84,14 @@ contains
     type(volume_properties_type),  intent(in)  :: volume_props
     type(facet_properties_type),   intent(in)  :: facet_props
     ! Spectral albedo of the ground to diffuse and direct radiation
-    real(kind=jprb), dimension(nsw),intent(in) :: ground_sw_albedo_diff, &
-         &                                        ground_sw_albedo_dir
+    real(kind=jprb), dimension(nsw),intent(in) :: ground_albedo_diff, &
+         &                                        ground_albedo_dir
 
     ! Outputs
 
     ! Top-of-canopy spectral albedo to diffuse and direct radiation
-    real(kind=jprb), dimension(nsw),intent(out):: top_sw_albedo_diff, &
-         &                                        top_sw_albedo_dir
+    real(kind=jprb), dimension(nsw),intent(out):: top_albedo_diff, &
+         &                                        top_albedo_dir
     ! Flux outputs
     type(canopy_flux_type), intent(inout), optional &
          &  :: sw_norm_dir, &  ! SW fluxes normalized by top-of-canopy direct
@@ -233,18 +233,18 @@ contains
          &  dz                    => canopy_props%dz(ilay1:ilay2), &
          &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
          &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
+         &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
          &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_sw_ext            => volume_props%veg_sw_ext(:,ilay1:ilay2), &
-         &  veg_sw_ssa            => volume_props%veg_sw_ssa(:,ilay1:ilay2), &
+         &  veg_ssa               => volume_props%veg_sw_ssa(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
-         &  air_sw_ext            => volume_props%air_sw_ext(:,ilay1:ilay2), &
-         &  air_sw_ssa            => volume_props%air_sw_ssa(:,ilay1:ilay2), &
-         &  roof_sw_albedo        => facet_props%roof_sw_albedo(:,ilay1:ilay2), &
-         &  roof_sw_albedo_direct => facet_props%roof_sw_albedo_direct(:,ilay1:ilay2), &
-         &  wall_sw_albedo        => facet_props%wall_sw_albedo(:,ilay1:ilay2), &
-         &  wall_sw_specular_frac => facet_props%wall_sw_specular_fraction(:,ilay1:ilay2))
+         &  air_ext               => volume_props%air_sw_ext(:,ilay1:ilay2), &
+         &  air_ssa               => volume_props%air_sw_ssa(:,ilay1:ilay2), &
+         &  roof_albedo           => facet_props%roof_sw_albedo(:,ilay1:ilay2), &
+         &  roof_albedo_direct    => facet_props%roof_sw_albedo_direct(:,ilay1:ilay2), &
+         &  wall_albedo           => facet_props%wall_sw_albedo(:,ilay1:ilay2), &
+         &  wall_specular_frac    => facet_props%wall_sw_specular_fraction(:,ilay1:ilay2))
 
       ! --------------------------------------------------------
       ! Section 2: Prepare general variables and arrays
@@ -297,11 +297,11 @@ contains
         ! --------------------------------------------------------
         ! Compute the extinction coefficient and single-scattering
         ! albedo of each region
-        ext_reg(:,1) = air_sw_ext(:,jlay)
-        ssa_reg(:,1) = air_sw_ssa(:,jlay)
+        ext_reg(:,1) = air_ext(:,jlay)
+        ssa_reg(:,1) = air_ssa(:,jlay)
         if (nreg == 2) then
-          ext_reg(:,2) = air_sw_ext(:,jlay) + veg_sw_ext(:,jlay)
-          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+          ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
+          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
         else if (nreg == 3) then
@@ -309,13 +309,13 @@ contains
           od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
           od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
-          ext_reg(:,2) = air_sw_ext(:,jlay) + od_scaling(2,jlay)*veg_sw_ext(:,jlay)
-          ext_reg(:,3) = air_sw_ext(:,jlay) + od_scaling(3,jlay)*veg_sw_ext(:,jlay)
+          ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
+          ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(2,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &          + od_scaling(2,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(3,jlay)*veg_sw_ext(:,jlay)*veg_sw_ssa(:,jlay)) &
+               &          + od_scaling(3,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
 
@@ -430,11 +430,11 @@ contains
 
         ! Compute fraction of intercepted radiation extinguished
         ! (absorption + scattering) and absorbed by wall
-        wall_ext = 1.0_jprb - wall_sw_albedo(:,jlay) &
-             &  * wall_sw_specular_frac(:,jlay)
-        wall_abs = 1.0_jprb - wall_sw_albedo(:,jlay)
-        wall_factor = wall_sw_albedo(:,jlay) &
-             &      * (1.0_jprb - wall_sw_specular_frac(:,jlay))
+        wall_ext = 1.0_jprb - wall_albedo(:,jlay) &
+             &  * wall_specular_frac(:,jlay)
+        wall_abs = 1.0_jprb - wall_albedo(:,jlay)
+        wall_factor = wall_albedo(:,jlay) &
+             &      * (1.0_jprb - wall_specular_frac(:,jlay))
 
         ! --------------------------------------------------------
         ! Section 3b: Compute Gamma matrices
@@ -545,10 +545,10 @@ contains
       do jreg = 1,nreg
         do js_to = 1,ns
           d_above(:,js_to+(jreg-1)*ns,jreg,1) &
-               &  = cos_sza * ground_sw_albedo_dir * lg%hweight(js_to)
+               &  = cos_sza * ground_albedo_dir * lg%hweight(js_to)
           do js_fr = 1,ns
             a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) &
-                 &  = ground_sw_albedo_diff * lg%hweight(js_to)
+                 &  = ground_albedo_diff * lg%hweight(js_to)
           end do
         end do
       end do
@@ -578,9 +578,9 @@ contains
         ! Add the contribution from the exposed roofs
         do js = 1,ns
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
-               &  = spread(roof_sw_albedo(:,jlay) * lg%hweight(js), 2, ns)
+               &  = spread(roof_albedo(:,jlay) * lg%hweight(js), 2, ns)
           d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-               &  = cos_sza * roof_sw_albedo_direct(:,jlay) * lg%hweight(js)
+               &  = cos_sza * roof_albedo_direct(:,jlay) * lg%hweight(js)
         end do
 
         ! Overlap: Hogan (2019), equations 22 and 23
@@ -610,9 +610,9 @@ contains
       ! albedo is weighted average over the ns streams, noting that
       ! just above the "nlay+1" interface we are above the canopy so
       ! only need to consider the clear-sky region (indexed 1:ns).
-      top_sw_albedo_diff = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
+      top_albedo_diff = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
            &                    spread(lg%hweight,1,nsw)),2)
-      top_sw_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
+      top_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
 
       ! --------------------------------------------------------
       ! Section 5: Compute normalized flux profile
@@ -634,7 +634,7 @@ contains
       sw_norm_dir%top_dn_direct(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
       sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_direct(:,icol)
       sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_direct(:,icol) &
-           &                            * (1.0_jprb-top_sw_albedo_dir)
+           &                            * (1.0_jprb-top_albedo_dir)
 
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -682,19 +682,19 @@ contains
 
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
-             &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
+             &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * (int_flux_dir(:,1) & ! / cos_sza &
              &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
-                 &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+                 &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * (int_flux_dir(:,jreg) & ! / cos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
             sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
-                 &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * (int_flux_dir(:,jreg) & ! / cos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
@@ -710,7 +710,7 @@ contains
                &           * spread(lg%tan_ang,1,nsw)))
         end do
         sw_norm_dir%wall_net(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
-             &  * (1.0_jprb - wall_sw_albedo(:,jlay))
+             &  * (1.0_jprb - wall_albedo(:,jlay))
 
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
@@ -740,7 +740,7 @@ contains
 
       sw_norm_diff%top_dn_direct(:,icol) = 0.0_jprb
       sw_norm_diff%top_dn(:,icol)        = 1.0_jprb
-      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_sw_albedo_diff
+      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_albedo_diff
       
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -774,17 +774,17 @@ contains
 
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
-             &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) &
+             &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2)
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
-                 &  + air_sw_ext(:,jlay)*(1.0_jprb-air_sw_ssa(:,jlay)) & ! Use clear-air properties
+                 &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
             sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
-                 &  + veg_sw_ext(:,jlay)*(1.0_jprb-veg_sw_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
           end do
@@ -798,7 +798,7 @@ contains
                &           * spread(lg%tan_ang,1,nsw)))
         end do
         sw_norm_diff%wall_net(:,ilay) = sw_norm_diff%wall_in(:,ilay) &
-             &  * (1.0_jprb - wall_sw_albedo(:,jlay))
+             &  * (1.0_jprb - wall_albedo(:,jlay))
 
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION AT LAYER ', jlay

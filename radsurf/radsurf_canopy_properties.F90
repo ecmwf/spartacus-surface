@@ -32,12 +32,13 @@ module radsurf_canopy_properties
 
 
   !---------------------------------------------------------------------
-  ! Derived type storing a physical description of the properties of
-  ! the surface tiles.  The data are "packed" to reduce memory usage
-  ! given that many columns will not use any layers: there is a single
-  ! "ntotlay" dimension indicating the total number of layers used by
-  ! all the columns, and then (for example) the profile of wall
-  ! temperatures for column "icol" would be obtained from
+  ! Derived type storing a physical, non spectral, description of the
+  ! properties of the surface tiles.  The data are "packed" to reduce
+  ! memory usage given that many columns will not use any layers:
+  ! there is a single "ntotlay" dimension indicating the total number
+  ! of layers used by all the columns, and then (for example) the
+  ! profile of wall temperatures for column "icol" would be obtained
+  ! from
   ! wall_temperature(istartlay(icol):istartlay(icol)+nlay(icol)-1)
 
   type canopy_properties_type
@@ -71,6 +72,10 @@ module radsurf_canopy_properties
     real(kind=jprb), allocatable :: building_scale(:) ! (ntotlay)
     real(kind=jprb), allocatable :: veg_scale(:) ! (ntotlay)
 
+    ! Vegetation extinction coefficient, which is treated as
+    ! wavelength independent (m-1)
+    real(kind=jprb), allocatable :: veg_ext(:) ! ntotlay
+    
     ! Fractional standard deviation of vegetation optical depth
     real(kind=jprb), allocatable :: veg_fsd(:) ! (ntotlay)
 

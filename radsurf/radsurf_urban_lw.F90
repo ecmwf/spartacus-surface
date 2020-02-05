@@ -29,7 +29,7 @@ contains
   subroutine spartacus_urban_lw(config, &
        &  nlw, ns, nreg, nlay, icol, ilay1, ilay2, &
        &  lg, canopy_props, volume_props, facet_props, &
-       &  top_lw_emissivity, top_lw_emission, &
+       &  top_emissivity, top_emission, &
        &  lw_internal, lw_norm)
     
     use parkind1,                   only : jpim, jprb
@@ -83,8 +83,8 @@ contains
     ! Outputs
 
     ! Top-of-canopy spectral emissivity and emission (W m-2)
-    real(kind=jprb), dimension(nlw),intent(out):: top_lw_emissivity, &
-         &                                        top_lw_emission
+    real(kind=jprb), dimension(nlw),intent(out):: top_emissivity, &
+         &                                        top_emission
     ! Flux outputs
     type(canopy_flux_type), intent(inout), optional &
          &  :: lw_internal, & ! LW fluxes from internal emission
@@ -222,22 +222,22 @@ contains
          &  dz                    => canopy_props%dz(ilay1:ilay2), &
          &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
          &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
+         &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
          &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_lw_ext            => volume_props%veg_lw_ext(:,ilay1:ilay2), &
-         &  veg_lw_ssa            => volume_props%veg_lw_ssa(:,ilay1:ilay2), &
-         &  veg_lw_planck         => volume_props%veg_lw_planck(:,ilay1:ilay2), &
+         &  veg_ssa               => volume_props%veg_lw_ssa(:,ilay1:ilay2), &
+         &  veg_planck            => volume_props%veg_lw_planck(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
-         &  air_lw_ext            => volume_props%air_lw_ext(:,ilay1:ilay2), &
-         &  air_lw_ssa            => volume_props%air_lw_ssa(:,ilay1:ilay2), &
-         &  air_lw_planck         => volume_props%air_lw_planck(:,ilay1:ilay2), &
-         &  ground_lw_emissivity  => facet_props%ground_lw_emissivity(:,icol), &
-         &  ground_lw_emission    => facet_props%ground_lw_emission(:,icol), &
-         &  roof_lw_emissivity    => facet_props%roof_lw_emissivity(:,ilay1:ilay2), &
-         &  roof_lw_emission      => facet_props%roof_lw_emission(:,ilay1:ilay2), &
-         &  wall_lw_emissivity    => facet_props%wall_lw_emissivity(:,ilay1:ilay2), &
-         &  wall_lw_emission      => facet_props%wall_lw_emission(:,ilay1:ilay2))
+         &  air_ext               => volume_props%air_lw_ext(:,ilay1:ilay2), &
+         &  air_ssa               => volume_props%air_lw_ssa(:,ilay1:ilay2), &
+         &  air_planck            => volume_props%air_lw_planck(:,ilay1:ilay2), &
+         &  ground_emissivity     => facet_props%ground_lw_emissivity(:,icol), &
+         &  ground_emission       => facet_props%ground_lw_emission(:,icol), &
+         &  roof_emissivity       => facet_props%roof_lw_emissivity(:,ilay1:ilay2), &
+         &  roof_emission         => facet_props%roof_lw_emission(:,ilay1:ilay2), &
+         &  wall_emissivity       => facet_props%wall_lw_emissivity(:,ilay1:ilay2), &
+         &  wall_emission         => facet_props%wall_lw_emission(:,ilay1:ilay2))
 
 
       ! --------------------------------------------------------
@@ -287,15 +287,15 @@ contains
         ! --------------------------------------------------------
         ! Compute the extinction coefficient and single-scattering
         ! albedo of each region
-        ext_reg(:,1)    = air_lw_ext(:,jlay)
-        ssa_reg(:,1)    = air_lw_ssa(:,jlay)
-        planck_reg(:,1) = air_lw_planck(:,jlay)
+        ext_reg(:,1)    = air_ext(:,jlay)
+        ssa_reg(:,1)    = air_ssa(:,jlay)
+        planck_reg(:,1) = air_planck(:,jlay)
         if (nreg == 2) then
-          ext_reg(:,2) = air_lw_ext(:,jlay) + veg_lw_ext(:,jlay)
-          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_lw_ext(:,jlay)*veg_lw_ssa(:,jlay)) &
+          ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
+          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
-          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_lw_planck(:,jlay) &
-               &   + veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay))*veg_lw_planck(:,jlay)) &
+          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+               &   + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
         else if (nreg == 3) then
@@ -303,19 +303,19 @@ contains
           od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
           od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
-          ext_reg(:,2) = air_lw_ext(:,jlay) + od_scaling(2,jlay)*veg_lw_ext(:,jlay)
-          ext_reg(:,3) = air_lw_ext(:,jlay) + od_scaling(3,jlay)*veg_lw_ext(:,jlay)
+          ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
+          ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(2,jlay)*veg_lw_ext(:,jlay)*veg_lw_ssa(:,jlay)) &
+               &          + od_scaling(2,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(3,jlay)*veg_lw_ext(:,jlay)*veg_lw_ssa(:,jlay)) &
+               &          + od_scaling(3,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
-          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_lw_planck(:,jlay) &
-               &   + od_scaling(2,jlay) * veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay))*veg_lw_planck(:,jlay)) &
+          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+               &   + od_scaling(2,jlay) * veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
-          planck_reg(:,3) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_lw_planck(:,jlay) &
-               &   + od_scaling(3,jlay) * veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay))*veg_lw_planck(:,jlay)) &
+          planck_reg(:,3) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+               &   + od_scaling(3,jlay) * veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
         end if
 
@@ -430,9 +430,9 @@ contains
 
         ! Compute fraction of intercepted radiation extinguished
         ! (absorption + scattering) and absorbed by wall
-        wall_ext = wall_lw_emissivity(:,jlay)
-        wall_abs = wall_lw_emissivity(:,jlay)
-        wall_factor = 1.0_jprb - wall_lw_emissivity(1,jlay)
+        wall_ext = wall_emissivity(:,jlay)
+        wall_abs = wall_emissivity(:,jlay)
+        wall_factor = 1.0_jprb - wall_emissivity(1,jlay)
         
         ! --------------------------------------------------------
         ! Section 3b: Compute Gamma matrices
@@ -492,7 +492,7 @@ contains
           volume_emiss = frac(jreg,jlay) * (ext_reg(:,jreg) * (1.0_jprb - ssa_reg(:,jreg)) &
                &                            * planck_reg(:,jreg))
           wall_emiss = norm_perim_wall(jreg) * lg%vadjustment &
-               &      * (wall_lw_emissivity(:,jlay) * wall_lw_emission(:,jlay))
+               &      * (wall_emissivity(:,jlay) * wall_emission(:,jlay))
           do js = 1,ns
             ifr = js + (jreg-1)*ns
             emiss_rate(:,ifr) = (lg%hweight(js) / lg%mu(js)) * volume_emiss &
@@ -531,12 +531,12 @@ contains
         do js_to = 1,ns
           do js_fr = 1,ns
             a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) &
-                 &  = (1.0_jprb - ground_lw_emissivity) * lg%hweight(js_to)
+                 &  = (1.0_jprb - ground_emissivity) * lg%hweight(js_to)
           end do
         end do
         do js = 1,ns
           source_above(:,js+(jreg-1)*ns,1) = (lg%hweight(js) * frac(jreg,jlay)) &
-               &                           * ground_lw_emission
+               &                           * ground_emission
         end do
       end do
 
@@ -564,8 +564,8 @@ contains
         ! Add the contribution from the exposed roofs
         do js = 1,ns
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
-               &  = spread((1.0_jprb - roof_lw_emissivity(:,jlay)) * lg%hweight(js), 2, ns)
-          source_below(:,nreg*ns+js,jlay+1) = lg%hweight(js) * roof_lw_emission(:,jlay)
+               &  = spread((1.0_jprb - roof_emissivity(:,jlay)) * lg%hweight(js), 2, ns)
+          source_below(:,nreg*ns+js,jlay+1) = lg%hweight(js) * roof_emission(:,jlay)
         end do
 
         ! Overlap: Hogan (2019), equations 22 and 36
@@ -588,11 +588,11 @@ contains
       ! is weighted average over the ns streams, noting that just
       ! above the "nlay+1" interface we are above the canopy so only
       ! need to consider the clear-sky region (indexed 1:ns).
-      top_lw_emissivity = 1.0_jprb - sum(mat_x_vec(nlw,nlw,ns,a_above(:,1:ns,1:ns,nlay+1), &
+      top_emissivity = 1.0_jprb - sum(mat_x_vec(nlw,nlw,ns,a_above(:,1:ns,1:ns,nlay+1), &
            &                             spread(lg%hweight,1,nlw)),2)
       ! Top-of-canopy emission is the sum over the streams in the
       ! clear-sky region
-      top_lw_emission = sum(source_above(:,1:ns,nlay+1),2)
+      top_emission = sum(source_above(:,1:ns,nlay+1),2)
       
       ! --------------------------------------------------------
       ! Section 5: Compute normalized flux profile
@@ -608,7 +608,7 @@ contains
       flux_dn_above = 0.0_jprb
       
       lw_internal%top_dn(:,icol)  = 0.0_jprb
-      lw_internal%top_net(:,icol) = -top_lw_emission
+      lw_internal%top_net(:,icol) = -top_emission
 
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -647,7 +647,7 @@ contains
        
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_internal%clear_air_abs(:,ilay) = lw_internal%clear_air_abs(:,ilay) &
-             &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) &
+             &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2) &
              &  - int_source(:,1,jlay)
         if (do_vegetation) then
@@ -656,11 +656,11 @@ contains
 
             ! FIX emission (-int_source): all attributed to vegetation!
             lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
-                 &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) & ! Use clear-air properties
+                 &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2)
             lw_internal%veg_abs(:,ilay) = lw_internal%veg_abs(:,ilay) &
-                 &  + veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
                  &  - int_source(:,jreg,jlay)
@@ -675,7 +675,7 @@ contains
                &           * spread(lg%tan_ang,1,nlw))
         end do
         lw_internal%wall_net(:,ilay) = lw_internal%wall_in(:,ilay) &
-             &  * wall_lw_emissivity(:,jlay)
+             &  * wall_emissivity(:,jlay)
 
 #ifdef PRINT_ARRAYS
         print *, 'ABSOLUTE FLUXES DUE TO INTERNAL EMISSION AT LAYER ', jlay
@@ -699,7 +699,7 @@ contains
       flux_dn_above(:,1:ns)   = spread(lg%hweight,nlw,1)
 
       lw_norm%top_dn(:,icol)  = 1.0_jprb
-      lw_norm%top_net(:,icol) = top_lw_emissivity
+      lw_norm%top_net(:,icol) = top_emissivity
       
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -732,17 +732,17 @@ contains
 
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_norm%clear_air_abs(:,ilay) = lw_norm%clear_air_abs(:,ilay) &
-             &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) &
+             &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2)
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             lw_norm%veg_air_abs(:,ilay) = lw_norm%veg_air_abs(:,ilay) &
-                 &  + air_lw_ext(:,jlay)*(1.0_jprb-air_lw_ssa(:,jlay)) & ! Use clear-air properties
+                 &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2)
             lw_norm%veg_abs(:,ilay) = lw_norm%veg_abs(:,ilay) &
-                 &  + veg_lw_ext(:,jlay)*(1.0_jprb-veg_lw_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay)
           end do
@@ -756,7 +756,7 @@ contains
                &           * spread(lg%tan_ang,1,nlw)))
         end do
         lw_norm%wall_net(:,ilay) = lw_norm%wall_in(:,ilay) &
-             &  * wall_lw_emissivity(:,jlay)
+             &  * wall_emissivity(:,jlay)
 
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION AT LAYER ', jlay

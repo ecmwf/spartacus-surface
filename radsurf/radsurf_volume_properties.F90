@@ -20,15 +20,13 @@ module radsurf_volume_properties
     ! Shortwave spectral properties
     real(kind=jprb), allocatable :: air_sw_ext(:,:) ! m-1 (nsw,ntotlay,ncol)
     real(kind=jprb), allocatable :: air_sw_ssa(:,:) !     (nsw,ntotlay)
-    real(kind=jprb), allocatable :: veg_sw_ext(:,:) ! m-1 (nsw,ntotlay)
     real(kind=jprb), allocatable :: veg_sw_ssa(:,:) !     (nsw,ntotlay)
 
     ! Longwave spectral properties
-    real(kind=jprb), allocatable :: air_lw_ext(:,:) ! m-1 (nlw,ntotlay)
-    real(kind=jprb), allocatable :: air_lw_ssa(:,:) !     (nlw,ntotlay)
+    real(kind=jprb), allocatable :: air_lw_ext(:,:)    ! m-1   (nlw,ntotlay)
+    real(kind=jprb), allocatable :: air_lw_ssa(:,:)    !       (nlw,ntotlay)
     real(kind=jprb), allocatable :: air_lw_planck(:,:) ! W m-2 (nlw,ntotlay)
-    real(kind=jprb), allocatable :: veg_lw_ext(:,:) ! m-1 (nlw,ntotlay)
-    real(kind=jprb), allocatable :: veg_lw_ssa(:,:) !     (nlw,ntotlay)
+    real(kind=jprb), allocatable :: veg_lw_ssa(:,:)    !       (nlw,ntotlay)
     real(kind=jprb), allocatable :: veg_lw_planck(:,:) ! W m-2 (nlw,ntotlay)
     
     ! Number of columns and maximum number of layers
@@ -101,7 +99,6 @@ contains
         allocate(this%air_sw_ext(this%nsw,ntotlay))
         allocate(this%air_sw_ssa(this%nsw,ntotlay))
         if (do_vegetation) then
-          allocate(this%veg_sw_ext(this%nsw,ntotlay))
           allocate(this%veg_sw_ssa(this%nsw,ntotlay))
         end if
       end if
@@ -110,7 +107,6 @@ contains
         allocate(this%air_lw_ssa(this%nlw,ntotlay))
         allocate(this%air_lw_planck(this%nlw,ntotlay))
         if (do_vegetation) then
-          allocate(this%veg_lw_ext(this%nlw,ntotlay))
           allocate(this%veg_lw_ssa(this%nlw,ntotlay))
           allocate(this%veg_lw_planck(this%nlw,ntotlay))
         end if
@@ -134,12 +130,10 @@ contains
 
     if (allocated(this%air_sw_ext)) deallocate(this%air_sw_ext)
     if (allocated(this%air_sw_ssa)) deallocate(this%air_sw_ssa)
-    if (allocated(this%veg_sw_ext)) deallocate(this%veg_sw_ext)
     if (allocated(this%veg_sw_ssa)) deallocate(this%veg_sw_ssa)
     if (allocated(this%air_lw_ext)) deallocate(this%air_lw_ext)
     if (allocated(this%air_lw_ssa)) deallocate(this%air_lw_ssa)
     if (allocated(this%air_lw_planck))  deallocate(this%air_lw_planck)
-    if (allocated(this%veg_lw_ext)) deallocate(this%veg_lw_ext)
     if (allocated(this%veg_lw_ssa)) deallocate(this%veg_lw_ssa)
     if (allocated(this%veg_lw_planck))  deallocate(this%veg_lw_planck)
 

@@ -109,6 +109,15 @@ contains
         call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
              &              canopy_props%veg_fraction)
       end if
+      call read_packed_1d(file, 'veg_extinction', canopy_props%nlay, &
+           &  canopy_props%veg_ext)
+      if (driver_config%vegetation_extinction >= 0.0) then
+        if  (driver_config%iverbose >= 2) then
+          write(nulout,'(a,g10.3)') '  Overriding vegetation extinction with ', &
+               &  driver_config%vegetation_extinction
+        end if
+        canopy_props%veg_ext = driver_config%vegetation_extinction
+      end if
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
       if (driver_config%vegetation_fsd >= 0.0_jprb) then
@@ -165,15 +174,6 @@ contains
 
       if (config%do_vegetation) then
         ! Read vegetation properties needed for longwave calculations
-        call read_packed_2d(file, 'veg_lw_extinction', canopy_props%nlay, &
-             &  volume_props%veg_lw_ext)
-        if (driver_config%vegetation_lw_extinction >= 0.0) then
-          if  (driver_config%iverbose >= 2) then
-            write(nulout,'(a,g10.3)') '  Overriding vegetation longwave extinction with ', &
-                 &  driver_config%vegetation_lw_extinction
-          end if
-          volume_props%veg_lw_ext = driver_config%vegetation_lw_extinction
-        end if
         call read_packed_2d(file, 'veg_lw_ssa', canopy_props%nlay, &
              &  volume_props%veg_lw_ssa)
         if (driver_config%vegetation_lw_ssa >= 0.0) then
@@ -288,15 +288,6 @@ contains
 
       if (config%do_vegetation) then
         ! Read vegetation properties needed for shortwave calculations
-        call read_packed_2d(file, 'veg_sw_extinction', canopy_props%nlay, &
-             &  volume_props%veg_sw_ext)
-        if (driver_config%vegetation_sw_extinction >= 0.0) then
-          if  (driver_config%iverbose >= 2) then
-            write(nulout,'(a,g10.3)') '  Overriding vegetation shortwave extinction with ', &
-                 &  driver_config%vegetation_sw_extinction
-          end if
-          volume_props%veg_sw_ext = driver_config%vegetation_sw_extinction
-        end if
         call read_packed_2d(file, 'veg_sw_ssa', canopy_props%nlay, &
              &  volume_props%veg_sw_ssa)
         if (driver_config%vegetation_sw_ssa >= 0.0) then

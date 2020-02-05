@@ -1,7 +1,7 @@
 &radsurf_driver
 do_parallel = true,
 vegetation_fsd = 0.5,
-!vegetation_sw_extinction = 0.25,
+!vegetation_extinction = 0.25,
 top_flux_dn_sw = 1000.0,
 top_flux_dn_direct_sw = 1000.0,
 !cos_solar_zenith_angle = 0.5,

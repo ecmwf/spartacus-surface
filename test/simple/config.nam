@@ -2,7 +2,7 @@
 do_parallel = true,
 cos_solar_zenith_angle=0.5,
 vegetation_fsd = 0.5,
-vegetation_sw_extinction = 0.25,
+vegetation_extinction = 0.25,
 /
 
 &radsurf
