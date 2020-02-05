@@ -279,11 +279,11 @@ contains
       call print_logical('  Do longwave calculations', &
            &  'do_sw', this%do_lw)
       if (this%do_sw) then
-        call print_integer('  Number of shortwave intervals', &
+        call print_integer('  Number of shortwave spectral intervals', &
              &  'nsw', this%nsw)
       end if
       if (this%do_lw) then
-        call print_integer('  Number of longwave intervals', &
+        call print_integer('  Number of longwave spectral intervals', &
              &  'nlw', this%nlw)
       end if
       
