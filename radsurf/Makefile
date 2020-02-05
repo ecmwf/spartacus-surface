@@ -11,7 +11,9 @@ SOURCES = \
 	radsurf_overlap.F90 \
 	radsurf_save.F90 \
 	radsurf_simple_spectrum.F90 \
-	radsurf_urban_lw.F90
+	radsurf_urban_lw.F90 \
+	radsurf_sw_spectral_properties.F90 \
+	radsurf_lw_spectral_properties.F90
 
 OBJECTS := $(SOURCES:.F90=.o)
 LIBSURF = ../lib/libradsurf.a
