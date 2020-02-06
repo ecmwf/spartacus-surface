@@ -155,6 +155,10 @@ program spartacus_surface_driver
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
     call sw_norm_diff%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    
+    call sw_norm_dir%zero_all()
+    call sw_norm_diff%zero_all()
+
     call sw_flux%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
   end if
@@ -163,6 +167,10 @@ program spartacus_surface_driver
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
     call lw_norm%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+
+    call lw_internal%zero_all()
+    call lw_norm%zero_all()
+
     call lw_flux%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
          &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
   end if

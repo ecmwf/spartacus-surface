@@ -50,6 +50,7 @@ module radsurf_canopy_flux
     procedure :: deallocate => deallocate_canopy_flux
     procedure :: scale      => scale_canopy_flux
     procedure :: zero       => zero_canopy_flux
+    procedure :: zero_all   => zero_all_canopy_flux
     procedure :: sum        => sum_canopy_flux
 
   end type canopy_flux_type
@@ -226,6 +227,38 @@ contains
 
   end subroutine zero_canopy_flux
 
+
+  !---------------------------------------------------------------------
+  ! Set the fluxes to zero for all columns
+  subroutine zero_all_canopy_flux(this)
+   
+    class(canopy_flux_type),      intent(inout) :: this
+
+    this%ground_dn        = 0.0_jprb
+    this%ground_net       = 0.0_jprb
+    this%top_dn           = 0.0_jprb
+    this%top_net          = 0.0_jprb
+    if (allocated(this%ground_dn_dir)) then
+      this%ground_dn_dir = 0.0_jprb
+      this%top_dn_dir    = 0.0_jprb
+    end if
+    if (allocated(this%roof_in)) then
+      this%roof_in  = 0.0_jprb
+      this%roof_net = 0.0_jprb
+      this%wall_in  = 0.0_jprb
+      this%wall_net = 0.0_jprb
+    end if
+    if (allocated(this%clear_air_abs)) then
+      this%clear_air_abs = 0.0_jprb
+    end if
+    if (allocated(this%veg_abs)) then
+      this%veg_abs     = 0.0_jprb
+      this%veg_air_abs = 0.0_jprb
+    end if
+
+  end subroutine zero_all_canopy_flux
+
+  
   !---------------------------------------------------------------------
   ! this = flux1 + flux2
   subroutine sum_canopy_flux(this, flux1, flux2)
