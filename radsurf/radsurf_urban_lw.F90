@@ -506,7 +506,7 @@ contains
             emiss_rate(:,ifr) = (lg%hweight(js) / lg%mu(js)) * volume_emiss &
                  &             + (0.5_jprb * lg%vweight(js)) * wall_emiss
           end do
-          emiss_reg(:,jreg,jlay) = 2.0_jprb * sum(1.0_jprb / lg%mu) * volume_emiss
+          emiss_reg(:,jreg,jlay) = 2.0_jprb * sum(lg%hweight / lg%mu) * volume_emiss
         end do
         emiss_wall(:,jlay) = (sum(norm_perim_wall) * lg%vadjustment) * wall_emission(:,jlay)
 
@@ -605,6 +605,7 @@ contains
       call print_matrix('source_lay', source_lay(1,:,:))
       call print_array3('int_flux_mat', int_flux_mat(1,:,:,:))
       call print_matrix('int_source', int_source(1,:,:))
+      call print_matrix('emiss_reg', emiss_reg(1,:,:))
 #endif
 
       ! Store top-of-canopy boundary conditions.  Isotropic emissivity
@@ -680,7 +681,7 @@ contains
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
 
-            ! FIX emission (-int_source): all attributed to vegetation!
+            ! FIX emission all attributed to vegetation!
             lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
                  &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
