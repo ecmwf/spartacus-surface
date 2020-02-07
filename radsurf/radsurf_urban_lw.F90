@@ -106,8 +106,12 @@ contains
     ! Components of the Gamma matrix
     real(kind=jprb), dimension(nlw,nreg*ns,nreg*ns) :: gamma1, gamma2
 
-    ! Emission rate per unit height, "b" in Eq. 32
+    ! Emission rate per unit height, "b" in Eq. 32 (W m-3)
     real(kind=jprb), dimension(nlw,nreg*ns) :: emiss_rate
+
+    ! Emission rate per unit height for regions and walls, considering
+    ! all emission directions (W m-3)
+    real(kind=jprb) :: emiss_reg(nlw,nreg,nlay), emiss_wall(nlw,nlay)
 
     ! Normalized vegetation perimeter length (perimeter length divided
     ! by domain area), m-1.  If nreg=2 then there is a clear-sky and a
@@ -198,6 +202,9 @@ contains
 
     ! Integrated flux across a layer
     real(kind=jprb) :: int_flux(nlw,nreg*ns)
+
+    ! Fractional area of exposed roof at a particular layer interface
+    real(kind=jprb) :: exposed_roof_frac
     
     ! Loop counters
     integer(kind=jpim) :: jlay, jreg, jreg_fr, jreg_to, js, js_fr, js_to
@@ -427,8 +434,12 @@ contains
         end do
 
         ! Compute fraction of intercepted radiation extinguished
-        ! (absorption + scattering) and absorbed by wall
-        wall_ext = wall_emissivity(:,jlay)
+        ! (absorption + scattering) and absorbed by wall; currently
+        ! all wall-intercepted radiation is either scattered or
+        ! absorbed (1.0), but at some future date we may add a
+        ! specular term in which case it would be treated as
+        ! unscattered
+        wall_ext = 1.0_jprb;
         wall_abs = wall_emissivity(:,jlay)
         wall_factor = 1.0_jprb - wall_emissivity(1,jlay)
         
@@ -451,7 +462,7 @@ contains
             end if
           end do
         end do
-        
+
         ! Diagonal elements of gamma1 also has loss term due to
         ! extinction through the regions
         do jreg = 1,nreg
@@ -459,7 +470,6 @@ contains
             ifr = js + (jreg-1)*ns
             gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) - ext_reg(:,jreg)/lg%mu(js) &
                  &                 - lg%tan_ang(js) * f_wall(jreg,jlay) * wall_ext
-
           end do
         end do
 
@@ -490,13 +500,15 @@ contains
           volume_emiss = frac(jreg,jlay) * (ext_reg(:,jreg) * (1.0_jprb - ssa_reg(:,jreg)) &
                &                            * planck_reg(:,jreg))
           wall_emiss = norm_perim_wall(jreg) * lg%vadjustment &
-               &      * (wall_emissivity(:,jlay) * wall_emission(:,jlay))
+               &                             * wall_emission(:,jlay)
           do js = 1,ns
             ifr = js + (jreg-1)*ns
             emiss_rate(:,ifr) = (lg%hweight(js) / lg%mu(js)) * volume_emiss &
                  &             + (0.5_jprb * lg%vweight(js)) * wall_emiss
           end do
+          emiss_reg(:,jreg,jlay) = 2.0_jprb * sum(1.0_jprb / lg%mu) * volume_emiss
         end do
+        emiss_wall(:,jlay) = (sum(norm_perim_wall) * lg%vadjustment) * wall_emission(:,jlay)
 
         
 #ifdef PRINT_ARRAYS
@@ -505,8 +517,10 @@ contains
         call print_vector('ssa_reg',ssa_reg(1,:))
         call print_matrix('f_exchange',f_exchange)
         call print_vector('norm_perim', norm_perim)
+        call print_vector('norm_perim_wall', norm_perim_wall)
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
+        call print_vector('emiss_rate',emiss_rate(1,:))
 #endif        
 
         ! --------------------------------------------------------
@@ -533,7 +547,7 @@ contains
           end do
         end do
         do js = 1,ns
-          source_above(:,js+(jreg-1)*ns,1) = (lg%hweight(js) * frac(jreg,jlay)) &
+          source_above(:,js+(jreg-1)*ns,1) = (lg%hweight(js) * frac(jreg,1)) &
                &                           * ground_emission
         end do
       end do
@@ -560,10 +574,16 @@ contains
              &  source_above(:,:,jlay) &
              &  + mat_x_vec(nlw,nlw,nreg*ns,a_above(:,:,:,jlay),source_lay(:,:,jlay))))
         ! Add the contribution from the exposed roofs
+        if (jlay < nlay) then
+          exposed_roof_frac = building_fraction(jlay)-building_fraction(jlay+1)
+        else
+          exposed_roof_frac = building_fraction(jlay)
+        end if
         do js = 1,ns
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
                &  = spread((1.0_jprb - roof_emissivity(:,jlay)) * lg%hweight(js), 2, ns)
-          source_below(:,nreg*ns+js,jlay+1) = lg%hweight(js) * roof_emission(:,jlay)
+          source_below(:,nreg*ns+js,jlay+1) = lg%hweight(js) * roof_emission(:,jlay) &
+               &  * exposed_roof_frac
         end do
 
         ! Overlap: Hogan (2019), equations 22 and 36
@@ -577,6 +597,8 @@ contains
 
 #ifdef PRINT_ARRAYS
       call print_array3('a_above', a_above(1,:,:,:))
+      call print_matrix('source_above', source_above(1,:,:))
+      call print_matrix('source_below', source_below(1,:,:))
       call print_array3('a_below', a_below(1,:,:,:))
       call print_array3('T', trans(1,:,:,:))
       call print_array3('R', ref(1,:,:,:))
@@ -642,15 +664,18 @@ contains
         ! means just below the *top* of the layer
 
         ! CHECK!!!
-        int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay),flux_dn_below(:,1:nreg*ns) &
-             &                   - flux_dn_above - flux_up_below(:,1:nreg*ns) + flux_up_above) &
+        !int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay),flux_dn_below(:,1:nreg*ns) &
+        !     &                   - flux_dn_above - flux_up_below(:,1:nreg*ns) + flux_up_above) &
+        !     &   + int_source(:,:,jlay)
+        int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay), &
+             &               flux_dn_below(:,1:nreg*ns) + flux_up_above) &
              &   + int_source(:,:,jlay)
        
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_internal%clear_air_abs(:,ilay) = lw_internal%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2) &
-             &  - int_source(:,1,jlay)
+             &  - emiss_reg(:,1,jlay)*dz(jlay)
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
@@ -664,7 +689,7 @@ contains
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
-                 &  - int_source(:,jreg,jlay)
+                 &  - emiss_reg(:,jreg,jlay)*dz(jlay)
           end do
         end if
 
@@ -676,7 +701,7 @@ contains
                &           * spread(lg%tan_ang,1,nlw))
         end do
         lw_internal%wall_net(:,ilay) = lw_internal%wall_in(:,ilay) &
-             &  * wall_emissivity(:,jlay)
+             &  * wall_emissivity(:,jlay) - emiss_wall(:,jlay)*dz(jlay)
 
 #ifdef PRINT_ARRAYS
         print *, 'ABSOLUTE FLUXES DUE TO INTERNAL EMISSION AT LAYER ', jlay
@@ -728,8 +753,10 @@ contains
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
-        int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay), flux_dn_below(:,1:nreg*ns) &
-             &                   - flux_dn_above - flux_up_below(:,1:nreg*ns) + flux_up_above)
+        !int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay), flux_dn_below(:,1:nreg*ns) &
+        !     &                   - flux_dn_above - flux_up_below(:,1:nreg*ns) + flux_up_above)
+        int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay), &
+             &               flux_dn_below(:,1:nreg*ns) + flux_up_above)
 
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_norm%clear_air_abs(:,ilay) = lw_norm%clear_air_abs(:,ilay) &
@@ -751,7 +778,7 @@ contains
 
         ! Inward and net flux into walls
         do jreg = 1,nreg
-          lw_norm%wall_in(:,ilay) = lw_internal%wall_in(:,ilay) &
+          lw_norm%wall_in(:,ilay) = lw_norm%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
                &  * (sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                &           * spread(lg%tan_ang,1,nlw)))
@@ -778,12 +805,16 @@ contains
       call print_vector('  veg_abs ', lw_internal%veg_abs(1,ilay1:ilay2))
       print *, '  ground_dn  = ', lw_internal%ground_dn(1,icol)
       print *, '  ground_net = ', lw_internal%ground_net(1,icol)
+      call print_vector('  wall_in', lw_internal%wall_in(1,ilay1:ilay2))
+      call print_vector('  wall_net', lw_internal%wall_net(1,ilay1:ilay2))
       print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION'
       call print_vector('  clear_air_abs ', lw_norm%clear_air_abs(1,ilay1:ilay2))
       call print_vector('  veg_air_abs ', lw_norm%veg_air_abs(1,ilay1:ilay2))
       call print_vector('  veg_abs ', lw_norm%veg_abs(1,ilay1:ilay2))
       print *, '  ground_dn  = ', lw_norm%ground_dn(1,icol)
       print *, '  ground_net = ', lw_norm%ground_net(1,icol)
+      call print_vector('  wall_in', lw_norm%wall_in(1,ilay1:ilay2))
+      call print_vector('  wall_net', lw_norm%wall_net(1,ilay1:ilay2))
 #endif
 
     end associate
