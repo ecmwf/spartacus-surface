@@ -350,7 +350,7 @@ contains
       else
         clear_air_net = 0.0_jprb
       end if
-      if (canopy_props%i_representation(jcol) == ITileForest &
+      if (canopy_props%i_representation(jcol) == ITileUrban &
            &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban) then
         roof_net = sum(this%roof_net(:,ilay1:ilay2))
         wall_net = sum(this%wall_net(:,ilay1:ilay2))
@@ -358,7 +358,7 @@ contains
         roof_net = 0.0_jprb
         wall_net = 0.0_jprb
       end if
-      if (canopy_props%i_representation(jcol) == ITileUrban &
+      if (canopy_props%i_representation(jcol) == ITileForest &
            &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban) then
         veg_net     = sum(this%veg_abs(:,ilay1:ilay2))
         veg_air_net = sum(this%veg_air_abs(:,ilay1:ilay2))

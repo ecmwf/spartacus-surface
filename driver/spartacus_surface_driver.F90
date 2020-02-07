@@ -262,14 +262,18 @@ program spartacus_surface_driver
     if (iendcol <= 0) then
       iendcol = ncol
     end if
-    write(nulout, '(a)') 'Direct shortwave budget'
-    call sw_norm_dir%check(canopy_props, istartcol, iendcol)
-    write(nulout, '(a)') 'Diffuse shortwave budget'
-    call sw_norm_diff%check(canopy_props, istartcol, iendcol)
-    write(nulout, '(a)') 'Internal longwave budget'
-    call lw_internal%check(canopy_props, istartcol, iendcol)
-    write(nulout, '(a)') 'Incoming longwave budget'
-    call lw_norm%check(canopy_props, istartcol, iendcol)
+    if (config%do_sw) then
+      write(nulout, '(a)') 'Direct shortwave budget'
+      call sw_norm_dir%check(canopy_props, istartcol, iendcol)
+      write(nulout, '(a)') 'Diffuse shortwave budget'
+      call sw_norm_diff%check(canopy_props, istartcol, iendcol)
+    end if
+    if (config%do_lw) then
+      write(nulout, '(a)') 'Internal longwave budget'
+      call lw_internal%check(canopy_props, istartcol, iendcol)
+      write(nulout, '(a)') 'Incoming longwave budget'
+      call lw_norm%check(canopy_props, istartcol, iendcol)
+    end if
   end if
 
   call save_canopy_fluxes(trim(file_name), config, canopy_props, &
