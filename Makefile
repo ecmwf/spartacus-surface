@@ -55,7 +55,7 @@ endif
 export FC
 export FCFLAGS = $(WARNFLAGS) $(BASICFLAGS) $(CPPFLAGS) \
 	$(OPTFLAGS) $(DEBUGFLAGS) $(NETCDF_INCLUDE) $(OMPFLAG)
-export LIBS    = $(LDFLAGS) -L../lib -lradsurf -lradtool -lutilities \
+export LIBS    = $(DEBUGFLAGS) $(LDFLAGS) -L../lib -lradsurf -lradtool -lutilities \
 	-lifsaux $(FCLIBS) $(NETCDF_LIB) $(OMPFLAG)
 
 #############################

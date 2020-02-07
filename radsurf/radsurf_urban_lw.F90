@@ -49,7 +49,7 @@ contains
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
 
-#define PRINT_ARRAYS 1
+!#define PRINT_ARRAYS 1
 
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
