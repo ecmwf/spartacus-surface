@@ -57,20 +57,23 @@ module radsurf_canopy_properties
 
     ! Skin temperature of various surfaces (K)
     real(kind=jprb), allocatable :: ground_temperature(:) ! (ncol)
-    real(kind=jprb), allocatable :: roof_temperature(:) ! (ntotlay)
-    real(kind=jprb), allocatable :: wall_temperature(:) ! (ntotlay)
+    real(kind=jprb), allocatable :: roof_temperature(:)   ! (ntotlay)
+    real(kind=jprb), allocatable :: wall_temperature(:)   ! (ntotlay)
 
-    ! Air temperature in canopy (K)
-    real(kind=jprb), allocatable :: air_temperature(:) ! (ntotlay)
-    real(kind=jprb), allocatable :: veg_temperature(:) ! (ntotlay)
+    ! Air temperature in canopy, separtely specifying the temperature
+    ! of the air in the clear and vegetated part of a layer, and the
+    ! leaves (K)
+    real(kind=jprb), allocatable :: clear_air_temperature(:) ! (ntotlay)
+    real(kind=jprb), allocatable :: veg_temperature(:)       ! (ntotlay)
+    real(kind=jprb), allocatable :: veg_air_temperature(:)   ! (ntotlay)
 
     ! Fractional coverage of buildings and vegetation
     real(kind=jprb), allocatable :: building_fraction(:) ! (ntotlay)
-    real(kind=jprb), allocatable :: veg_fraction(:) ! (ntotlay)
+    real(kind=jprb), allocatable :: veg_fraction(:)      ! (ntotlay)
 
     ! Horizontal scale of buildings and vegetation (m)
     real(kind=jprb), allocatable :: building_scale(:) ! (ntotlay)
-    real(kind=jprb), allocatable :: veg_scale(:) ! (ntotlay)
+    real(kind=jprb), allocatable :: veg_scale(:)      ! (ntotlay)
 
     ! Vegetation extinction coefficient, which is treated as
     ! wavelength independent (m-1)
@@ -152,10 +155,11 @@ contains
       allocate(this%building_scale(ntotlay))
     end if
     if (do_canopy) then
-      allocate(this%air_temperature(ntotlay))
+      allocate(this%clear_air_temperature(ntotlay))
     end if
  
     if (do_vegetation) then
+      allocate(this%veg_air_temperature(ntotlay))
       allocate(this%veg_temperature(ntotlay))
       allocate(this%veg_fraction(ntotlay))
       allocate(this%veg_scale(ntotlay))
@@ -191,7 +195,8 @@ contains
     if (allocated(this%ground_temperature))     deallocate(this%ground_temperature)
     if (allocated(this%roof_temperature))       deallocate(this%roof_temperature)
     if (allocated(this%wall_temperature))       deallocate(this%wall_temperature)
-    if (allocated(this%air_temperature))        deallocate(this%air_temperature)
+    if (allocated(this%clear_air_temperature))  deallocate(this%clear_air_temperature)
+    if (allocated(this%veg_air_temperature))    deallocate(this%veg_air_temperature)
     if (allocated(this%veg_temperature))        deallocate(this%veg_temperature)
     if (allocated(this%building_fraction))      deallocate(this%building_fraction)
     if (allocated(this%veg_fraction))           deallocate(this%veg_fraction)

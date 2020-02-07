@@ -9,11 +9,11 @@ BUG FIXES
 
 Longwave forest
 Longwave urban
-
+Fix non-zero residual in urban longwave when nstream>=2
 
 CHECK
 
-Unvegetated urban
 Eigen decomposition correctly treats multiple spectral intervals
-Vegetation extinction should be wavelength independent and stored in canopy_props
+Separate temperatures for clear-air, veg-air and veg
+
 

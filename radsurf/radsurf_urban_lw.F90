@@ -109,10 +109,14 @@ contains
     ! Emission rate per unit height, "b" in Eq. 32 (W m-3)
     real(kind=jprb), dimension(nlw,nreg*ns) :: emiss_rate
 
-    ! Emission rate per unit height for regions and walls, considering
-    ! all emission directions (W m-3)
-    real(kind=jprb) :: emiss_reg(nlw,nreg,nlay), emiss_wall(nlw,nlay)
+    ! Emission rate per unit height for walls, air and vegetation (the
+    ! last two in regions) considering all emission directions (W m-3)
+    real(kind=jprb) :: emiss_wall(nlw,nlay), emiss_reg(nlw,nreg,nlay), &
+         &             emiss_air(nlw,2:nreg,nlay), emiss_veg(nlw,2:nreg,nlay)
 
+    ! Geometric factor needed in computing the emiss_* arrays above
+    real(kind=jprb) :: emiss_factor
+    
     ! Normalized vegetation perimeter length (perimeter length divided
     ! by domain area), m-1.  If nreg=2 then there is a clear-sky and a
     ! vegetation region, and norm_perim(1) is the normalized length
@@ -236,7 +240,8 @@ contains
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
          &  air_ext               => lw_spectral_props%air_ext(:,ilay1:ilay2), &
          &  air_ssa               => lw_spectral_props%air_ssa(:,ilay1:ilay2), &
-         &  air_planck            => lw_spectral_props%air_planck(:,ilay1:ilay2), &
+         &  clear_air_planck      => lw_spectral_props%clear_air_planck(:,ilay1:ilay2), &
+         &  veg_air_planck        => lw_spectral_props%veg_air_planck(:,ilay1:ilay2), &
          &  ground_emissivity     => lw_spectral_props%ground_emissivity(:,icol), &
          &  ground_emission       => lw_spectral_props%ground_emission(:,icol), &
          &  roof_emissivity       => lw_spectral_props%roof_emissivity(:,ilay1:ilay2), &
@@ -294,12 +299,12 @@ contains
         ! albedo of each region
         ext_reg(:,1)    = air_ext(:,jlay)
         ssa_reg(:,1)    = air_ssa(:,jlay)
-        planck_reg(:,1) = air_planck(:,jlay)
+        planck_reg(:,1) = clear_air_planck(:,jlay)
         if (nreg == 2) then
           ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
-          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*veg_air_planck(:,jlay) &
                &   + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
@@ -316,12 +321,12 @@ contains
           ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
                &          + od_scaling(3,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
-          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+          planck_reg(:,2) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*veg_air_planck(:,jlay) &
                &   + od_scaling(2,jlay) * veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
-          planck_reg(:,3) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*air_planck(:,jlay) &
+          planck_reg(:,3) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*veg_air_planck(:,jlay) &
                &   + od_scaling(3,jlay) * veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
-               &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
+               &       / max(ext_reg(:,3)*(1.0_jprb-ssa_reg(:,3)), 1.0e-8_jprb)
         end if
 
         norm_perim = 0.0_jprb
@@ -496,6 +501,7 @@ contains
         gamma1 = gamma1 + gamma2
 
         ! Compute emission rates
+        emiss_factor = 2.0_jprb * sum(lg%hweight / lg%mu)
         do jreg = 1,nreg
           volume_emiss = frac(jreg,jlay) * (ext_reg(:,jreg) * (1.0_jprb - ssa_reg(:,jreg)) &
                &                            * planck_reg(:,jreg))
@@ -506,10 +512,21 @@ contains
             emiss_rate(:,ifr) = (lg%hweight(js) / lg%mu(js)) * volume_emiss &
                  &             + (0.5_jprb * lg%vweight(js)) * wall_emiss
           end do
-          emiss_reg(:,jreg,jlay) = 2.0_jprb * sum(lg%hweight / lg%mu) * volume_emiss
+          emiss_reg(:,jreg,jlay) = emiss_factor * volume_emiss
+
+          if (jreg > 1) then
+            ! Note that in the following we use the extinction and
+            ! single-scattering albedo of the clear air region
+            emiss_air(:,jreg,jlay) = emiss_factor * frac(jreg,jlay) * ext_reg(:,1) &
+                 &              * (1.0_jprb-ssa_reg(:,1)) * veg_air_planck(:,jlay)
+            emiss_veg(:,jreg,jlay) = emiss_factor * frac(jreg,jlay) * veg_ext(jlay) &
+                 &   * (1.0_jprb-veg_ssa(:,jlay)) * veg_planck(:,jlay) * od_scaling(jreg,jlay)
+          end if
+
         end do
         emiss_wall(:,jlay) = (sum(norm_perim_wall) * lg%vadjustment) * wall_emission(:,jlay)
 
+        
         
 #ifdef PRINT_ARRAYS
         print *, 'PROPERTIES OF LAYER ', jlay
@@ -521,6 +538,9 @@ contains
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
         call print_vector('emiss_rate',emiss_rate(1,:))
+        call print_vector('clear_air_planck', clear_air_planck(1,:))
+        call print_vector('veg_air_planck', veg_air_planck(1,:))
+        call print_vector('veg_planck', veg_planck(1,:))
 #endif        
 
         ! --------------------------------------------------------
@@ -663,11 +683,6 @@ contains
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
-
-        ! CHECK!!!
-        !int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay),flux_dn_below(:,1:nreg*ns) &
-        !     &                   - flux_dn_above - flux_up_below(:,1:nreg*ns) + flux_up_above) &
-        !     &   + int_source(:,:,jlay)
         int_flux = mat_x_vec(nlw,nlw,nreg*ns,int_flux_mat(:,:,:,jlay), &
              &               flux_dn_below(:,1:nreg*ns) + flux_up_above) &
              &   + int_source(:,:,jlay)
@@ -680,17 +695,16 @@ contains
         if (do_vegetation) then
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
-
-            ! FIX emission all attributed to vegetation!
             lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
                  &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nlw,1), 2)
+                 &             * spread(1.0_jprb/lg%mu,nlw,1), 2) &
+                 &  - emiss_air(:,jreg,jlay)*dz(jlay)
             lw_internal%veg_abs(:,ilay) = lw_internal%veg_abs(:,ilay) &
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
-                 &  - emiss_reg(:,jreg,jlay)*dz(jlay)
+                 &  - emiss_veg(:,jreg,jlay)*dz(jlay)
           end do
         end if
 

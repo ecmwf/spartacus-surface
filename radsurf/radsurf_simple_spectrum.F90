@@ -49,11 +49,13 @@ contains
       lw_spectral_props%wall_emission(1,ilay1:ilay2) = StefanBoltzmann &
            &  * lw_spectral_props%wall_emissivity(1,ilay1:ilay2) &
            &  * canopy_props%wall_temperature(ilay1:ilay2) ** 4
-      lw_spectral_props%air_planck(1,ilay1:ilay2) = StefanBoltzmann &
-           &  * canopy_props%air_temperature(ilay1:ilay2) ** 4
+      lw_spectral_props%clear_air_planck(1,ilay1:ilay2) = StefanBoltzmann &
+           &  * canopy_props%clear_air_temperature(ilay1:ilay2) ** 4
       if (config%do_vegetation) then
         lw_spectral_props%veg_planck(1,ilay1:ilay2) = StefanBoltzmann &
              &  * canopy_props%veg_temperature(ilay1:ilay2) ** 4
+        lw_spectral_props%veg_air_planck(1,ilay1:ilay2) = StefanBoltzmann &
+             &  * canopy_props%veg_air_temperature(ilay1:ilay2) ** 4
       end if
     end if
 

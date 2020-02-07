@@ -186,27 +186,47 @@ contains
       end if
 
       if (config%do_vegetation .or. config%do_urban) then
-        call read_packed_1d(file, 'air_temperature', canopy_props%nlay, &
-             &  canopy_props%air_temperature)
-        if (file%exists('veg_temperature')) then
-          call read_packed_1d(file, 'veg_temperature', canopy_props%nlay, &
-               &  canopy_props%veg_temperature)
-        else
-          if  (driver_config%iverbose >= 2) then
-            write(nulout,'(a,g10.3)') '  Setting vegetation temperature equal to air temperature'
+        if (file%exists('clear_air_temperature')) then
+          call read_packed_1d(file, 'clear_air_temperature', canopy_props%nlay, &
+               &  canopy_props%clear_air_temperature)
+          if (config%do_vegetation) then
+            call read_packed_1d(file, 'veg_air_temperature', canopy_props%nlay, &
+                 &  canopy_props%veg_air_temperature)
           end if
-          allocate(canopy_props%veg_temperature(ntotlay))
-          canopy_props%veg_temperature = canopy_props%air_temperature
+        else
+          call read_packed_1d(file, 'air_temperature', canopy_props%nlay, &
+               &  canopy_props%clear_air_temperature)
+          if (config%do_vegetation) then
+            if  (driver_config%iverbose >= 2) then
+              write(nulout,'(a,g10.3)') '  Setting temperature of clear-air and air in vegetation to air_temperature'
+            end if
+            allocate(canopy_props%veg_air_temperature(ntotlay))
+            canopy_props%veg_air_temperature = canopy_props%clear_air_temperature
+          end if
+        end if
+        if (config%do_vegetation) then
+          if (file%exists('veg_temperature')) then
+            call read_packed_1d(file, 'veg_temperature', canopy_props%nlay, &
+                 &  canopy_props%veg_temperature)
+          else
+            if  (driver_config%iverbose >= 2) then
+              write(nulout,'(a,g10.3)') '  Setting vegetation temperature equal to air temperature'
+            end if
+            allocate(canopy_props%veg_temperature(ntotlay))
+            canopy_props%veg_temperature = canopy_props%clear_air_temperature
+          end if
         end if
         allocate(lw_spectral_props%air_ext(config%nlw, ntotlay))
         lw_spectral_props%air_ext = 1.0e-5_jprb
         allocate(lw_spectral_props%air_ssa(config%nlw, ntotlay))
         lw_spectral_props%air_ssa = 0.0_jprb
-        allocate(lw_spectral_props%air_planck(config%nlw, ntotlay))
-        lw_spectral_props%air_planck = 0.0_jprb
+        allocate(lw_spectral_props%clear_air_planck(config%nlw, ntotlay))
+        lw_spectral_props%clear_air_planck = 0.0_jprb
         if (config%do_vegetation) then
           allocate(lw_spectral_props%veg_planck(config%nlw, ntotlay))
           lw_spectral_props%veg_planck = 0.0_jprb
+          allocate(lw_spectral_props%veg_air_planck(config%nlw, ntotlay))
+          lw_spectral_props%veg_air_planck = 0.0_jprb
         end if
       end if
 

@@ -22,14 +22,18 @@ module radsurf_lw_spectral_properties
     real(kind=jprb), allocatable :: air_ssa(:,:) !     (nspec,ntotlay)
     real(kind=jprb), allocatable :: veg_ssa(:,:) !     (nspec,ntotlay)
 
-    real(kind=jprb), allocatable :: air_planck(:,:) !  (nspec,ntotlay)
-    real(kind=jprb), allocatable :: veg_planck(:,:) !  (nspec,ntotlay)
+    ! Planck function at the temperature of the clear-air, leaves and
+    ! the air within vegetation (W m-2)
+    real(kind=jprb), allocatable :: clear_air_planck(:,:) !  (nspec,ntotlay)
+    real(kind=jprb), allocatable :: veg_planck(:,:)       !  (nspec,ntotlay)
+    real(kind=jprb), allocatable :: veg_air_planck(:,:)   !  (nspec,ntotlay)
 
     ! Facet properties
     real(kind=jprb), allocatable :: ground_emissivity(:,:) ! (nspec,ncol)
     real(kind=jprb), allocatable :: roof_emissivity(:,:)   ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_emissivity(:,:)   ! (nspec,ntotlay)
 
+    ! Emission 
     real(kind=jprb), allocatable :: ground_emission(:,:) ! (nspec,ncol)
     real(kind=jprb), allocatable :: roof_emission(:,:)   ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_emission(:,:)   ! (nspec,ntotlay)
@@ -93,10 +97,11 @@ contains
     if (do_canopy) then
       allocate(this%air_ext(nspec,ntotlay))
       allocate(this%air_ssa(nspec,ntotlay))
-      allocate(this%air_planck(nspec,ntotlay))
+      allocate(this%clear_air_planck(nspec,ntotlay))
     end if
     if (do_vegetation) then
       allocate(this%veg_ssa(nspec,ntotlay))
+      allocate(this%veg_air_planck(nspec,ntotlay))
       allocate(this%veg_planck(nspec,ntotlay))
     end if
     
@@ -128,7 +133,8 @@ contains
     if (allocated(this%air_ext))           deallocate(this%air_ext)
     if (allocated(this%air_ssa))           deallocate(this%air_ssa)
     if (allocated(this%veg_ssa))           deallocate(this%veg_ssa)
-    if (allocated(this%air_planck))        deallocate(this%air_planck)
+    if (allocated(this%clear_air_planck))  deallocate(this%clear_air_planck)
+    if (allocated(this%veg_air_planck))    deallocate(this%veg_air_planck)
     if (allocated(this%veg_planck))        deallocate(this%veg_planck)
     if (allocated(this%ground_emissivity)) deallocate(this%ground_emissivity)
     if (allocated(this%roof_emissivity))   deallocate(this%roof_emissivity)

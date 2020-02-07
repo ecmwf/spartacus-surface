@@ -36,9 +36,9 @@ module radsurf_canopy_flux
 
     ! Absorption by the clear-air region, the vegetation in the
     ! vegetated region, and the air in the vegetated region
-    real(kind=jprb), allocatable :: clear_air_abs(:,:)    ! (nspec,ntotlay)
-    real(kind=jprb), allocatable :: veg_abs(:,:)          ! (nspec,ntotlay)
-    real(kind=jprb), allocatable :: veg_air_abs(:,:)      ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: clear_air_abs(:,:) ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: veg_abs(:,:)       ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: veg_air_abs(:,:)   ! (nspec,ntotlay)
 
     ! Number of spectral intervals, number of columns total number of
     ! layers across all columns
