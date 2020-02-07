@@ -630,9 +630,9 @@ contains
       flux_dn_diff_above      = 0.0_jprb
       
       sw_norm_dir%top_dn_dir(:,icol) = 1.0_jprb !flux_dn_dir_above(:,1)
-      sw_norm_dir%top_dn(:,icol)        = sw_norm_dir%top_dn_dir(:,icol)
-      sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_dir(:,icol) &
-           &                            * (1.0_jprb-top_albedo_dir)
+      sw_norm_dir%top_dn(:,icol)     = sw_norm_dir%top_dn_dir(:,icol)
+      sw_norm_dir%top_net(:,icol)    = sw_norm_dir%top_dn_dir(:,icol) &
+           &                         * (1.0_jprb-top_albedo_dir)
 
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -737,8 +737,8 @@ contains
       flux_dn_diff_above(:,1:ns) = spread(lg%hweight,nsw,1)
 
       sw_norm_diff%top_dn_dir(:,icol) = 0.0_jprb
-      sw_norm_diff%top_dn(:,icol)        = 1.0_jprb
-      sw_norm_diff%top_net(:,icol)       = 1.0_jprb-top_albedo_diff
+      sw_norm_diff%top_dn(:,icol)     = 1.0_jprb
+      sw_norm_diff%top_net(:,icol)    = 1.0_jprb-top_albedo_diff
       
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -790,7 +790,7 @@ contains
 
         ! Inward and net flux into walls
         do jreg = 1,nreg
-          sw_norm_diff%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
+          sw_norm_diff%wall_in(:,ilay) = sw_norm_diff%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
                &  * (sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                &           * spread(lg%tan_ang,1,nsw)))
