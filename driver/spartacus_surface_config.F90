@@ -31,6 +31,9 @@ module spartacus_surface_config
      ! occurs), 1=warning, 2=info, 3=progress, 4=detailed, 5=debug
      integer(kind=jpim) :: iverbose = 3
 
+     ! Do we check the fluxes at the end for conservation?
+     logical :: do_conservation_check = .true.
+     
      ! Override values
      real(kind=jprb) :: cos_sza_override     = -1.0
      real(kind=jprb) :: ground_sw_albedo     = -1.0
@@ -71,7 +74,7 @@ contains
 
     integer :: iosopen ! Status after calling open
 
-    logical,            pointer :: do_parallel
+    logical,            pointer :: do_parallel, do_conservation_check
     integer(kind=jpim), pointer :: nblocksize, istartcol, iendcol, iverbose, nrepeat
     real(kind=jprb),    pointer :: cos_solar_zenith_angle, vegetation_fsd, vegetation_fraction
     real(kind=jprb),    pointer :: ground_sw_albedo, roof_sw_albedo, wall_sw_albedo
@@ -85,9 +88,11 @@ contains
          &  ground_sw_albedo, roof_sw_albedo, wall_sw_albedo, &
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
          &  vegetation_extinction, vegetation_sw_ssa, vegetation_fraction, &
-         &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw
+         &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw, &
+         &  do_conservation_check
 
     do_parallel            => this%do_parallel
+    do_conservation_check  => this%do_conservation_check
     nblocksize             => this%nblocksize
     nrepeat                => this%nrepeat
     istartcol              => this%istartcol

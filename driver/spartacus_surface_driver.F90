@@ -32,7 +32,8 @@ program spartacus_surface_driver
   use radsurf_save,                 only : save_canopy_fluxes
   use radsurf_simple_spectrum,      only : calc_simple_spectrum_lw
   use easy_netcdf
-
+  use print_matrix_mod, only : print_vector, print_matrix
+  
   implicit none
 
   ! Derived types for the inputs to the radiation scheme
@@ -254,6 +255,23 @@ program spartacus_surface_driver
   ! --------------------------------------------------------
   ! Section 5: Check and save output
   ! --------------------------------------------------------
+
+  if (driver_config%do_conservation_check) then
+    istartcol = driver_config%istartcol
+    iendcol   = driver_config%iendcol
+    if (iendcol <= 0) then
+      iendcol = ncol
+    end if
+    write(nulout, '(a)') 'Direct shortwave budget'
+    call sw_norm_dir%check(canopy_props, istartcol, iendcol)
+    write(nulout, '(a)') 'Diffuse shortwave budget'
+    call sw_norm_diff%check(canopy_props, istartcol, iendcol)
+    write(nulout, '(a)') 'Internal longwave budget'
+    call lw_internal%check(canopy_props, istartcol, iendcol)
+    write(nulout, '(a)') 'Incoming longwave budget'
+    call lw_norm%check(canopy_props, istartcol, iendcol)
+  end if
+
   call save_canopy_fluxes(trim(file_name), config, canopy_props, &
        &  sw_flux, lw_flux, iverbose=driver_config%iverbose)
 

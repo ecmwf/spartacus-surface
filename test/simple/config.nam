@@ -3,6 +3,9 @@ do_parallel = true,
 cos_solar_zenith_angle=0.5,
 vegetation_fsd = 0.5,
 vegetation_extinction = 0.25,
+istartcol=1,
+iendcol=4,
+do_conservation_check = true,
 /
 
 &radsurf

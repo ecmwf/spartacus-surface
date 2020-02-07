@@ -48,3 +48,4 @@ radsurf_save.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_canopy_flux.o
 radsurf_simple_spectrum.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_lw_spectral_properties.o 
+radsurf_canopy_flux.o: radsurf_canopy_properties.o

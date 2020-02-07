@@ -52,6 +52,7 @@ module radsurf_canopy_flux
     procedure :: zero       => zero_canopy_flux
     procedure :: zero_all   => zero_all_canopy_flux
     procedure :: sum        => sum_canopy_flux
+    procedure :: check      => check_canopy_flux
 
   end type canopy_flux_type
 
@@ -296,4 +297,83 @@ contains
 
   end subroutine sum_canopy_flux
 
+
+  !---------------------------------------------------------------------
+  ! Check for conservation of energy
+  subroutine check_canopy_flux(this, canopy_props, istartcol, iendcol, iverbose)
+
+    use radiation_io,               only : nulout
+    use radsurf_canopy_properties,  only : ITileFlat,  ITileForest, &
+         &                                 ITileUrban, ITileVegetatedUrban, &
+         &                                 canopy_properties_type
+    
+    class(canopy_flux_type),      intent(inout) :: this
+    type(canopy_properties_type), intent(in)    :: canopy_props
+    integer(kind=jpim), optional, intent(in)    :: istartcol, iendcol
+    integer(kind=jpim), optional, intent(in)    :: iverbose
+
+    integer(kind=jpim) :: i_verbose_local, icol1, icol2, ilay1, ilay2
+
+    integer(kind=jpim) :: jcol
+
+    real(kind=jprb) :: ground_net, top_net, wall_net, roof_net, &
+         &             clear_air_net, veg_net, veg_air_net, residual
+    
+    if (present(iverbose)) then
+      i_verbose_local = iverbose
+    else
+      i_verbose_local = 3
+    end if
+
+    if (present(istartcol)) then
+      icol1 = istartcol
+    else
+      icol1 = 1
+    end if
+    if (present(iendcol)) then
+      icol2 = iendcol
+    else
+      icol2 = this%ncol
+    end if
+
+    if (i_verbose_local >= 3) then
+      write(nulout,'(a)') 'Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual'
+    end if
+    
+    do jcol = icol1,icol2
+      ilay1 = canopy_props%istartlay(jcol)
+      ilay2 = canopy_props%istartlay(jcol) + canopy_props%nlay(jcol) - 1
+      ground_net = sum(this%ground_net(:,jcol))
+      top_net    = sum(this%top_net(:,jcol))
+      if (canopy_props%i_representation(jcol) /= ITileFlat) then
+        clear_air_net = sum(this%clear_air_abs(:,ilay1:ilay2))
+      else
+        clear_air_net = 0.0_jprb
+      end if
+      if (canopy_props%i_representation(jcol) == ITileForest &
+           &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban) then
+        roof_net = sum(this%roof_net(:,ilay1:ilay2))
+        wall_net = sum(this%wall_net(:,ilay1:ilay2))
+      else
+        roof_net = 0.0_jprb
+        wall_net = 0.0_jprb
+      end if
+      if (canopy_props%i_representation(jcol) == ITileUrban &
+           &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban) then
+        veg_net     = sum(this%veg_abs(:,ilay1:ilay2))
+        veg_air_net = sum(this%veg_air_abs(:,ilay1:ilay2))
+      else
+        veg_net     = 0.0_jprb
+        veg_air_net = 0.0_jprb
+      end if
+      residual = ground_net + clear_air_net + wall_net + roof_net &
+           &   + veg_net + veg_air_net - top_net
+      if (i_verbose_local >= 3) then
+        write(nulout,'(i5,7f9.3,e11.3)') jcol, ground_net, clear_air_net, &
+             &  wall_net, roof_net, veg_net, veg_air_net, top_net, residual
+      end if
+    end do
+
+  end subroutine check_canopy_flux
+  
 end module radsurf_canopy_flux
