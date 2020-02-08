@@ -32,7 +32,7 @@ module spartacus_surface_config
      integer(kind=jpim) :: iverbose = 3
 
      ! Do we check the fluxes at the end for conservation?
-     logical :: do_conservation_check = .true.
+     logical :: do_conservation_check = .false.
      
      ! Override values
      real(kind=jprb) :: cos_sza_override     = -1.0
