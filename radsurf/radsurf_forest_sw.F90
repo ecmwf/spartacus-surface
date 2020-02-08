@@ -329,7 +329,7 @@ contains
           if (frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(3,1) = 0.0_jprb
           else
-            f_exchange(3,1) = norm_perim(jreg) * tan0 / (Pi * frac(1,jlay))
+            f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
           end if
         end if
         

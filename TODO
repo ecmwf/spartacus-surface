@@ -15,5 +15,6 @@ CHECK
 
 Eigen decomposition correctly treats multiple spectral intervals
 Separate temperatures for clear-air, veg-air and veg
+Check that removing tan0 on line 332 does not break the RAMI4PILPS agreement
 
 
