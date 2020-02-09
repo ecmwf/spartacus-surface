@@ -30,6 +30,7 @@ contains
     use radsurf_boundary_conds_out, only : boundary_conds_out_type
     use radsurf_canopy_flux,        only : canopy_flux_type
     use radsurf_forest_sw,          only : spartacus_forest_sw
+    use radsurf_forest_lw,          only : spartacus_forest_lw
     use radsurf_urban_sw,           only : spartacus_urban_sw
     use radsurf_urban_lw,           only : spartacus_urban_lw
     
@@ -172,7 +173,15 @@ contains
                &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
                &  sw_norm_dir, sw_norm_diff)
         end if
-
+        if (config%do_lw) then
+          call spartacus_forest_lw(config, config%nlwinternal, &
+               &  config%lg_lw_forest%nstream, config%n_vegetation_region_forest+1, &
+               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+               &  config%lg_lw_forest, canopy_props, lw_spectral_props, &
+               &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
+               &  lw_internal, lw_norm)
+        end if
+        
       case (ITileUrban)
         if (config%iverbose >= 4) then
           write(nulout,'(i5,a,i0,a,i0,a)') jcol, ': Unvegetated urban, ', &
