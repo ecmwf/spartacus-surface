@@ -1,0 +1,11 @@
+Calling "make" in this directory will run SPARTACUS-Surface on the
+following test input files:
+
+  test_surfaces_in.nc - tests the four surface types (flat, forest,
+    unvegetated urban and vegetated urban) with a simple two-layer
+    canopy
+
+  test_consistency_in.nc - tests the consistency of the forest and
+    urban solvers by running them on an identical forest profile
+
+The results are written in *_out.nc.

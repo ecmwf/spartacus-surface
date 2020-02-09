@@ -1,11 +1,12 @@
 ECRAD = ../../bin/spartacus_surface
 CONFIG = config.nam
-INPUTBASE = test_surface
-INPUT = $(INPUTBASE).nc
-OUTPUT= $(INPUTBASE)_out.nc
 
-test:
-	$(ECRAD) $(CONFIG) $(INPUT) $(OUTPUT)
+test: test_surfaces_out.nc test_consistency_out.nc
+
+%_out.nc: %_in.nc
+	$(ECRAD) $(CONFIG) $< $@
 
 clean:
-	rm -f $(OUTPUT)
+	rm -f *_out.nc
+
+.PHONY: *_in.nc

@@ -1,17 +1,15 @@
 &radsurf_driver
 do_parallel = true,
-nrepeat = 1000,
+!nrepeat = 1000,
 cos_solar_zenith_angle=0.5,
 vegetation_fsd = 0.5,
 vegetation_extinction = 0.25,
-istartcol=3,
-iendcol=4,
 do_conservation_check = true,
-iverbose = 2,
+iverbose = 3,
 /
 
 &radsurf
-iverbose = 2,
+iverbose = 4,
 do_sw = true,
 do_lw = true,
 use_sw_direct_albedo = false,
