@@ -44,6 +44,7 @@ The subdirectories are as follows:
 
   test - test cases including Matlab code to plot the outputs
 
+  doc - LaTeX source for SPARTACUS-Surface documentation
 
 TO COMPILE
 

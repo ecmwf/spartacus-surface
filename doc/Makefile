@@ -1,0 +1,16 @@
+# If you have pdflatex installed, type "make" to create the
+# documentation, "make clean" to delete it
+
+BASE = spartacus_surface_documentation
+
+documentation: $(BASE).pdf
+
+$(BASE).pdf: $(BASE).tex
+	pdflatex $(BASE).tex
+	pdflatex $(BASE).tex
+	pdflatex $(BASE).tex
+
+clean:
+	rm -f $(BASE).pdf
+
+.PHONY: documentation clean
