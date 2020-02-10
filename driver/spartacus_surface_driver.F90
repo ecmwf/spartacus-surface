@@ -97,7 +97,7 @@ program spartacus_surface_driver
 
   ! Print out configuration information
   if (driver_config%iverbose >= 2) then
-    write(nulout,'(a)') '-------------------------- OFFLINE SPARTACUS-SURFACE RADIATION SCHEME --------------------------'
+    write(nulout,'(a)') '------------------ OFFLINE SPARTACUS-SURFACE RADIATION SCHEME ------------------'
     write(nulout,'(a)') 'Copyright (C) 2019-2020 European Centre for Medium-Range Weather Forecasts'
     write(nulout,'(a)') 'Contact: Robin Hogan (r.j.hogan@ecmwf.int)'
 #ifdef SINGLE_PRECISION
@@ -106,7 +106,6 @@ program spartacus_surface_driver
     write(nulout,'(a)') 'Floating-point precision: double'
 #endif
     call config%print(driver_config%iverbose)
-    write(nulout,'(a)') '------------------------------------------------------------------------------------------------'
   end if
 
   ! Act on any information in the configuration, e.g. loading config
@@ -124,7 +123,7 @@ program spartacus_surface_driver
   end if
 
   ! Open the file and configure the way it is read
-  call file%open(trim(file_name), iverbose=config%iverbose)
+  call file%open(trim(file_name), iverbose=driver_config%iverbose)
 
   ! Get NetCDF output file name
   call get_command_argument(3, file_name, status=istatus)
@@ -278,5 +277,9 @@ program spartacus_surface_driver
 
   call save_canopy_fluxes(trim(file_name), config, canopy_props, &
        &  sw_flux, lw_flux, iverbose=driver_config%iverbose)
+
+  if (driver_config%iverbose >= 2) then
+    write(nulout,'(a)') '--------------------------------------------------------------------------------'
+  end if
 
 end program spartacus_surface_driver

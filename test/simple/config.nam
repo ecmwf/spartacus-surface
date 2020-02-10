@@ -5,11 +5,11 @@ cos_solar_zenith_angle=0.5,
 vegetation_fsd = 0.5,
 vegetation_extinction = 0.25,
 do_conservation_check = true,
-iverbose = 3,
+iverbose = 2,
 /
 
 &radsurf
-iverbose = 4,
+iverbose = 3,
 do_sw = true,
 do_lw = true,
 use_sw_direct_albedo = false,

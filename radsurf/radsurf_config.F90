@@ -14,7 +14,7 @@ module radsurf_config
   implicit none
 
   ! Length of string buffer for printing config information
-  integer, parameter :: NPrintStringLen = 60
+  integer, parameter :: NPrintStringLen = 41
   
   !---------------------------------------------------------------------
   ! Derived type containing all the configuration information needed
@@ -274,16 +274,16 @@ contains
            &  'do_vegetation', this%do_vegetation)
       call print_logical('  Represent urban areas', &
            &  'do_urban', this%do_urban)
-      call print_logical('  Do shortwave calculations', &
+      call print_logical('  Do shortwave (SW) calculations', &
            &  'do_sw', this%do_sw)
-      call print_logical('  Do longwave calculations', &
+      call print_logical('  Do longwave (LW) calculations', &
            &  'do_sw', this%do_lw)
       if (this%do_sw) then
-        call print_integer('  Number of shortwave spectral intervals', &
+        call print_integer('  Number of SW spectral intervals', &
              &  'nsw', this%nsw)
       end if
       if (this%do_lw) then
-        call print_integer('  Number of longwave spectral intervals', &
+        call print_integer('  Number of LW spectral intervals', &
              &  'nlw', this%nlw)
       end if
       
@@ -300,11 +300,11 @@ contains
              &  'vegetation_isolation_factor_forest', &
              &  this%vegetation_isolation_factor_forest)
         if (this%do_sw) then
-          call print_integer('  Shortwave diffuse streams per hemisphere', &
+          call print_integer('  SW diffuse streams per hemisphere', &
                &  'n_stream_sw_forest', this%n_stream_sw_forest)
         end if
         if (this%do_lw) then
-          call print_integer('  Longwave streams per hemisphere', &
+          call print_integer('  LW streams per hemisphere', &
                &  'n_stream_lw_forest', this%n_stream_lw_forest)
         end if
       end if
@@ -322,11 +322,11 @@ contains
                &  this%vegetation_isolation_factor_urban)
         end if
         if (this%do_sw) then
-          call print_integer('  Shortwave diffuse streams per hemisphere', &
+          call print_integer('  SW diffuse streams per hemisphere', &
                &  'n_stream_sw_urban', this%n_stream_sw_urban)
         end if
         if (this%do_lw) then
-          call print_integer('  Longwave streams per hemisphere', &
+          call print_integer('  LW streams per hemisphere', &
                &  'n_stream_lw_urban', this%n_stream_lw_urban)
         end if
       end if
