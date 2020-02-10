@@ -14,6 +14,7 @@
 \usepackage{array}
 \usepackage{amsmath}
 \usepackage{mdframed,lipsum}
+\usepackage{graphics}
 \newcolumntype{L}{>{\raggedright\arraybackslash\hangindent=1em}}
 \newcolumntype{M}{>{\raggedright\arraybackslash\hangindent=1em\ttfamily}}
 \newcolumntype{X}{>{\nullfont}c}
@@ -132,11 +133,11 @@ enough to use in weather and climate models.
 The detailed theoretical basis of the library is provided in two
 papers: \cite{Hogan+2018} developed the shortwave forest solver, and
 \cite{Hogan2019} extended this to include buildings and longwave
-radiative transfer.\footnote{These works developed two prototype codes
-  in Matlab: \emph{SPARTACUS-Vegetation} and \emph{SPARTACUS-Urban},
-  both available from the SPARTACUS web site.}  The resulting
-algorithm combines three key ideas from earlier papers in the
-atmospheric radiative transfer literature:
+radiative transfer (these works developed two prototype codes in
+Matlab: \emph{SPARTACUS-Vegetation} and \emph{SPARTACUS-Urban}, both
+available from the SPARTACUS web site).  The resulting algorithm
+combines three key ideas from earlier papers in the atmospheric
+radiative transfer literature:
 %
 \begin{itemize}
 \item To represent horizontal variations in vegetation leaf density
@@ -163,8 +164,8 @@ atmospheric radiative transfer literature:
   ordinary differential equations solved by Eigen decomposition
   similarly to \cite{Stamnes+1988}. This is more robust than the
   matrix-exponential method used by \cite{Hogan+2016}, and more
-  accurate since the diffuse radiation field may be described by more
-  than just two streams.
+  accurate since \spsurf\ allows the diffuse radiation field to be
+  described by more than just two streams.
 \end{itemize}
 
 %Chapter
@@ -173,7 +174,7 @@ version of \spsurf, which is essentially a Unix program that reads a
 configuration file and a netCDF file containing a description of a
 number of surfaces, and outputs a netCDF file containing the computed
 radiation properties. Sections
-\ref{sec:run}--\ref{sec:nam_radsurf_config} describe how to configure
+\ref{sec:run}--\ref{sec:checking} describe how to configure
 and run the offline software, and the contents of the input and output
 data files.  Section \ref{sec:api} will describe to incorporate
 \spsurf\ into a larger Fortran program, such as an atmospheric model.
@@ -226,7 +227,7 @@ License, version 2.0). The subdirectories are as follows:
 \citem{driver} The source code for the offline driver program \code{spartacus\_surface}
 \citem{mod} Where Fortran module files are written
 \citem{lib} Where the static libraries are written
-\citem{bin} Where the executable \code{ecrad} is written
+\citem{bin} Where the executable \code{spartacus\_surface} is written
 \citem{test} Test cases including Matlab code to plot the outputs
 \citem{doc} The source for this document
 \end{description}
@@ -279,9 +280,6 @@ You should then be able to build the code with
  make PROFILE=local
 \end{lstlisting}
 %
-Examples of such configurations for the ECMWF and University of
-Reading computer systems may be found in
-\code{Makefile\_include.ecmwf} and \code{Makefile\_include.uor}.
 
 %To compile in single precision, type
 %\begin{lstlisting}
@@ -343,25 +341,32 @@ layer (dimensions named \code{col} and \code{layer} in Table
 \spsurf). The \code{layer\_int} dimension corresponds to interfaces
 between layers, plus the top-of-canopy and surface, and so must be one
 more than \code{layer}. Note that both \code{layer} and
-\code{layer\_int} should increase upwards from the surface. The
-optional \code{sw} and \code{lw} dimensions allow for shortwave and
-longwave optical properties of leaves and facets to be specified in
-user-defined spectral intervals. Some variables can be omitted in
-which case default values will be used or these fields will be
-constructed according to \code{radsurf\_config} namelist parameters
-(section \ref{sec:nam_radsurf_config}).
+\code{layer\_int} should increase upwards from the surface.
 
+The optional \code{sw} and \code{lw} dimensions allow for shortwave
+and longwave optical properties of leaves and facets to be specified
+in user-defined spectral intervals. If these dimensions are omitted
+for these variables then constant optical properties will be assumed
+across the longwave and shortwave spectra.
+
+Some variables can be omitted in which case default values will be
+used or these fields will be constructed according to
+\code{radsurf\_config} namelist parameters (section
+\ref{sec:nam_radsurf_config}).
+
+\pagebreak
 \begin{center}
 \tablesetup
 \begin{longtable}{llLp{8cm}}%
 \caption{\label{tab:invar}Main variables contained in the input netCDF
-  file to \spsurf.}\\
+  file to \spsurf. All are floating-point numbers except for
+  \code{surface\_type}, which contains integers.}\\
 %
 \hline
 Variable & Dimensions & Description \\
 \hline
 \codetab{cos\_solar\_zenith\_angle} & \codetab{col} & Cosine of solar zenith angle \\
-\codetab{surface\_type} & \codetab{col} & Surface type (integer): (0) flat, (1) forest, (2) urban, and (3) vegetated urban \\
+\codetab{surface\_type} & \codetab{col} & Surface type: (0) flat, (1) forest, (2) urban, and (3) vegetated urban \\
 \codetab{height} & \codetab{col, layer\_int} & Height of layer interfaces (m) \\
 \codetab{veg\_fraction} & \codetab{col, layer} & Vegetation fraction \\
 \codetab{veg\_scale} & \codetab{col, layer} & Vegetation horizontal scale (m) \\
@@ -402,8 +407,17 @@ Variable & Dimensions & Description \\
 \end{longtable}
 \end{center}
 
-All the test data store input fields in order of increasing height,
-and the output data use the same convention. 
+Input fields should be provided in order of increasing height, and the
+output data use the same convention. The \code{surface\_type} variable
+selects how the column is to be treated, as depicted in
+Fig.\ \ref{fig:type_schematic}.
+
+\begin{figure}[tb!]
+  \centerline{\includegraphics[width=0.75\textwidth]{surface_type_schematic.pdf}}
+  \caption{\label{fig:type_schematic}Schematic of the four surfaces
+    represented by the \code{surface\_type} variable provided in the
+    \spsurf\ input file (see Table \ref{tab:invar}).}
+\end{figure}
 
 The output netCDF file contains the typical set of broadband fluxes
 and absorption rates listed in Table \ref{tab:outvar}. If you need
@@ -411,6 +425,9 @@ them spectrally resolved (using the input spectral discretization)
 then set the \code{radsurf\_config} namelist variable
 \code{do\_spectral} to \code{true} and the same variables will be
 output but with the prefix \code{spectral\_}.
+
+
+
 
 \begin{center}
 \tablesetup
@@ -459,8 +476,9 @@ Variable & Dimensions & Description\\
 \label{sec:nam_radsurf}
 The detailed settings of \spsurf\ are configured using the
 \code{radsurf} namelist in the namelist file provided as the first
-command-line argument to the \code{ecrad} executable. The available
-namelist parameters are listed in Table \ref{tab:nam_radsurf}. 
+command-line argument to the \code{spartacus\_surface} executable. The
+available namelist parameters are listed in Table
+\ref{tab:nam_radsurf}.
 
 %\newcommand{\namedef}{3}{\code{#1} & #2 & #3\\}
 
@@ -513,24 +531,73 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \end{center}
 %\end{table}
 
-%\section{Describing the structure of vegetation and buildings}
-%\label{sec:d_structure}
-\iffalse
-Normalized perimeter length is related to the former via Eq.\ 29 of
-%\cite{Hogan+2019}:
+The number of streams can be any positive integer, but note that this
+is the number of quadrature points that the radiation field is divided
+into \emph{per hemisphere}, so a value of 4 corresponds to an
+`8-stream scheme' in the convention that all possible directions are
+considered.  Larger values give more accuracy at greater computational
+cost, but as shown by \cite{Hogan2019}, there is little change in the
+results above a value of 4.
+
+The other parameters in Table \ref{tab:nam_radsurf} allow the
+treatment of vegetation to be fine tuned. If the number of vegetation
+regions is 1 then the trees are represented as in
+Fig.\ \ref{fig:type_schematic}, with a single vegetation extinction
+coefficient per layer.  In order to represent horizontal heterogeneity
+within tree crowns, a value of 2 should be selected, resulting in the
+representation in Fig.\ \ref{fig:isolation_schematic}. The
+\code{vegetation\_isolation\_factor\_*} parameters describe the
+contact between the clear region and the two vegetated regions in each
+layer, with the extremes being 0.0 in which the denser vegetation
+region is completely embedded in the sparser region \cite[the
+  assumption used by][]{Hogan+2018}, and 1.0 in which the dense and
+sparse regions form unconnected tree crowns.
+
+\begin{figure}[b!]
+  \centerline{\includegraphics[width=0.75\textwidth]{isolation_schematic.pdf}}
+  \caption{\label{fig:isolation_schematic}Schematic illustrating how
+    the \code{vegetation\_isolation\_factor\_*} parameters in Table
+    \ref{tab:nam_radsurf} describe the contact between the clear-air
+    region and the two vegetated regions in each layer.}
+\end{figure}
+
+\spsurf\ assumes that the rate of lateral exchange of radiation
+between the clear and vegetated regions is proportional to the
+normalized perimeter length, $L$, separating the vegetation and clear
+regions, i.e.\ the perimeter length divided by the horizontal area of
+the domain. This variable has units of m$^{-1}$ and is a strong
+function of vegetation fraction, so it is more convenient for models to
+parameterize the horizontal size of typical tree crowns, as expressed
+by the \code{vegetation\_scale} input variable in Table
+\ref{tab:invar}. The \code{use\_symmetric\_vegetation\_scale\_*}
+parameters determine how this scale is used to compute $L$.  If a
+symmetric vegetation scale is selected then Eq.\ 20 of
+\cite{Hogan+2018} is used:
 %
 \begin{equation}
-  L=4c(1-c)/C_S,\label{eq:S}
+  L=4v(1-v)/S,\label{eq:S}
 \end{equation}
 %
-%and to the latter via \cite[]{Fielding+2020}
+where $v$ is the vegetation fraction and $S$ is the vegetation scale.
+In this case, as the vegetation fraction approaches one, the
+normalized perimeter approaches zero, indicating that the tree crowns
+effectively merge. If \code{use\_symmetric\_vegetation\_scale\_*} is
+\code{false} then Eq.\ 19 of \cite{Hogan+2018} is used:
 %
 \begin{equation}
-  L=4\left[c(1-c)\right]^{1/2}/C_X,\label{eq:X}
+  L=4v/D,\label{eq:D}
 \end{equation}
 %
-where $c$ is the cloud fraction. 
-\fi
+where this time \code{vegetation\_scale} is interpreted as the
+effective crown diameter, $D$. This has the property that $L$
+approaches a constant value as the vegetation fraction approaches one,
+which could be thought of as the property of \emph{crown shyness}
+exhibited by some forest canopies.
+
+The \code{building\_scale} input variable in Table \ref{tab:invar} is
+always interpreted as an effective building diameter, i.e.\ the code
+uses (\ref{eq:D}) to convert to the normalized building perimeter
+length in each layer, $L$, given the building fraction $v$.
 
 \section{Configuring the offline package}
 \label{sec:nam_radsurf_config}

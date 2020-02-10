@@ -5,7 +5,7 @@ BASE = spartacus_surface_documentation
 
 documentation: $(BASE).pdf
 
-$(BASE).pdf: $(BASE).tex
+$(BASE).pdf: $(BASE).tex surface_type_schematic.pdf isolation_schematic.pdf
 	pdflatex $(BASE).tex
 	pdflatex $(BASE).tex
 	pdflatex $(BASE).tex
