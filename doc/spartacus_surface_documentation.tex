@@ -161,17 +161,21 @@ atmospheric radiative transfer literature:
 \item The \emph{Discrete Ordinate Method} is used to approximate the
   zenithal distribution of diffuse radiation, with the coupled
   ordinary differential equations solved by Eigen decomposition
-  similarly to \cite{Stamnes+1989}. This is more robust than the
+  similarly to \cite{Stamnes+1988}. This is more robust than the
   matrix-exponential method used by \cite{Hogan+2016}, and more
   accurate since the diffuse radiation field may be described by more
   than just two streams.
 \end{itemize}
 
-Chapter \ref{ch:offline} describes how to compile and use the offline
+%Chapter
+Section \ref{sec:compile} describes how to compile and use the offline
 version of \spsurf, which is essentially a Unix program that reads a
 configuration file and a netCDF file containing a description of a
 number of surfaces, and outputs a netCDF file containing the computed
-radiation properties. Chapter \ref{ch:api} describes how to incorporate
+radiation properties. Sections
+\ref{sec:run}--\ref{sec:nam_radsurf_config} describe how to configure
+and run the offline software, and the contents of the input and output
+data files.  Section \ref{sec:api} will describe to incorporate
 \spsurf\ into a larger Fortran program, such as an atmospheric model.
 
 %Chapter \ref{ch:api} describes the Application Programming Interface
@@ -184,6 +188,7 @@ radiation properties. Chapter \ref{ch:api} describes how to incorporate
 %\chapter{Using the offline radiation scheme}
 %\label{ch:offline}
 \section{Compiling the package}
+\label{sec:compile}
 The offline version of \spsurf\ is designed to be used on a Unix-like
 platform. You will need a Fortran compiler that supports the 2003
 standard, such as \code{gfortran}.
@@ -223,6 +228,7 @@ License, version 2.0). The subdirectories are as follows:
 \citem{lib} Where the static libraries are written
 \citem{bin} Where the executable \code{ecrad} is written
 \citem{test} Test cases including Matlab code to plot the outputs
+\citem{doc} The source for this document
 \end{description}
 
 Compilation on different platforms using different compilers is
@@ -299,6 +305,7 @@ all compiled files with
 \end{lstlisting}
 
 \section{Running the offline scheme}
+\label{sec:run}
  To test the code, type
 \begin{lstlisting}
  make test
@@ -312,7 +319,7 @@ You will see in the output of the tests the command line in each
 invocation of \spsurf, which is of the form
 %
 \begin{lstlisting}
- spartacus\_surface config.nam input.nc output.nc
+ spartacus_surface config.nam input.nc output.nc
 \end{lstlisting}
 where \code{spartacus\_surface} needs to be the full path to the
 \spsurf\ executable, \code{config.nam} is a Fortran namelist file
@@ -346,131 +353,114 @@ constructed according to \code{radsurf\_config} namelist parameters
 
 \begin{center}
 \tablesetup
-\begin{longtable}{llLp{6.6cm}}%
+\begin{longtable}{llLp{8cm}}%
 \caption{\label{tab:invar}Main variables contained in the input netCDF
-  file to \spsurf. Note that some variables are not required if they
-  are not used by the particular solver selected, for example
-  \code{iseed} is only used by the McICA solver and
-  \code{inv\_cloud\_effective\_size} is only used by the SPARTACUS
-  solver. Also, only one of \code{o3\_mmr} and \code{o3\_vmr} should
-  be provided. In addition to ozone, further gases can be specified in
-  either mass mixing ratio (suffix \code{\_mmr}) or volume mixing
-  ratio (suffix \code{\_vmr}) units, where the prefixes are \code{co2}
-  (carbon dioxide), \code{n2o} (nitrous oxide), \code{co} (carbon
-  monoxide), \code{ch4} (methane), \code{o2} (molecular oxygen),
-  \code{cfc11} (CFC-11), \code{cfc12} (CFC-12), \code{hcfc22}
-  (HCFC-22), \code{ccl4} (carbon tetrachloride) and \code{no2}
-  (nitrogen dioxide). These further trace gases may either be
-  specified as variable in space (dimensioned \code{col,level}) or
-  constant (a scalar value in the file). To override the suffix
-  indicating volume mixing ratio (e.g.\ to change it to
-  \code{\_mole\_fraction}), set the namelist variable
-  \code{vmr\_suffix\_str} as described in Table
-  \ref{tab:nam_radiation_config}.}\\
+  file to \spsurf.}\\
 %
 \hline
 Variable & Dimensions & Description \\
 \hline
-\codetab{solar\_irradiance} & \codetab{-} & Solar irradiance at Earth's orbit (W~m$^{-2}$) \\
-\codetab{skin\_temperature} & \codetab{col} & Skin temperature (K) \\
 \codetab{cos\_solar\_zenith\_angle} & \codetab{col} & Cosine of solar zenith angle \\
-\codetab{sw\_albedo} & \codetab{col, sw\_albedo\_band} & Shortwave albedo (if 1D then assumed spectrally constant) \\
-\codetab{lw\_emissivity} & \codetab{col, lw\_emiss\_band} & Longwave emissivity (if 1D then assumed spectrally constant)\\
-\codetab{iseed} & \codetab{col} & Seed for McICA random-number generator (double precision, default: 1, 2, 3...)\\
-\codetab{pressure\_hl} & \codetab{col, half\_level} & Pressure at half levels (Pa) \\
-\codetab{temperature\_hl}& \codetab{col, half\_level} & Temperature at half levels (K) \\
-\codetab{q} or \codetab{h2o\_mmr} & \codetab{col, level} & Specific humidity (kg~kg$^{-1}$)\\
-\codetab{h2o\_vmr} & \codetab{col, level} & Water vapour volume mixing ratio (mol~mol$^{-1}$)\\
-\codetab{o3\_mmr}& \codetab{col, level} & Ozone mass mixing ratio (kg~kg$^{-1}$)\\
-\codetab{o3\_vmr} & \codetab{col, level} & Ozone volume mixing ratio (mol~mol$^{-1}$),  used only if \codetab{o3\_mmr} not provided\\
-\codetab{aerosol\_mmr} & \codetab{col, aer\_type, level} & Aerosol mass mixing ratio (kg~kg$^{-1}$)\\
-\codetab{q\_liquid} & \codetab{col, level} & Liquid cloud mass mixing ratio (kg~kg$^{-1}$)\\
-\codetab{q\_ice} & \codetab{col, level} & Ice cloud mass mixing ratio (kg~kg$^{-1}$)\\
-\codetab{re\_liquid} & \codetab{col, level} & Liquid cloud effective radius (m)\\
-\codetab{re\_ice} & \codetab{col, level} & Ice cloud effective radius (m)\\
-\codetab{cloud\_fraction} & \codetab{col, level} & Cloud fraction\\
-\codetab{overlap\_param} & \codetab{col, level\_interface} & Cloud overlap parameter (default: compute from decorrelation length of 2~km)\\
-\codetab{fractional\_std} & \codetab{col, level} & Fractional standard deviation of cloud optical depth (default 0)\\
-\codetab{inv\_cloud\_effective\_size} & \codetab{col, level} & Inverse of cloud effective horizontal size for SPARTACUS solver (m$^{-1}$)\\
-\codetab{inv\_inhom\_effective\_size} & \codetab{col, level} & Inverse of effective horizontal size of cloud inhomogeneities, for SPARTACUS solver (m$^{-1}$) (default: same as \codetab{inv\_cloud\_effective\_size})\\
-\codetab{inv\_cloud\_effective\_separation} & \codetab{col, level} & Alternative input to SPARTACUS if \codetab{inv\_cloud\_effective\_size} not present (m$^{-1}$)\\
-\codetab{inv\_inhom\_effective\_separation} & \codetab{col, level} & Alternative input to SPARTACUS if \codetab{inv\_inhom\_effective\_size} not present (m$^{-1}$)\\
+\codetab{surface\_type} & \codetab{col} & Surface type (integer): (0) flat, (1) forest, (2) urban, and (3) vegetated urban \\
+\codetab{height} & \codetab{col, layer\_int} & Height of layer interfaces (m) \\
+\codetab{veg\_fraction} & \codetab{col, layer} & Vegetation fraction \\
+\codetab{veg\_scale} & \codetab{col, layer} & Vegetation horizontal scale (m) \\
+\codetab{veg\_extinction} & \codetab{col, layer} & Wavelength-independent vegetation extinction coefficient (m$^{-1}$) \\
+\codetab{veg\_fsd} & \codetab{col, layer} & Fractional standard deviation of vegetation extinction \\
+\codetab{veg\_contact\_fraction} & \codetab{col, layer} & Fraction of vegetation edge in contact with building walls \\
+%
+\codetab{building\_fraction} & \codetab{col, layer} & Building fraction \\
+\codetab{building\_scale} & \codetab{col, layer} & Building horizontal scale (m) \\
+%
+\codetab{clear\_air\_temperature} & \codetab{col, layer} & Temperature of clear (unvegetated) part of layer (K) \\
+\codetab{veg\_temperature} & \codetab{col, layer} & Temperature of leaves (K) \\
+\codetab{veg\_air\_temperature} & \codetab{col, layer} & Temperature of air in vegetated part of layer (K) \\
+\codetab{air\_temperature} & \codetab{col, layer} & Alternative way to specify \codetab{clear\_air\_temperature} and \codetab{veg\_air\_temperature} if the same (K) \\
+\codetab{ground\_temperature} & \codetab{col} & Ground temperature (K) \\
+\codetab{roof\_temperature} & \codetab{col, layer} & Temperature of the roofs at the top of the layer (K) \\
+\codetab{wall\_temperature} & \codetab{col, layer} & Wall temperature (K) \\
+%
+\codetab{ground\_sw\_albedo} & \codetab{col, sw} & Shortwave albedo of ground \\
+\codetab{ground\_sw\_albedo\_direct} & \codetab{col, sw} & Shortwave albedo of ground to direct beam (if different)\\
+\codetab{ground\_lw\_emissivity} & \codetab{col, lw} & Longwave emissivity of ground \\
+%
+\codetab{veg\_sw\_ssa} & \codetab{col, layer, sw} & Shortwave single-scattering albedo of the leaves \\
+\codetab{veg\_lw\_ssa} & \codetab{col, layer, lw} & Longwave single-scattering albedo of the leaves \\
+%
+\codetab{roof\_sw\_albedo} & \codetab{col, layer, sw} & Shortwave albedo of roofs \\
+\codetab{roof\_sw\_albedo\_direct} & \codetab{col, layer, sw} & Shortwave albedo of roofs to direct beam (if different)\\
+\codetab{roof\_lw\_emissivity} & \codetab{col, layer, lw} & Longwave emissivity of roofs \\
+%
+\codetab{wall\_sw\_albedo} & \codetab{col, layer, sw} & Shortwave albedo of walls \\
+\codetab{wall\_sw\_specular\_fraction} & \codetab{col, layer, sw} & Fraction of wall reflection that is specular \\
+\codetab{wall\_lw\_emissivity} & \codetab{col, layer, lw} & Longwave emissivity of walls \\
+%
+\codetab{sky\_temperature} & \codetab{col, layer} & Equivalent emitting temperature of sky (K) \\
+\codetab{top\_flux\_dn\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling shortwave flux (W m$^{-1}$) \\
+\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-1}$) \\
 \hline
 \end{longtable}
 \end{center}
 
-All the test data store input fields in order of increasing pressure,
-i.e.\ starting at the top-of-atmosphere and working down to the
-surface. The output data are then provided using the same
-convention. If input data are provided in the opposite order then this
-should be automatically detected and under the bonnet the order is
-reversed before being passed to the radiation scheme. But if you use
-this convention then please test the results carefully as this option
-is not regularly tested. The variables describing cloud properties,
-particularly sub-grid cloud struture, are defined in detail in section
-\ref{sec:cloud_structure}.
+All the test data store input fields in order of increasing height,
+and the output data use the same convention. 
 
-The output netCDF file contains the typical set of variables listed in
-Table \ref{tab:outvar}. Clear-sky fluxes (i.e.\ computed on the same
-input profiles but in the absence of clouds) are provided if the
-\code{do\_clear} namelist parameter is set to \code{true} (see section
-\ref{sec:nam_radiation}). If you need diagnostic downward fluxes at
-the surface for just a subset of the spectrum (e.g. ultraviolet or
-photosynthetically active radiation) then they can be computed from
-the \code{spectral\_flux\_dn\_*} variables, activated if namelist
-variable \code{do\_surface\_sw\_spectral\_flux} is set to
-\code{true}. In some contexts it is also useful to have fluxes in each
-of the shortwave albedo or longwave emissivity spectral intervals.
-These are named \code{canopy\_flux\_dn\_*} and are activated if
-\code{do\_canopy\_fluxes\_sw} or \code{do\_canopy\_fluxes\_lw} are set
-to \code{true}. Note that if you want atmospheric heating rates then
-you will need to compute them yourself from the flux profiles.
+The output netCDF file contains the typical set of broadband fluxes
+and absorption rates listed in Table \ref{tab:outvar}. If you need
+them spectrally resolved (using the input spectral discretization)
+then set the \code{radsurf\_config} namelist variable
+\code{do\_spectral} to \code{true} and the same variables will be
+output but with the prefix \code{spectral\_}.
 
 \begin{center}
 \tablesetup
-\begin{longtable}{llLp{5.9cm}}%
+\begin{longtable}{llLp{7cm}}%
 \caption{\label{tab:outvar}Variables contained in the output netCDF
-  file from \spsurf, where all fluxes (or irradiances) have units of
-  W~m$^{-2}$. The \code{band\_sw} dimension has the same size as the
-  number of shortwave bands in the gas-optics scheme.}\\
+  file from \spsurf.  All fluxes (or irradiances) and absorption rates
+  have units of W~m$^{-2}$, but note that this is power per unit area
+  of the \emph{entire domain}, not per unit area of a specific facet
+  type.  `Net' fluxes are defined as the flux into a facet type (or downward) minus the
+  flux out of a facet type (or upward).}\\
 %
 \hline
 Variable & Dimensions & Description\\
 \hline
-\codetab{pressure\_hl} & \codetab{col, half\_level} & Pressure at half levels (Pa)\\
-\codetab{flux\_up\_sw, flux\_dn\_sw} & \codetab{col, half\_level} & Up- and downwelling shortwave fluxes \\
-\codetab{flux\_up\_sw\_clear, flux\_dn\_sw\_clear} & \codetab{col, half\_level} & Up- and downwelling clear-sky shortwave fluxes\\
-\codetab{flux\_dn\_direct\_sw} & \codetab{col, half\_level} & Direct component of downwelling shortwave flux\\
-\codetab{flux\_dn\_direct\_sw\_clear} & \codetab{col, half\_level} & Direct component of downwelling clear-sky shortwave flux\\
-\codetab{flux\_up\_lw, flux\_dn\_lw} & \codetab{col, half\_level} & Up- and down-welling longwave fluxes \\
-\codetab{flux\_up\_lw\_clear, flux\_dn\_lw\_clear} & \codetab{col, half\_level} & Up- and down-welling clear-sky longwave fluxes\\
-\codetab{lw\_derivative} & \codetab{col, half\_level} & Derivative of upwelling longwave flux with respect to surface value \citep{Hogan+2015}\\
-\codetab{spectral\_flux\_dn\_sw\_surf} & \codetab{col, band\_sw} & Downwelling surface shortwave flux in each band\\
-\codetab{spectral\_flux\_dn\_direct\_sw\_surf} & \codetab{col, band\_sw} & Direct downwelling surface shortwave flux in each band\\
-\codetab{spectral\_flux\_dn\_sw\_surf\_clear} & \codetab{col, band\_sw} & Clear-sky downwelling surface shortwave flux in each band\\
-\codetab{spectral\_flux\_dn\_direct\_sw\_surf\_clear} & \codetab{col, band\_sw} & Clear-sky direct downwelling surface shortwave flux in each band\\
-\codetab{canopy\_flux\_dn\_diffuse\_sw\_surf} & \codetab{col, sw\_albedo\_band} & Downwelling diffuse surface shortwave flux in each albedo interval \\
-\codetab{canopy\_flux\_dn\_direct\_sw\_surf} & \codetab{col, sw\_albedo\_band} & Downwelling direct surface shortwave flux in each albedo interval \\
-\codetab{canopy\_flux\_dn\_lw\_surf} & \codetab{col, lw\_emiss\_band} & Downwelling surface longwave flux in each emissivity interval \\
-\codetab{cloud\_cover\_sw} & \codetab{col} & Total cloud cover diagnosed by shortwave solver\\
-\codetab{cloud\_cover\_lw} & \codetab{col} & Total cloud cover diagnosed by longwave solver\\
+\codetab{height} & \codetab{col, layer\_int} & Height of layer interfaces above ground (m)\\
+\codetab{ground\_flux\_dn\_sw} & \codetab{col} & Downwelling shortwave flux into the ground \\
+\codetab{ground\_flux\_net\_sw} & \codetab{col} & Net shortwave flux into the ground\\
+\codetab{ground\_flux\_dn\_direct\_sw} & \codetab{col} & Direct downwelling shortwave flux into the ground\\
+\codetab{top\_flux\_dn\_sw} & \codetab{col} & Top-of-canopy downwelling shortwave flux\\
+\codetab{top\_flux\_net\_sw} & \codetab{col} & Top-of-canopy net shortwave flux\\
+\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col} & Top-of-canopy direct downwelling shortwave flux\\
+\codetab{roof\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into roofs \\
+\codetab{roof\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into roofs\\
+\codetab{wall\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into walls\\
+\codetab{wall\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into walls\\
+\codetab{clear\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate in clear-air part of layer\\
+\codetab{veg\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by leaves\\
+\codetab{veg\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by air in vegetated part of layer\\
+\codetab{ground\_flux\_dn\_lw} & \codetab{col} & Downwelling longwave flux into the ground\\
+\codetab{ground\_flux\_net\_lw} & \codetab{col} & Net longwave flux into the ground\\
+\codetab{top\_flux\_dn\_lw} & \codetab{col} & Top-of-canopy donwelling longwave flux\\
+\codetab{top\_flux\_net\_lw} & \codetab{col} & Top-of-canopy net longwave flux\\
+\codetab{roof\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into roofs\\
+\codetab{roof\_flux\_net\_lw} & \codetab{col, layer} & Net longwave flux into roofs\\
+\codetab{wall\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into walls\\
+\codetab{wall\_flux\_net\_lw} & \codetab{col, layer} & Net flux into walls\\
+\codetab{clear\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate in clear-air part of layer\\
+\codetab{veg\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by leaves\\
+\codetab{veg\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by air in vegetated part of layer\\
 \hline
 \end{longtable}
 \end{center}
 
 
-\section{Configuring the radiation scheme}
-\label{sec:nam_radiation}
+\section{Configuring the \spsurf\ algorithm}
+\label{sec:nam_radsurf}
 The detailed settings of \spsurf\ are configured using the
-\code{radiation} namelist in the namelist file provided as the first
+\code{radsurf} namelist in the namelist file provided as the first
 command-line argument to the \code{ecrad} executable. The available
-namelist parameters are listed in Table \ref{tab:nam_radiation}. One of
-the most important is \code{directory\_name}, which provides the
-absolute or relative path to the directory containing all the
-configuration files. This is the \code{data} directory at the top
-level of the \spsurf\ package. Note that the default values listed in
-Table \ref{tab:nam_radiation} may differ in some cases from the values
-used operationally in the IFS \cite[see Table 2 of][]{Hogan+2018}.
+namelist parameters are listed in Table \ref{tab:nam_radsurf}. 
 
 %\newcommand{\namedef}{3}{\code{#1} & #2 & #3\\}
 
@@ -479,98 +469,43 @@ used operationally in the IFS \cite[see Table 2 of][]{Hogan+2018}.
 \tablesetup
 %\begin{longtable}{lc>{\raggedright}p{5cm}>{\raggedright}p{5cm}}
 %\begin{longtable}{lXLp{4cm}Lp{5.5cm}}
-\begin{longtable}{lXLp{3.5cm}Lp{6cm}}
+\begin{longtable}{lXlLp{5.5cm}}
 %
-\caption{\label{tab:nam_radiation}Options for the \code{radiation}
-  namelist that configures the radiation scheme. The type of each
+\caption{\label{tab:nam_radsurf}Options for the \code{radsurf}
+  namelist that configures \spsurf\ algorithm. The type of each
   parameter can be inferred from its name: logicals begin with
   \code{do\_} or \code{use\_}, integers start with \code{i\_} or
   \code{n\_}, strings end with \code{\_name}, and all other parameters
   are real numbers.}\\
 %
 \hline
-Parameter & Type & \textbf{Default value}, other values & Description\\
+Parameter & Type & \textbf{Default}, other values & Description\\
 \hline
 %\namedef{do_sw}{\codetab{true},\codetab{false}}{Run the shortwave scheme?}
 \multicolumn{4}{l}{\emph{General}}\\
-\codetab{directory\_name} & S & \textemph{.} & Directory containing netCDF configuration files \\
 \codetab{do\_sw} & L & \codetabemph{true} & Compute shortwave fluxes?\\
 \codetab{do\_lw} & L & \codetabemph{true} & Compute longwave fluxes?\\
-\codetab{do\_sw\_direct} & L & \codetabemph{true} & Do direct shortwave fluxes? \\
-\codetab{do\_clear} & L & \codetabemph{true} & Compute clear-sky fluxes? \\
+\codetab{do\_vegetation} & L & \codetabemph{true} & Will vegetation be represented? \\
+\codetab{do\_urban} & L & \codetabemph{true} & Will urban areas be represented? \\
+\codetab{use\_sw\_direct\_albedo} & L & \codetabemph{false} & Specify ground and roof albedos separately for direct solar radiation? \\
+\codetab{min\_vegetation\_fraction} & R & \codetabemph{10$^{-6}$} & Minimum area fraction below which a region is removed completely\\
 \hline
-\multicolumn{4}{l}{\emph{Gas and aerosol optics}}\\
-\codetab{gas\_model\_name} & S & \textemph{RRTMG-IFS}, Monochromatic & Gas optics model \\
-\codetab{use\_aerosols} & L & \codetabemph{false} & Do we represent aerosols? \\
-\codetab{do\_lw\_aerosol\_scattering} & L & \codetabemph{true} & Do longwave aerosol scattering? \\
-\codetab{n\_aerosol\_types} & I & & Number of aerosol types \\
-\codetab{i\_aerosol\_type\_map} & I(:) & & Vector of integers that map from aerosol types to types in the netCDF aerosol optics file, where positive integers indexe hydrophobic types, negative integers index hydrophilic types and zero indicates a type should be ignored\\
-\codetab{aerosol\_optics\_override\_file\_name} & S & & Path to an alternative aerosol optics file\\
+\multicolumn{4}{l}{\emph{Options specific to forest tiles}}\\
+\codetab{n\_vegetation\_region\_forest} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\
+\codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
+\codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
+\codetab{use\_symmetric\_vegetation\_scale\_forest} & L & \codetabemph{true} & Compute vegetation perimeter length using Eq.\ 20 of \cite{Hogan+2018}? Otherwise Eq.\ 19\\
+\codetab{vegetation\_isolation\_factor\_forest} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & Dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions\\
 \hline
-\multicolumn{4}{l}{\emph{Monochromatic scheme}}\\
-\codetab{mono\_lw\_wavelength} & R & $\bf -$\textbf{1.0} & Wavelength of longwave radiation, or if negative, a broadband calculation will be performed\\
-\codetab{mono\_lw\_total\_od} & R & \textemph{0.0} & Zenith longwave optical depth of clear-sky atmosphere\\
-\codetab{mono\_sw\_total\_od} & R & \textemph{0.0} & Zenith shortwave optical depth of clear-sky atmosphere\\
-\codetab{mono\_lw\_single\_scattering\_albedo} & R & \textemph{0.538} & Longwave cloud single scattering albedo\\
-\codetab{mono\_sw\_single\_scattering\_albedo} & R & \textemph{0.999999} & Shortwave cloud single scattering albedo\\
-\codetab{mono\_lw\_asymmetry\_factor} & R & \textemph{0.925} & Longwave cloud asymmetry factor\\
-\codetab{mono\_sw\_asymmetry\_factor} & R & \textemph{0.86} & Shortwave cloud asymmetry factor\\
-\hline
-\multicolumn{4}{l}{\emph{Cloud optics}}\\
-\codetab{liquid\_model\_name} & S & \textemph{SOCRATES}, Slingo, Monochromatic & Liquid optics model, including the scheme in the SOCRATES radiation scheme and the older scheme of \cite{Slingo1989} \\
-\codetab{ice\_model\_name} & S & \textemph{Fu-IFS}, Baran2016, Yi, Monochromatic & Ice optics model, including the schemes of \cite{Fu1996}, \cite{Fu+1998}, \cite{Baran+2016} and \cite{Yi+2013} \\
-\codetab{do\_lw\_cloud\_scattering} & L & \codetabemph{true} & Do longwave cloud scattering? \\
-\codetab{do\_fu\_lw\_ice\_optics\_bug} & L & \codetabemph{false} & Reproduce bug in McRad implementation of Fu ice optics \citep{Hogan+2016}? \\
-\codetab{liq\_optics\_override\_file\_name} & S & & Path to alternative liquid optics file name\\
-\codetab{ice\_optics\_override\_file\_name} & S & & Path to alternative ice optics file name\\
-\hline
-\multicolumn{4}{l}{\emph{Solver}}\\
-\codetab{sw\_solver\_name} & S & Cloudless, Homogeneous, \textemph{McICA}, Tripleclouds, SPARTACUS & Shortwave solver; note that the homogeneous solver assumes cloud fills the gridbox horizontally (so ignores cloud fraction) while the cloudless solver ignores clouds completely \\
-\codetab{lw\_solver\_name} & S & Cloudless, Homogeneous, \textemph{McICA}, Tripleclouds, SPARTACUS & Longwave solver \\
-\codetab{overlap\_scheme\_name} & S & Max-Ran, \textemph{Exp-Ran}, Exp-Exp & Cloud overlap scheme; note that SPARTACUS and Tripleclouds only work with the Exp-Ran overlap scheme \\
-\codetab{use\_beta\_overlap} & L & \codetabemph{false} & Use \cite{Shonk+2010} `$\beta$' overlap parameter definition, rather than default `$\alpha$'? \\
-\codetab{cloud\_inhom\_decorr\_scaling} & R & \textemph{0.5} & Ratio of overlap decorrelation lengths for cloud inhomogeneities and boundaries \\
-\codetab{cloud\_fraction\_threshold} & R & $\bf 10^{-6}$ & Ignore clouds with fraction below this \\
-\codetab{cloud\_mixing\_ratio\_threshold} & R & $\bf 10^{-9}$ & Ignore clouds with total mixing ratio below this \\
-\codetab{cloud\_pdf\_shape\_name} & S & \textemph{Gamma}, Lognormal & Shape of cloud water PDF\\
-\codetab{cloud\_pdf\_override\_file\_name} & S & & Name of netCDF file of alternative cloud PDF look-up table\\
-\codetab{do\_sw\_delta\_scaling\_with\_gases} & L & \codetabemph{false} & Apply delta-Eddington scaling to particle-gas mixture, rather than particles only \citep[see][]{Hogan+2018}\\
-\hline
-\multicolumn{4}{l}{\emph{SPARTACUS solver (these parameters have no effect for other solvers)}}\\
-\codetab{do\_3d\_effects} & L & \codetabemph{true} & Represent cloud edge effects when SPARTACUS solver selected; note that this option does not affect entrapment, which is also a 3D effect\\
-\codetab{n\_regions} & I & 2, \textemph{3} & Number of regions, where one is clear sky and one or two are cloud (the Tripleclouds solver always assumes three regions regardless of this parameter) \\
-\codetab{do\_lw\_side\_emissivity} & L & \codetabemph{true} & Represent effective emissivity of the side of clouds \citep{Schafer+2016}\\
-\codetab{sw\_entrapment\_name} & S & Zero, Edge-only, \textemph{Explicit}, Non-fractal, Maximum & Entrapment model \citep{Hogan+2019}; note that the behaviour in ecRad version 1.0.1 was `Maximum' entrapment\\
-\codetab{do\_3d\_lw\_multilayer\_effects} & L & \codetabemph{false} & Maximum entrapment for longwave radiation?\\
-\codetab{max\_3d\_transfer\_rate} & R & \textemph{10.0} & Maximum rate of lateral exchange between regions in one layer, for stability of matrix exponential (where the default means that as little as $e^{-10}$ of the radiation could remain in a region)\\
-\codetab{max\_gas\_od\_3d} & R & \textemph{8.0} & 3D effects ignored for spectral intervals where gas optical depth of a layer exceeds this, for stability\\
-\codetab{max\_cloud\_od} & R & \textemph{16.0} & Maximum in-cloud optical depth, for stability\\
-\codetab{use\_expm\_everywhere} & L & \codetabemph{false} & Use matrix-exponential method even when 3D effects not important, such as clear-sky layers and parts of the spectrum where the gas optical depth is large?\\
-\codetab{clear\_to\_thick\_fraction} & R & \textemph{0.0} & Fraction of cloud edge interfacing directly to the most optically thick cloudy region\\
-\codetab{overhead\_sun\_factor} & R & \textemph{0.0} & Minimum tan-squared of solar zenith angle to allow some `direct' radiation from overhead sun to pass through cloud sides \citep[0.06 used by][]{Hogan+2016}\\
-\codetab{overhang\_factor} & R & \textemph{0.0} & A detail of the entrapment representation described by \cite{Hogan+2019}\\
-\hline
-%\multicolumn{4}{l}{\emph{Surface (under development)}}\\
-%\codetab{use\_canopy\_full\_spectrum\_sw} & L & \codetabemph{false} & Perform canopy shortwave radiative transfer at full atmospheric spectral resolution \\
-%\codetab{use\_canopy\_full\_spectrum\_lw} & L & \codetabemph{false} & Perform canopy longwave radiative transfer at full atmospheric spectral resolution \\
-\multicolumn{4}{l}{\emph{Surface}}\\
-\codetab{do\_nearest\_spectral\_sw\_albedo} & L & \textemph{true} & Surface shortwave albedos may be supplied in their own spectral intervals: do we select the nearest to each band of the gas optics scheme, rather than using a weighted average? \\
-\codetab{do\_nearest\_spectral\_lw\_emiss} & L & \textemph{true} & ...likewise but for surface longwave emissivity\\
-\codetab{sw\_albedo\_wavelength\_bound} & R & & Vector of the wavelength bounds (m) delimiting the shortwave albedo intervals\\
-\codetab{lw\_emiss\_wavelength\_bound} & R & & Vector of the wavelength bounds (m) delimiting the longwave emissivity intervals\\
-\codetab{i\_sw\_albedo\_index} & I & & Vector of indices mapping albedos to wavelength intervals\\
-\codetab{i\_lw\_emiss\_index} & I & & Vector of indices mapping emissivities to wavelength intervals\\
-\hline
-\multicolumn{4}{l}{\emph{Diagnostics}}\\
-\codetab{iverbosesetup} & I & 0, 1, 2, \textemph{3}, 4, 5 & Verbosity in setup, where 1=warning, 2=info, 3=progress, 4=detailed, 5=debug \\
-\codetab{iverbose} & I & 0, \textemph{1}, 2, 3, 4, 5 & Verbosity in execution\\
-\codetab{do\_save\_spectral\_flux} & L & \codetabemph{false} & Save flux profiles in each band?\\
-\codetab{do\_save\_gpoint\_flux} & L & \codetabemph{false} & Save flux profiles in each g-point?\\
-\codetab{do\_surface\_sw\_spectral\_flux} & L & \codetabemph{true} & Save surface shortwave fluxes in each band for subsequent diagnostics?\\
-\codetab{do\_lw\_derivatives} & L & \codetabemph{false} & Compute derivatives for \cite{Hogan+2015} approximate updates?\\
-\codetab{do\_save\_radiative\_properties} & L & \codetabemph{false} & Write intermediate netCDF file(s) of properties sent to solver (\codetab{radiative\_properties*.nc})?\\
-\codetab{do\_canopy\_fluxes\_sw} & L & \codetabemph{false} & Save surface shortwave fluxes in each albedo interval\\
-\codetab{do\_canopy\_fluxes\_lw} & L & \codetabemph{false} & Save surface longwave fluxes in each emissivity interval\\
+\multicolumn{4}{l}{\emph{Options specific to urban tiles}}\\
+\codetab{n\_vegetation\_region\_urban} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\
+\codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
+\codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
+\codetab{use\_symmetric\_vegetation\_scale\_urban} & L & \codetabemph{true} & Compute vegetation perimeter length using Eq.\ 20 of \cite{Hogan+2018}? Otherwise Eq.\ 19\\
+\codetab{vegetation\_isolation\_factor\_urban} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & Dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions\\
+%\hline
+%\multicolumn{4}{l}{\emph{Gas and aerosol optics}}\\
+%\codetab
 \hline
 % To be added:
 %     &  do_canopy_gases_sw, do_canopy_gases_lw, 
@@ -578,92 +513,32 @@ Parameter & Type & \textbf{Default value}, other values & Description\\
 \end{center}
 %\end{table}
 
-Several of the entries in Table \ref{tab:nam_radiation} are configured
-with vectors of numbers, which deserves further explanation. As shown
-in Table \ref{tab:invar}, aerosols are provided to \spsurf\ in the form
-of the mass mixing ratios of a number of different aerosol types. The
-optical properties of an arbitrary number of hydrophilic and
-hydrophobic aerosol types is provided in a netCDF file, for example
-\code{data/aerosol\_ifs\_rrtm\_45R2.nc} in the \spsurf\ package. The
-mapping between the input aerosol concentrations and the aerosol types
-in the optical-property file may be specified in the \code{radiation}
-namelist. The \code{n\_aerosol\_types} parameter specifies the number
-of aerosol concentrations to be provided, with a value of zero having
-the effect of deactivating aerosols. \code{i\_aerosol\_type\_map} is a
-vector of integers of length \code{n\_aerosol\_types} indicating which
-aerosol type to select from the optical-property file. Negative
-numbers select hydrophilic types, whose optical properties vary with
-relative humidity, while postitive numbers select hydrophobic
-types. Zero indicates that an input aerosol type is to be ignored. As
-an example, the IFS settings (in the \code{test/ifs} directory) are
-specified with:
+%\section{Describing the structure of vegetation and buildings}
+%\label{sec:d_structure}
+\iffalse
+Normalized perimeter length is related to the former via Eq.\ 29 of
+%\cite{Hogan+2019}:
 %
-
-\begin{lstlisting}
- aerosol_optics_override_file_name = 'aerosol_ifs_rrtm_46R1_with_NI_AM.nc'
- n_aerosol_types = 12
- i_aerosol_type_map = -1, -2, -3, 1, 2, 3, -4, 10, 11, 11, -5, 14
-\end{lstlisting}
-%\normalsize
+\begin{equation}
+  L=4c(1-c)/C_S,\label{eq:S}
+\end{equation}
 %
-When \spsurf\ is run, the output printed to the terminal includes a
-description of the aerosol mapping.
-
-A similar mechanism is used to describe how spectral intervals of the
-input \code{sw\_albedo} and \code{lw\_emissivity} should be
-interpretted.  This is best explained by considering the configuration
-of the IFS in Cycle 47R1, which is described by the following namelist
-variables:
+%and to the latter via \cite[]{Fielding+2020}
 %
-
-\footnotesize
-\begin{lstlisting}
- sw_albedo_wavelength_bound(1:5) = 0.25e-6, 0.44e-6, 0.69e-6, 1.19e-6, 2.38e-6
- i_sw_albedo_index(1:6) = 1,2,3,4,5,6
- do_nearest_spectral_sw_albedo = false
- lw_emiss_wavelength_bound(1:2) = 8.0e-6, 13.0e-6
- i_lw_emiss_index(1:3) = 1,2,1
- do_nearest_spectral_lw_emiss = true
-\end{lstlisting}
-\normalsize
+\begin{equation}
+  L=4\left[c(1-c)\right]^{1/2}/C_X,\label{eq:X}
+\end{equation}
 %
-The IFS describes surface albedo in six spectral intervals. The vector
-\code{sw\_albedo\_wavelength\_bounds} here provides the wavelengths,
-in metres, of the five boundaries between these intervals, where the
-first interval is taken to include all wavelengths shorter than the
-first value (in this case 0.25~$\mu$m) and the last includes all
-wavelengths longer than the last value (in this case 2.38~$\mu$m). The
-vector \code{i\_sw\_albedo\_index} specifies which of the elements of
-the input \code{sw\_albedo} field should be used in each of the six
-spectral intervals.  Surface emissivity is described similarly: there
-are three spectral intervals specified by the two boundaries in
-\code{lw\_emiss\_wavelength\_bound}. The corresponding vector
-\code{i\_lw\_emiss\_index} contains two occurrences of the index
-\code{1}, indicating that the first element of \code{lw\_emissivity}
-is used both for wavelengths smaller than 8~$\mu$m and wavelengths
-larger than 13~$\mu$m (i.e.\ outside the infrared atmospheric
-window). The second element is then used for wavelengths between these
-two boundaries. Thus even though there are three spectral intervals,
-only two elements are needed in \code{lw\_emissivity}.  Finally, the
-logicals \code{do\_nearest\_spectral\_sw\_albedo} and
-\code{do\_nearest\_spectral\_lw\_emiss} specify whether the bands of
-the gas optics scheme used in \spsurf\ will use a single value of
-albedo or emissivity from the input fields (chosen to be the spectral
-interval with the largest overlap in wavenumber space with each band
-of the gas-optics scheme), or whether they will weight the spectral
-intervals by their overlap with each band of the gas-optics
-scheme. The mapping from spectral interval to band is printed on
-standard output when \spsurf\ is run, as shown in the example in
-section \ref{sec:checking}.
-
+where $c$ is the cloud fraction. 
+\fi
 
 \section{Configuring the offline package}
-\label{sec:nam_radiation_config}
+\label{sec:nam_radsurf_config}
 In addition to the namelist parameters described in section
-\ref{sec:nam_radiation} an additional set of parameters are available
-in the \code{radiation\_config} namelist that are specific to the
-offline version of \spsurf\ and are listed in Table
-\ref{tab:nam_radiation_config}. In general if these parameters are
+\ref{sec:nam_radsurf} an additional set of parameters are available in
+the \code{radsurf\_config} namelist that are specific to the offline
+version of \spsurf\ and are listed in Table
+\ref{tab:nam_radsurf_config}. In general if these parameters are
 present in the namelist then they will override the corresponding
 variable provided in the input file.
 
@@ -671,13 +546,11 @@ variable provided in the input file.
 \tablesetup
 \begin{longtable}{ll}
 %
-\caption{\label{tab:nam_radiation_config}Options for the
-  \code{radiation\_config} namelist that configures additional aspects
+\caption{\label{tab:nam_radsurf_config}Options for the
+  \code{radsurf\_config} namelist that configures additional aspects
   of the offline radiation scheme. All entries must be scalars. If an
-  override parameter is present then it need not be included in the
-  input file. The cloud effective sizes (used by the SPARTACUS solver)
-  may be specified for low, middle and high clouds according to the
-  cloud layer pressure $p$ and the surface pressure $p_0$.}\\
+  override parameter is present then usually it need not be included
+  in the input file.}\\
 %
 \hline
 Parameter & Description\\
@@ -689,359 +562,111 @@ Parameter & Description\\
 \codetab{iverbose} & Verbosity in offline setup (default 2)\\
 \codetab{do\_parallel} & Use OpenMP parallelism? (default \codetab{true})\\
 \codetab{nblocksize} & Number of columns per block when using OpenMP\\
-\codetab{do\_save\_inputs} & Sanity check: save input variables in \codetab{inputs.nc}\\
-\codetab{do\_correct\_unphysical\_inputs} & If input variables out of physical bounds, correct them and issue a warning\\
-\codetab{vmr\_suffix\_str} & Suffix for variables containing volume mixing ratios (default `\code{\_vmr}')\\
+\codetab{do\_conservation\_check} & Check final energy balance for each column\\
 \hline
 \multicolumn{2}{l}{\emph{Override input variables}}\\
-\codetab{solar\_irradiance\_override} & Override solar irradiance (W~m$^{-2}$)\\
-\codetab{skin\_temperature} & Override skin temperature (K)\\
 \codetab{cos\_solar\_zenith\_angle} & Override cosine of solar zenith angle\\
-\codetab{sw\_albedo} & Override shortwave albedo\\
-\codetab{lw\_emissivity} & Override longwave emissivity\\
-\codetab{fractional\_std} & Override cloud optical depth fractional standard deviation\\
-\codetab{overlap\_decorr\_length} & Override cloud overlap decorrelation length (m)\\
-\codetab{inv\_effective\_size} & Override inverse of cloud effective size (m$^{-1}$)\\
-\codetab{low\_inv\_effective\_size} & ...for low clouds ($p>0.8p_0$, where $p$ is pressure and $p_0$ surface pressure)\\
-\codetab{middle\_inv\_effective\_size} & ...for mid-level clouds ($0.45p_0< p\le 0.8p_0$)\\
-\codetab{high\_inv\_effective\_size} & ...for high clouds ($p\le 0.45p_0$)\\
-\hline
-\multicolumn{2}{l}{\emph{Scale input variables}}\\
-\codetab{q\_liquid\_scaling} & Scaling for liquid water mixing ratio\\
-\codetab{q\_ice\_scaling} & Scaling for ice water mixing ratio\\
-\codetab{cloud\_fraction\_scaling} & Scaling for cloud fraction (capped at 1)\\
-\codetab{overlap\_decorr\_length\_scaling} & Scaling for cloud overlap decorrelation length\\
-\codetab{effective\_size\_scaling} & Scaling for cloud effective size\\
-\codetab{h2o\_scaling, co2\_scaling...} & Scaling for specific humidity and carbon dioxide; equivalents available for\\
-& \code{o3}, \code{co}, \code{ch4},
-\code{n2o}, \code{o2}, \code{cfc11}, \code{cfc12}, \code{hcfc22} and
-\code{ccl4}\\
-\hline
-\multicolumn{2}{l}{\emph{Parameterize input variables}}\\
-\codetab{cloud\_inhom\_separation\_factor} & Set inhomogeneity separation scale to be this multiplied by cloud separation scale\\
-\codetab{cloud\_separation\_scale\_surface} & Surface cloud separation scale in pressure-dependent parameterization \\
-\codetab{cloud\_separation\_scale\_toa} & Top-of-atmosphere cloud separation scale in pressure-dependent parameterization\\
-\codetab{cloud\_separation\_scale\_power} & Power in cloud separation scale parameterization \\
+\codetab{ground\_sw\_albedo} & Override shortwave albedo of ground\\
+\codetab{roof\_sw\_albedo} & Override shortwave albedo of roofs\\
+\codetab{wall\_sw\_albedo} & Override shortwave albedo of walls\\
+\codetab{ground\_lw\_emissivity} & Override longwave emissivity of ground\\
+\codetab{roof\_lw\_emissivity} & Override longwave emissivity of roofs\\
+\codetab{wall\_lw\_emissivity} & Override longwave emissivity of walls\\
+\codetab{vegetation\_fraction} & Override vegetation fraction \\
+\codetab{vegetation\_extinction} & Override vegetation extinction coefficient (m$^{-1}$)\\
+\codetab{vegetation\_fsd} & Override vegetation fractional standard deviation of extinction\\
+\codetab{vegetation\_sw\_ssa} & Override vegetation shortwave single scattering albedo \\
+\codetab{vegetation\_lw\_ssa} & Override vegetation longwave single scattering albedo \\
+\codetab{top\_flux\_dn\_sw} & Override top-of-canopy downwelling shortwave flux (W~m$^{-2}$)\\
+\codetab{top\_flux\_dn\_direct\_sw} & Override top-of-canopy downwelling direct shortwave flux (W~m$^{-2}$)\\
+\codetab{top\_flux\_dn\_lw} & Override top-of-canopy downwelling longwave flux (W~m$^{-2}$)\\
 \hline
 \end{longtable}
 \end{center}
-
-\section{Describing cloud structure}
-\label{sec:cloud_structure}
-Probably more than any other 1D radiation scheme, \spsurf\ allows the
-user to define in detail the statistical properties of the sub-grid
-cloud distribution, and in this section the relevant variables and
-namelist parameters are explained in more detail.  In an operational
-context most of these variables need to be parameterized, but in
-developing new solvers we need to perform explicit radiation
-calculations on realistic high resolution 3D cloud fields, and compare
-them to \spsurf\ simulations in which the profiles of these variables
-have been extracted from the 3D cloud fields.  This has been done by
-\cite{Schafer+2016}, \cite{Hogan+2016} and \cite{Hogan+2019}. Explicit
-radiation calculations on a 3D cloud field can either be performed
-using the Independent Column Approximation (ICA) and compared to
-\spsurf's McICA or Tripleclouds solvers, or using a fully 3D solver
-(e.g.\ Monte Carlo) and comparing it to \spsurf's SPARTACUS solver.
-Note that \spsurf\ can itself perform ICA calculations on 3D cloud
-fields, by flattening the two horizontal dimensions of a 3D dataset
-into a single `column' dimension, and using the \spsurf's `Homogeneous'
-solver in which any cloud is assumed to homogeneously fill each of the
-narrow columns (so cloud fraction is not used as it is implicitly
-taken to be 0 or 1).
-
-The input variables describing the profile of cloud properties are
-given in the lower half of Table \ref{tab:invar}. The most basic are
-the liquid and ice mass mixing ratios (\code{q\_liquid} and
-\code{q\_ice}), which are gridbox-mean quantities, and the
-corresponding effective radii (\code{re\_liquid} and
-\code{re\_ice}). Effective radius is assumed to be horizontally
-constant within a gridbox, even if the water content varies.  For all
-cloud optics models, effective radius is defined as
-%
-\begin{align}
-r_{e,\mathrm{liq}}&=\frac{3\mathrm{LWC}}{4\rho_\mathrm{liq}A_\mathrm{liq}};\\
-r_{e,\mathrm{ice}}&=\frac{3\mathrm{IWC}}{4\rho_\mathrm{ice}A_\mathrm{ice}},
-\end{align}
-%
-where LWC and IWC are the liquid and ice water contents (i.e.\ the
-mass mixing ratios multiplied by the air density), $\rho_\mathrm{liq}$
-and $\rho_\mathrm{ice}$ are the densities of liquid water and solid
-ice, and $A_\mathrm{liq}$ and $A_\mathrm{ice}$ are the total projected
-cross-sectional areas of liquid droplets and ice particles per unit
-volume of air (so units of m$^{-1}$). 
-
-Cloud fraction is simply the fractional horizontal area of a given
-model layer that contains cloud.  The layers are assumed to be thin
-enough that cloud fraction is constant with height within a layer,
-i.e.\ cloud fraction by volume is equal to cloud fraction by area. The
-horizontal variability of cloud water content in a layer is specified
-by the fractional standard deviation (\code{fractional\_std}), defined
-as the standard deviation of the in-cloud water content, divided by
-the in-cloud mean water content. The in-cloud mean water content is
-the gridbox-mean water content divided by cloud fraction. Note that
-since effective radius is assumed constant across a gridbox, cloud
-optical depth is proportional to water path and so
-\code{fractional\_std} can also be thought of as the horizontal
-fractional standard deviation of cloud optical depth. Moreover,
-\spsurf\ assumes that horizontal variations of liquid and ice water
-content are perfectly correlated.  As shown in Table
-\ref{tab:nam_radiation_config}, fractional standard deviation can be
-overriden through a namelist parameter; for example, in the IFS this
-value is set to 1.
-
-Cloud overlap is needed by the Exp-Ran and Exp-Exp overlap schemes,
-and is specified at the interface (or half-level) between each layer
-by \code{overlap\_param}, the overlap parameter as defined by
-\cite{Hogan&2000}.  To compute this at half-level $i+1/2$ of a
-high-resolution 3D cloud field, you need the cloud fractions in the
-upper and lower lower layers, $c_{i}$ and $c_{i+1}$, and the combined
-cloud cover of the cloud in these two layers, $C$.  Then from Eqs.\ 1,
-2 and 4 of \cite{Hogan&2000} you can compute the overlap parameter:
-%
-\begin{equation}
-  \alpha_{i+1/2}=\frac{C_\mathrm{rand}-C}{C_\mathrm{max}-C},
-\end{equation}
-%
-where the combined cloud covers that would be obtained from the random
-and maximum overlap assumptions are
-%
-\begin{align}
-  C_\mathrm{rand}&=c_i+c_{i+1}-c_ic_{i+1};\\
-  C_\mathrm{max}&=\mathrm{max}(c_i,c_{i+1}).
-\end{align}
-%
-Alternatively, cloud overlap can be parameterized as in most
-atmospheric models in terms of an overlap decorrelation length as
-shown in Table \ref{tab:nam_radiation_config}, which implements Eq.\ 5
-of \cite{Hogan&2000}. In addition to describing how cloud boundaries
-overlap, \spsurf\ needs to know how sub-grid cloud inhomogeneities are
-vertically correlated. This cannot be specified at each layer, but is
-rather specified via the namelist variable
-\code{cloud\_inhom\_decorr\_scaling} in Table \ref{tab:nam_radiation},
-which gives the ratio of the decorrelation lengths for cloud
-inhomogeneities and cloud boundaries. The default value of 0.5 was
-obtained from observations of ice clouds by \cite{Hogan+2003}.
-
-The variables and parameters above are all used by the McICA and
-Tripleclouds solvers to represent cloud properties relevant for 1D
-radiative transfer.  In order to use the SPARTACUS solver to represent
-3D radiative effects, we also need a means to specify the
-\emph{normalized cloud perimeter length,} $L$, in each model layer.
-If we imagine a horizontal slice through the sub-grid cloud field,
-then $L$ is the total cloud perimeter length divided by the area of
-the domain, with units of inverse metres. This variable is not
-provided to SPARTACUS directly, since it tends to be strongly
-dependent on the cloud fraction.  Rather we specify either the
-\emph{cloud effective size,} $C_S$, or the \emph{cloud effective
-  separation,} $C_X$, which tend to be less dependent on cloud fraction.
-Normalized perimeter length is related to the former via Eq.\ 29 of
-\cite{Hogan+2019}:
-%
-\begin{equation}
-  L=4c(1-c)/C_S,\label{eq:S}
-\end{equation}
-%
-and to the latter via \cite[]{Fielding+2020}
-%
-\begin{equation}
-  L=4\left[c(1-c)\right]^{1/2}/C_X,\label{eq:X}
-\end{equation}
-%
-where $c$ is the cloud fraction. The variables $1/C_S$ and $1/C_X$ may
-be specified directly in the input file as
-\code{inv\_cloud\_effective\_size} and
-\code{inv\_cloud\_effective\_separation}, respectively. If both are
-present then the former will take precedence. The reason that
-reciprocals are provided is that then a value of zero (corresponding
-to $C_S$ or $C_X$ of infinity) indicates no 3D effects are to be simulated
-in a particular layer. If you have a high resolution cloud scene and
-you wish to wish to run SPARTACUS on it then you need to compute the
-perimeter length from it (e.g.\ use a contouring function on a field
-containing 0 for clear sky and 1 for cloud, and then compute the
-length of the 0.5 contour), and knowing also cloud fraction you can
-invert (\ref{eq:S}) or (\ref{eq:X}).
-
-In the context of an atmospheric model, we recommend that $C_X$ is
-parameterized using the namelist parameters at the bottom of Table
-\ref{tab:nam_radiation_config} scheme with the values of
-\cite{Fielding+2020}:
-%
-\begin{lstlisting}
- cloud_separation_scale_toa     = 14000.0, ! Value of C_X at top-of-atmosphere (m)
- cloud_separation_scale_surface = 2500.0,  ! Value of C_X at surface (m)
- cloud_separation_scale_power   = 3.5,     ! Describes pressure dependence of C_X
- cloud_inhom_separation_factor  = 0.75     ! Defines size of cloud inhomogeneities
-\end{lstlisting}
-%
-These numbers are used in the namelist in the \code{test/ifs}
-case. Note that the first number shown here, $C_X^\mathrm{TOA}$, is
-valid for a model with a horizontal grid spacing of around 100~km, but
-this parameter was found by \cite{Fielding+2020} to be dependent on
-horizontal grid spacing $\Delta x$ in a way that can be fitted with
-%
-\begin{equation}
-C_X^\mathrm{TOA}=1.62\,\Delta x^{0.47},
-\end{equation}
-%
-where both $C_X^\mathrm{TOA}$ and $\Delta x$ are in km. The surface
-value of $C_X$ can be assumed to be 2.5~km for all model
-resolutions.
-
-% ADD DEFINITION OF INHOM SEP FACTOR
 
 \section{Checking the configuration}
 \label{sec:checking}
-When \code{ecrad} is run, it outputs to the screen a summary of the
-configuration options, the files read and written and details of the
-aerosol mapping. This can be used to check that \spsurf\ has been
+When \code{spartacus\_surface} is run, it outputs to the screen a
+summary of the configuration options, with the level of detail
+controled by the \code{radsurf\_config} namelist parameter
+\code{iverbose}. This can be used to check that \spsurf\ has been
 configured as intended.  The following is an example from the default
-test in the \code{test/ifs} directory, in the case of
-\code{iverbosesetup=2} and \code{iverbose=1} in the \code{radiation}
-namelist:
+test in the \code{test/simple} directory, in the case of
+\code{iverbose=2}:
 
 \footnotesize
 \begin{verbatim}
--------------------------- OFFLINE ECRAD RADIATION SCHEME --------------------------
-Copyright (C) 2014-2019 European Centre for Medium-Range Weather Forecasts
+------------------ OFFLINE SPARTACUS-SURFACE RADIATION SCHEME ------------------
+Copyright (C) 2019-2020 European Centre for Medium-Range Weather Forecasts
 Contact: Robin Hogan (r.j.hogan@ecmwf.int)
 Floating-point precision: double
 General settings:
-  Data files expected in "../../data"
-  Clear-sky calculations are ON                              (do_clear=T)
-  Saving intermediate radiative properties OFF               (do_save_radiative_properties=F)
-  Saving spectral flux profiles ON                           (do_save_spectral_flux=T)
-  Gas model is "RRTMG-IFS"                                   (i_gas_model=1)
-  Aerosols are ON                                            (use_aerosols=T)
-  Clouds are ON                                              (do_clouds=T)
-Surface settings:
-  Saving surface shortwave spectral fluxes OFF               (do_surface_sw_spectral_flux=F)
-  Saving surface shortwave fluxes in abledo bands ON         (do_canopy_fluxes_sw=T)
-  Saving surface longwave fluxes in emissivity bands ON      (do_canopy_fluxes_lw=T)
-  Longwave derivative calculation is ON                      (do_lw_derivatives=T)
-  Nearest-neighbour spectral albedo mapping OFF              (do_nearest_spectral_sw_albedo=F)
-  Nearest-neighbour spectral emissivity mapping ON           (do_nearest_spectral_lw_emiss=T)
-Cloud settings:
-  Cloud fraction threshold = .100E-05                        (cloud_fraction_threshold)
-  Cloud mixing-ratio threshold = .100E-08                    (cloud_mixing_ratio_threshold)
-  Liquid optics scheme is "SOCRATES"                         (i_liq_model=2)
-  Ice optics scheme is "Fu-IFS"                              (i_ice_model=2)
-  Longwave ice optics bug in Fu scheme is OFF                (do_fu_lw_ice_optics_bug=F)
-  Cloud overlap scheme is "Exp-Exp"                          (i_overlap_scheme=2)
-  Use "beta" overlap parameter is OFF                        (use_beta_overlap=F)
-  Cloud PDF shape is "Gamma"                                 (i_cloud_pdf_shape=1)
-  Cloud inhom decorrelation scaling = .500                   (cloud_inhom_decorr_scaling)
-Solver settings:
-  Shortwave solver is "McICA"                                (i_solver_sw=2)
-  Shortwave delta scaling after merge with gases OFF         (do_sw_delta_scaling_with_gases=F)
-  Longwave solver is "McICA"                                 (i_solver_lw=2)
-  Longwave cloud scattering is ON                            (do_lw_cloud_scattering=T)
-  Longwave aerosol scattering is OFF                         (do_lw_aerosol_scattering=F)
-Warning: turning on do_surface_sw_spectral_flux as required by do_canopy_fluxes_sw
-Reading ../../data/RADRRTM
-Reading ../../data/RADSRTM
-Weighting of 6 albedo values in 14 shortwave bands (wavenumber ranges in cm-1):
-  2600 to  3250: 0.00 0.00 0.00 0.00 0.00 1.00
-  3250 to  4000: 0.00 0.00 0.00 0.00 0.00 1.00
-  4000 to  4650: 0.00 0.00 0.00 0.00 0.69 0.31
-  4650 to  5150: 0.00 0.00 0.00 0.00 1.00 0.00
-  5150 to  6150: 0.00 0.00 0.00 0.00 1.00 0.00
-  6150 to  7700: 0.00 0.00 0.00 0.00 1.00 0.00
-  7700 to  8050: 0.00 0.00 0.00 0.00 1.00 0.00
-  8050 to 12850: 0.00 0.00 0.00 0.93 0.07 0.00
- 12850 to 16000: 0.00 0.00 0.48 0.52 0.00 0.00
- 16000 to 22650: 0.00 0.00 1.00 0.00 0.00 0.00
- 22650 to 29000: 0.00 0.99 0.01 0.00 0.00 0.00
- 29000 to 38000: 0.00 1.00 0.00 0.00 0.00 0.00
- 38000 to 50000: 0.83 0.17 0.00 0.00 0.00 0.00
-   820 to  2600: 0.00 0.00 0.00 0.00 0.00 1.00
-Mapping from 16 longwave bands to emissivity intervals: 1 1 1 1 1 2 2 2 1 1 1 1 1 1 1 1
-Reading NetCDF file ../../data/socrates_droplet_scattering_rrtm.nc
-Reading NetCDF file ../../data/fu_ice_scattering_rrtm.nc
-Reading NetCDF file ../../data/aerosol_ifs_rrtm_46R1_with_NI_AM.nc
-Aerosol mapping:
-   1 -> hydrophilic type 1: Sea salt, bin 1, 0.03-0.5 micron, OPAC
-   2 -> hydrophilic type 2: Sea salt, bin 2, 0.50-5.0 micron, OPAC
-   3 -> hydrophilic type 3: Sea salt, bin 3, 5.0-20.0 micron, OPAC
-   4 -> hydrophobic type 1: Desert dust, bin 1, 0.03-0.55 micron, (SW) Dubovik et al. 2002...
-   5 -> hydrophobic type 2: Desert dust, bin 2, 0.55-0.90 micron, (SW) Dubovik et al. 2002...
-   6 -> hydrophobic type 3: Desert dust, bin 3, 0.90-20.0 micron, (SW) Dubovik et al. 2002...
-   7 -> hydrophilic type 4: Hydrophilic organic matter, OPAC
-   8 -> hydrophobic type 10: Hydrophobic organic matter, OPAC (hydrophilic at RH=20%)
-   9 -> hydrophobic type 11: Black carbon, OPAC
-  10 -> hydrophobic type 11: Black carbon, OPAC
-  11 -> hydrophilic type 5: Ammonium sulfate (for sulfate), GACP Lacis et al https://gacp...
-  12 -> hydrophobic type 14: Stratospheric sulfate (hydrophilic ammonium sulfate at RH 20%-30%)
-Reading NetCDF file ../../data/mcica_gamma.nc
-Reading NetCDF file ecrad_meridian.nc
-  Warning: variable co_vmr not found
-  Warning: variable no2_vmr not found
-Writing NetCDF file inputs.nc
-Performing radiative transfer calculations
-Writing NetCDF file ecrad_meridian_default_out.nc
-------------------------------------------------------------------------------------
+  Represent vegetation ON                 (do_vegetation=T)
+  Represent urban areas ON                (do_urban=T)
+  Do shortwave (SW) calculations ON       (do_sw=T)
+  Do longwave (LW) calculations ON        (do_sw=T)
+  Number of SW spectral intervals = 1     (nsw)
+  Number of LW spectral intervals = 1     (nlw)
+  Minimum vegetation fraction = .100E-05  (min_vegetation_fraction)
+Settings for forests:
+  Number of vegetation regions = 2        (n_vegetation_region_forest)
+  Use symmetric vegetation scale ON       (use_symmetric_vegetation_scale_forest=T)
+  Vegetation isolation factor = 0.00      (vegetation_isolation_factor_forest)
+  SW diffuse streams per hemisphere = 2   (n_stream_sw_forest)
+  LW streams per hemisphere = 2           (n_stream_lw_forest)
+Settings for urban areas:
+  Number of vegetation regions = 2        (n_vegetation_region_urban)
+  Use symmetric vegetation scale ON       (use_symmetric_vegetation_scale_urban=T)
+  Vegetation isolation factor = 0.00      (vegetation_isolation_factor_urban)
+  SW diffuse streams per hemisphere = 2   (n_stream_sw_urban)
+  LW streams per hemisphere = 2           (n_stream_lw_urban)
+Reading NetCDF file test_surfaces_in.nc
+  Overriding cosine of the solar zenith angle with  0.500    
+  Overriding vegetation extinction with  0.250    
+  Setting temperature of clear-air and air in vegetation to air_temperature
+  Setting vegetation temperature equal to air temperature
+  Assuming roof albedo to direct albedo is the same as to diffuse
+  Assuming wall reflection is Lambertian (no specular component)
+    1: Flat
+    2: Forest,            2 layers, 2 diffuse streams per hemisphere, 3 regions
+    3: Unvegetated urban, 2 layers, 2 diffuse streams per hemisphere, 1 region
+    4: Vegetated urban,   2 layers, 2 diffuse streams per hemisphere, 3 regions
+Direct shortwave budget
+Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual
+    1  320.000    0.000    0.000    0.000    0.000    0.000  320.000  0.000E+00
+    2   87.441    0.000    0.000    0.000  293.893    0.000  381.334  0.568E-13
+    3   51.015    0.000  185.652  119.081    0.000    0.000  355.748 -0.568E-13
+    4   25.686    0.000  163.389  119.057   51.620    0.000  359.752  0.000E+00
+Diffuse shortwave budget
+Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual
+    1   80.000    0.000    0.000    0.000    0.000    0.000   80.000  0.000E+00
+    2   27.565    0.000    0.000    0.000   67.146    0.000   94.710  0.000E+00
+    3   20.203    0.000   37.465   30.846    0.000    0.000   88.514  0.000E+00
+    4   13.199    0.000   33.583   30.840   12.105    0.000   89.726 -0.142E-13
+Internal longwave budget
+Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual
+    1 -328.035    0.000    0.000    0.000    0.000    0.000 -328.035  0.000E+00
+    2 -327.647    0.031    0.000    0.000  216.819    0.011 -110.785  0.847E-05
+    3  -80.093   -0.158 -138.486 -125.417    0.000    0.000 -344.211  0.569E-01
+    4  -55.546   -0.151 -130.312 -125.423  -32.158   -0.002 -343.627  0.351E-01
+Incoming longwave budget
+Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual
+    1  263.855    0.000    0.000    0.000    0.000    0.000  263.855  0.000E+00
+    2   89.108    0.029    0.000    0.000  198.716    0.010  287.868 -0.416E-02
+    3   64.432    0.157  111.365  100.876    0.000    0.000  276.877 -0.462E-01
+    4   41.886    0.146  101.133  100.871   34.728    0.002  278.796 -0.287E-01
+Writing NetCDF file test_surfaces_out.nc
+--------------------------------------------------------------------------------
+
 \end{verbatim}
 \normalsize
 
-%\section{Debugging}
-%DEBUG=1
-%radiative property file
-%physical checks
-
-%\chapter{Incorporating \spsurf\ into another program}
+\section{Incorporating \spsurf\ into another program}
+\label{sec:api}
 %\label{ch:api}
 
-\spsurf\ can be called within a larger program, and indeed it has been
-incorporated into several atmospheric models (the IFS, Meso-NH and
-ICON).
-%  It is designed to have a clean interface to facilitate
-%this. 
-Pending a full description here of how to do this, see the
-\code{ifs/radiation\_setup.F90} in the \spsurf\ package to see how it
-is configured in the IFS, and \code{ifs/radiation\_scheme.F90} for how
-it is run.
-
-%\section{Setup routine}
-
-When calling \spsurf\ from within a model, the parameters listed in
-Table \ref{tab:nam_radiation} are members of the \code{config\_type}
-structure, and may be modified within the code at the appropriate
-place in the configuration stage.  The exception is in the case of
-strings, which are prefixed by \code{\_name} in the namelist.  In the
-\code{config\_type} structure there are equivalent integers to express
-these parameters, which can be changed using the named constants listed
-in Table \ref{tab:named_constants}.
-
-\begin{center}
-\tablesetup
-\begin{longtable}{>{\ttfamily}lMp{0.7\textwidth}}
-\caption{\label{tab:named_constants}Integers in the
-  \code{config\_type} structure that represents the strings in Table
-  \ref{tab:nam_radiation}, where a namelist parameter named
-  \code{*\_name} would be named \code{i\_*} here.}\\
-%
-\hline
-\normalfont Variable in \codetab{config\_type} & \normalfont Available named constants, \textemph{default}\\
-\hline
-i\_overlap\_scheme &
-IOverlapMaximumRandom, \codetabemph{IOverlapExponentialRandom}, IOverlapExponential\\
-i\_solver\_sw, i\_solver\_lw &
-ISolverCloudless, ISolverHomogeneous, \codetabemph{ISolverMcICA}, ISolverSpartacus, ISolverTripleclouds\\
-i\_3d\_sw\_entrapment &
-IEntrapmentZero, IEntrapmentEdgeOnly, \codetabemph{IEntrapmentExplicit}, IEntrapmentExplicitNonFractal, IEntrapmentMaximum\\
-i\_gas\_model &
-IGasModelMonochromatic, \codetabemph{IGasModelIFSRRTMG}\\
-i\_liq\_model &
-ILiquidModelMonochromatic, \codetabemph{ILiquidModelSOCRATES}, ILiquidModelSlingo\\
-i\_ice\_model &
-IIceModelMonochromatic,  \codetabemph{IIceModelFu}, IIceModelBaran2016, IIceModelYi\\
-i\_cloud\_pdf\_shape &
-\codetabemph{IPdfShapeGamma}, IPdfShapeLognormal\\
-\hline
-\end{longtable}
-\end{center}
-
-%\section{Compute routine}
-
+\spsurf\ can be called within a larger program and in due course this
+section will explain how to do it.
 
 \iffalse
 
@@ -1103,5 +728,10 @@ R. J. Hogan, 2008: Tripleclouds: an efficient method for representing
 horizontal cloud inhomogeneity in 1D radiation schemes by using three
 regions at each height. \textit{J. Climate,} \textbf{21,} 2352--2370.
 %
+\harvarditem{Stamnes et~al.}{1988}{Stamnes+1988}Stamnes K.,
+S. C. Tsay, W. Wiscombe and K. Jayaweera, 1988: Numerically stable
+algorithm for discrete-ordinate-method radiative transfer in multiple
+scattering and emitting layered media. \textit{Appl.\ Opt.,}
+\textbf{27,} 2502--2509.
 \end{thebibliography}
 \end{document}
