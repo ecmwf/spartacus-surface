@@ -56,7 +56,7 @@ export FC
 export FCFLAGS = $(WARNFLAGS) $(BASICFLAGS) $(CPPFLAGS) \
 	$(OPTFLAGS) $(DEBUGFLAGS) $(NETCDF_INCLUDE) $(OMPFLAG)
 export LIBS    = $(DEBUGFLAGS) $(LDFLAGS) -L../lib -lradsurf -lradtool -lutilities \
-	-lifsaux $(FCLIBS) $(NETCDF_LIB) $(OMPFLAG)
+	$(FCLIBS) $(NETCDF_LIB) $(OMPFLAG)
 
 #############################
 ### --- BUILD TARGETS --- ###
@@ -69,21 +69,18 @@ help:
 	@echo "  make PROFILE=<prof>"
 	@echo "where <prof> is one of gfortran, pgi etc."
 
-build: libifsaux libutilities libradtool libradsurf driver
-
-libifsaux:
-	cd ifsaux && $(MAKE)
-
-libradtool: libifsaux
-	cd radtool && $(MAKE)
-
-libradsurf: 
-	cd radsurf && $(MAKE)
+build: libutilities libradtool libradsurf driver
 
 libutilities:
 	cd utilities && $(MAKE)
 
-driver:
+libradtool: libutilities
+	cd radtool && $(MAKE)
+
+libradsurf: libradtool
+	cd radsurf && $(MAKE)
+
+driver: libradsurf
 	cd driver && $(MAKE)
 
 test: test_simple test_rami4pilps test_urban
@@ -115,7 +112,6 @@ clean-toplevel:
 	cd driver && $(MAKE) clean
 
 clean-utilities:
-	cd ifsaux && $(MAKE) clean
 	cd radtool && $(MAKE) clean
 	cd utilities && $(MAKE) clean
 
@@ -125,4 +121,4 @@ clean-mods:
 clean-autosaves:
 	rm -f *~ */*~ */*/*~
 
-.PHONY: libifsaux libradsurf driver clean clean-toplevel test
+.PHONY: libradsurf libradtool libutilities driver clean clean-toplevel test

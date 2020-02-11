@@ -1,3 +1,7 @@
+! DR_HOOK is a profiling and debugging system for the IFS, and should
+! be called at the beginning and end of each subroutine. This is a
+! dummy implementation for offline packages.
+
 module yomhook
 
   save

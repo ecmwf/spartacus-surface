@@ -1,4 +1,4 @@
-SOURCES = easy_netcdf.F90 radiation_io.F90 print_matrix.F90
+SOURCES = parkind1.F90 easy_netcdf.F90 radiation_io.F90 print_matrix.F90 yomhook.F90
 
 OBJECTS := $(SOURCES:.F90=.o)
 LIBUTILITIES = ../lib/libutilities.a
@@ -14,4 +14,7 @@ $(LIBUTILITIES): $(OBJECTS)
 clean:
 	rm -f *.o $(LIBUTILITIES)
 
-easy_netcdf.o: radiation_io.o
+easy_netcdf.o: radiation_io.o parkind1.o
+radiation_io.o: parkind1.o
+print_matrix.o: parkind1.o
+yomhook.o: parkind1.o
