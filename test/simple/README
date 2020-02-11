@@ -6,6 +6,7 @@ following test input files:
     canopy
 
   test_consistency_in.nc - tests the consistency of the forest and
-    urban solvers by running them on an identical forest profile
+    urban solvers by running them on an identical forest profile; the
+    fluxes components ought to be the same for these two profiles
 
 The results are written in *_out.nc.

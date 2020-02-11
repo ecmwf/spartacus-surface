@@ -22,7 +22,7 @@ INPUT = $(BASENAME).nc
 
 # The default scene used by "make test_method"
 BASESCEN=vis-snw-0.3
-BASESCEN=nir-med-0.3
+#BASESCEN=nir-med-0.3
 
 test: test_method test_scenes
 
@@ -31,7 +31,8 @@ test: test_method test_scenes
 test_method: $(BASESCEN)-1-1_out $(BASESCEN)-1-2_out $(BASESCEN)-1-4_out $(BASESCEN)-1-8_out \
 	     $(BASESCEN)-2-1_out $(BASESCEN)-2-2_out $(BASESCEN)-2-4_out $(BASESCEN)-2-8_out 
 
-# Test the various RAMI4PILPS Open Forest Canopy scenarios
+# Test the various RAMI4PILPS Open Forest Canopy scenarios (with the
+# default number of streams and regions)
 test_scenes: vis-med-0.1_out vis-med-0.3_out vis-med-0.5_out \
 	     vis-snw-0.1_out vis-snw-0.3_out vis-snw-0.5_out \
 	     nir-med-0.1_out nir-med-0.3_out nir-med-0.5_out \

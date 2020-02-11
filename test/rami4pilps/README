@@ -1,0 +1,17 @@
+Calling "make" will run SPARTACUS-Surface on an idealized forest scene
+used in the RAMI4PILPS intercomparison exercise - see Widlowski et
+al. (2011) for details on this intercomparison, and Hogan et
+al. (2018) for details of the approximations made by SPARTACUS-Surface
+in representing the vegetation.  The results can be plotted in Matlab
+using the plot_rami4pilps.m script.
+
+Hogan, R. J., T. Quaife and R. Braghiere, 2017: Fast matrix
+  treatment of 3D radiative transfer in vegetation canopies:
+  SPARTACUS-Vegetation 1.1. Submitted to Geosci. Model Dev.
+
+Widlowski, J-L., B. Pinty, M. Clerici, Y. Dai, M. De Kauwe, K. de
+  Ridder, A. Kallel, H. Kobayashi, T. Lavergne, W. Ni-Meister,
+  A. Olchev, T. Quaife, S. Wang, W. Yang, Y. Yang and H. Yuan, 2011:
+  RAMI4PILPS: An intercomparison of formulations for the partitioning
+  of solar radiation in land surface models. J. Geophys. Res., 116,
+  G02019, 25, DOI: 10.1029/2010JG001511.
