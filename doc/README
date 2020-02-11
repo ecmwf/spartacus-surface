@@ -1,0 +1,10 @@
+This directory contains the LaTeX source files for the
+SPARTACUS-Surface User Guide.
+
+Type "make" to create the corresponding PDF files (using pdflatex),
+and "make clean" to delete them
+
+Also included are two diagrams created in Xfig,
+surface_type_schematic.fig and isolation_schematic.fig.  These may be
+exported to EPS format from Xfig and then converted to PDF with
+"ps2pdf -dEPSCrop".

@@ -11,6 +11,6 @@ $(BASE).pdf: $(BASE).tex surface_type_schematic.pdf isolation_schematic.pdf
 	pdflatex $(BASE).tex
 
 clean:
-	rm -f $(BASE).pdf
+	rm -f $(BASE).pdf $(BASE).aux $(BASE).log $(BASE).out
 
 .PHONY: documentation clean
