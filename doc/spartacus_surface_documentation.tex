@@ -132,7 +132,7 @@ enough to use in weather and climate models.
 
 The detailed theoretical basis of the library is provided in two
 papers: \cite{Hogan+2018} developed the shortwave forest solver, and
-\cite{Hogan2019} extended this to include buildings and longwave
+\cite{Hogan2019b} extended this to include buildings and longwave
 radiative transfer (these works developed two prototype codes in
 Matlab: \emph{SPARTACUS-Vegetation} and \emph{SPARTACUS-Urban}, both
 available from the SPARTACUS web site).  The resulting algorithm
@@ -154,11 +154,12 @@ radiative transfer literature:
   using the \emph{Speedy Algorithm for Radiative Transfer through
     Cloud Sides} (SPARTACUS) of \cite{Hogan+2016}, but replacing
   clouds with trees and buildings.  Since it is reasonable to treat
-  trees and buildings as randomly distributed in the horizontal plane,
-  the rate of exchange of radiation between the clear and vegetated
-  parts of a layer may be assumed to be proportional to the length of
-  the interface between them, and likewise for the rate of
-  interception of radiation by building walls.
+  trees and buildings as randomly distributed in the horizontal plane
+  \cite[see also][]{Hogan2019a}, the rate of exchange of radiation
+  between the clear and vegetated parts of a layer may be assumed to
+  be proportional to the length of the interface between them, and
+  likewise for the rate of interception of radiation by building
+  walls.
 \item The \emph{Discrete Ordinate Method} is used to approximate the
   zenithal distribution of diffuse radiation, with the coupled
   ordinary differential equations solved by Eigen decomposition
@@ -536,7 +537,7 @@ is the number of quadrature points that the radiation field is divided
 into \emph{per hemisphere}, so a value of 4 corresponds to an
 `8-stream scheme' in the convention that all possible directions are
 considered.  Larger values give more accuracy at greater computational
-cost, but as shown by \cite{Hogan2019}, there is little change in the
+cost, but as shown by \cite{Hogan2019b}, there is little change in the
 results above a value of 4.
 
 The other parameters in Table \ref{tab:nam_radsurf} allow the
@@ -735,38 +736,24 @@ Writing NetCDF file test_surfaces_out.nc
 \spsurf\ can be called within a larger program and in due course this
 section will explain how to do it.
 
-\iffalse
-
-\chapter{Code structure}
-\label{ch:structure}
-
-\section{Objects}
-
-
-\chapter{Scientific documentation}
-\label{ch:science}
-
-\section{Gas optics}
-
-\section{Aerosol optics}
-
-\section{Cloud optics}
-
-\section{Solvers}
-\fi
-
 \begin{thebibliography}{00}
 \markright{References}
+%
+\harvarditem{Hogan}{2019a}{Hogan2019a}Hogan, R. J., 2019a: An
+exponential model of urban geometry for use in radiative transfer
+applications. \textit{Boundary-Layer Meteorol.,} \textbf{170,}
+357--472.
+%
+\harvarditem{Hogan}{2019b}{Hogan2019b}Hogan, R. J., 2019b: Flexible
+treatment of radiative transfer in complex urban canopies for use in
+weather and climate models. \textit{Boundary-Layer Meteorol.,}
+\textbf{173,} 53-78.
 %
 \harvarditem{Hogan et~al.}{2018}{Hogan+2018}Hogan, R. J., T. Quaife
 and R. Braghiere, 2018: Fast matrix treatment of 3-D radiative
 transfer in vegetation canopies: SPARTACUS-Vegetation
 1.1. \textit{Geosci.\ Model Dev.,} \textbf{11,} 339-350.
 %
-\harvarditem{Hogan}{2019}{Hogan2019}Hogan, R. J., 2019: Flexible
-treatment of radiative transfer in complex urban canopies for use in
-weather and climate models. \textit{Boundary-Layer Meteorol.,}
-\textbf{173,} 53-78.
 
 %\harvarditem{Fielding~et~al.}{2020}{Fielding+2020}Fielding, M. D.,
 %S. A. K. Sch\"afer, R. J. Hogan and R. M. Forbes, 2020: Encapsulating
