@@ -58,10 +58,11 @@
 \def\codetabsize{\footnotesize}
 \lstset{language=Fortran,
   backgroundcolor=\color{light-gray},
-  basicstyle=\footnotesize\ttfamily,
+  basicstyle={\footnotesize\ttfamily},
   numbersep=5pt,
   xleftmargin=0cm,
   xrightmargin=0cm,
+  commentstyle={\itshape\color{blue}},
   emph={true,false,include,to},
   emphstyle=\relax}
 \lstset{showstringspaces=false}
@@ -222,7 +223,6 @@ License, version 2.0). The subdirectories are as follows:
 \begin{description}
 \citem{radsurf} The \spsurf\ souce code for canopy radiative transfer
 \citem{radtool} Mathematical support routines for radiative transfer
-\citem{ifsaux} Source code providing a (sometimes dummy) IFS environment
 \citem{utilities} Source code for useful utilities, such as reading netCDF
        files
 \citem{driver} The source code for the offline driver program \code{spartacus\_surface}
@@ -733,8 +733,132 @@ Writing NetCDF file test_surfaces_out.nc
 \label{sec:api}
 %\label{ch:api}
 
-\spsurf\ can be called within a larger program and in due course this
-section will explain how to do it.
+\spsurf\ is primarily a software library that is designed to be called
+from within a larger program such as an atmospheric model.  The
+library is written entirely using Fortran modules, and you will need
+all the Fortran source files in the \code{utilities}, \code{radtool}
+and \code{radsurf} directories.  The
+\code{utilities/radiation\_io.F90} file provides the \code{nulout}
+unit for logging messages and the \code{radiation\_abort} routine for
+exiting if an error occurs.  This file will likely need to be
+rewritten for your model, for example to ensure appropriate clean-up
+after an anomalous abort.
+
+\iffalse
+\begin{lstlisting}
+ ! Integers
+ ncol                 ! Number of columns
+ ntotlay              ! Total number of layers
+  
+ ! Allocatable integer vectors of length "ncol"
+ nlay                 ! Number of layers in column
+ istartlay            ! Index of first layer
+ i_representation     ! Surface type (0-4)
+ 
+ ! Allocatable real vectors of length "ncol"
+ dz                   ! Layer thickness (m)
+ cos_sza              ! Cosine of solar zenith angle
+ ground_temperature   ! Ground temperature (K)
+ 
+ ! Allocatable real vectors of length "ntotlay"
+ roof_temperature, wall_temperature, clear_air_temperature, building_fraction, veg_fraction,
+ building_scale, veg_scale, veg_ext, veg_fsd, veg_contact_fraction
+\end{lstlisting}
+\fi
+
+\spsurf\ adopts a strict policy of no global variables, and no
+variables in modules (which are really a type of global
+variable). Therefore, information is passed to and from routines only
+via the arguments to those routines.  This includes configuration
+information, which is stored in a \code{config\_type} object from the
+\code{radsurf\_config} module. As part of the initialization stage of
+the atmospheric model, such an object should be created, and will
+later be passed to the routine that performs the radiative transfer. A
+configuration object is created as follows:
+%
+\begin{lstlisting}
+ use radsurf_config, only : config_type ! Read module defining configuration type
+ type(config_type) :: config            ! Create a configuration object
+ ! ...optionally set some default values - see radsurf/radsurf_config.F90...
+ call config%read(namelist_file_name)   ! Read configuration information from a namelist file
+ call config%consolidate()              ! Perform any additional configuration steps needed
+\end{lstlisting}
+
+Performing radiative transfer on a set of \code{ncol} surface canopy
+profiles is carried out in two parts. In the first part, the geometric
+and spectral properties of the canopies are used to compute (1) the
+top-of-canopy properties presented to the atmosphere above such as
+spectral albedo and upward longwave emission, and (2) fluxes within
+the canopy that are normalized with respect to downwelling shortwave
+and longwave fluxes at the top-of-canopy. It is envisaged that after
+this step, the top-of-canopy properties presented to the atmosphere
+are used as boundary conditions for a full atmospheric radiative
+transfer calculation.  This results in a calculation of the
+downwelling spectral shortwave and longwave fluxes at
+top-of-canopy. The second (much simpler) part of the interface to
+\spsurf\ involves scaling the normalized fluxes computed in the first
+step to obtain the absolute fluxes within the canopy including net
+fluxes into ground, roofs, walls and vegetation.  These fluxes and
+heating rates can then be used by a canopy energy balance model.
+
+The first part involves calling the \code{radsurf} routine, which
+takes as input three Fortran derived types describing (1) the
+wavelength-independent properties of the canopy, (2) the shortwave
+spectral properties and (3) the longwave spectral properties.  Each
+object describes \code{ncol} surface `columns' to be treated
+independently; each column could correspond to an atmospheric model
+column, or alternatively may represent multiply `tiles' lying under
+one or more atmospheric columns. Since it is envisaged that many of
+these columns
+
+
+These are prepared as follows:
+%
+\begin{lstlisting}
+ ! Read modules defining the three derived types
+ use radsurf_canopy_properties,      only : canopy_properties_type
+ use radsurf_sw_spectral_properties, only : sw_spectral_properties_type
+ use radsurf_lw_spectral_properties, only : lw_spectral_properties_type
+
+ ! Declare instances of these types
+ type(canopy_properties_type)      :: canopy_props
+ type(sw_spectral_properties_type) :: sw_spectral_props
+ type(lw_spectral_properties_type) :: lw_spectral_props
+
+
+ 
+\end{lstlisting}
+
+\begin{lstlisting}
+ use radsurf_boundary_conds_out,     only : boundary_conds_out_type
+ use radsurf_canopy_flux,            only : canopy_flux_type
+ use radsurf_interface,              only : radsurf
+
+  type(boundary_conds_out_type)     :: bc_out
+ ! Canopy flux components, the last three normalized by top-of-canopy downwelling
+ type(canopy_flux_type)            :: lw_internal, lw_norm, sw_norm_diff, sw_norm_dir
+ ! Total canopy fluxes
+ type(canopy_flux_type)            :: lw_flux, sw_flux
+
+\end{lstlisting}
+
+
+\iffalse
+\begin{center}
+\tablesetup
+\begin{longtable}{lll}
+\caption{\label{tab:canopy_props}}
+\hline
+Variable & dimensions
+\codetab{nlay}
+\codetab{istartlay}
+\codetab{dz}
+\codetab{cos\_sza}
+\codetab{ground\_temperature}
+\codetab{roof\_temperature
+    \end{longtable}
+\end{center}
+\fi
 
 \begin{thebibliography}{00}
 \markright{References}
