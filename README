@@ -29,8 +29,6 @@ The subdirectories are as follows:
   radtool - source code for mathematical routines needed by the
        SPARTACUS algorithm
 
-  ifsaux - source code providing a (sometimes dummy) IFS environment
-
   utilities - source code for useful utilities, such as reading NetCDF
        files
 
