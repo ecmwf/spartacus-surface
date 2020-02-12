@@ -13,4 +13,7 @@ $(BASE).pdf: $(BASE).tex surface_type_schematic.pdf isolation_schematic.pdf
 clean:
 	rm -f $(BASE).pdf $(BASE).aux $(BASE).log $(BASE).out
 
+dist-clean:
+	rm -f $(BASE).aux $(BASE).log $(BASE).out
+
 .PHONY: documentation clean

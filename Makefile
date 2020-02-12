@@ -100,7 +100,9 @@ test_urban_single:
 test_code:
 	cd driver && $(MAKE) test_code
 
-clean: clean-tests clean-toplevel clean-utilities clean-mods
+clean: clean-tests clean-toplevel clean-utilities clean-mods clean-doc
+
+dist-clean: clean-tests clean-toplevel clean-utilities clean-mods dist-clean-doc
 
 clean-tests:
 	cd test/simple && $(MAKE) clean
@@ -117,6 +119,12 @@ clean-utilities:
 
 clean-mods:
 	rm -f mod/*.mod
+
+clean-doc:
+	cd doc && $(MAKE) clean
+
+dist-clean-doc:
+	cd doc && $(MAKE) dist-clean
 
 clean-autosaves:
 	rm -f *~ */*~ */*/*~
