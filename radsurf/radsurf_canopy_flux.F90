@@ -59,32 +59,23 @@ module radsurf_canopy_flux
 contains
 
   !---------------------------------------------------------------------
-  subroutine allocate_canopy_flux(this, ncol, ntotlay, nspec, use_direct, &
-       &  do_vegetation, do_urban)
+  subroutine allocate_canopy_flux(this, config, ncol, ntotlay, nspec, use_direct)
+
+    use radsurf_config, only : config_type
 
     class(canopy_flux_type), intent(inout) :: this
+    type(config_type),       intent(in)    :: config
     integer(kind=jpim),      intent(in)    :: ncol, ntotlay, nspec
     logical, optional,       intent(in)    :: use_direct
-    logical, optional,       intent(in)    :: do_vegetation, do_urban
 
-    logical :: use_direct_local, do_vegetation_local, do_urban_local
+    logical :: use_direct_local
 
     if (present(use_direct)) then
       use_direct_local = use_direct
     else
       use_direct_local = .true.
     end if
-    if (present(do_vegetation)) then
-      do_vegetation_local = do_vegetation
-    else
-      do_vegetation_local = .true.
-    end if
-    if (present(do_urban)) then
-      do_urban_local = do_urban
-    else
-      do_urban_local = .true.
-    end if
-    
+
     call this%deallocate()
 
     allocate(this%ground_dn(nspec,ncol))
@@ -95,14 +86,14 @@ contains
       allocate(this%ground_dn_dir(nspec,ncol))
       allocate(this%top_dn_dir(nspec,ncol))
     end if
-    if (do_urban_local) then
+    if (config%do_urban) then
       allocate(this%roof_in(nspec,ntotlay))
       allocate(this%roof_net(nspec,ntotlay))
       allocate(this%wall_in(nspec,ntotlay))
       allocate(this%wall_net(nspec,ntotlay))
     end if
     allocate(this%clear_air_abs(nspec,ntotlay))
-    if (do_vegetation_local) then
+    if (config%do_vegetation) then
       allocate(this%veg_abs(nspec,ntotlay))
       allocate(this%veg_air_abs(nspec,ntotlay))
     end if
@@ -264,6 +255,8 @@ contains
   ! this = flux1 + flux2
   subroutine sum_canopy_flux(this, flux1, flux2)
 
+    use radiation_io, only : radiation_abort, nulerr
+
     class(canopy_flux_type), intent(inout) :: this
     type(canopy_flux_type),  intent(in)    :: flux1, flux2
 
@@ -272,7 +265,8 @@ contains
     use_direct = allocated(flux1%ground_dn_dir)
 
     if (.not. allocated(this%ground_dn)) then
-      call this%allocate(flux1%ncol, flux1%ntotlay, flux1%nspec, use_direct=use_direct)
+      write(nulerr,'(a)') 'Attempt to sum canopy fluxes to an unallocated canopy flux object'
+      call radiation_abort()
     end if
 
     this%ground_dn  = flux1%ground_dn + flux2%ground_dn

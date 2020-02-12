@@ -37,14 +37,16 @@ program spartacus_surface_driver
   implicit none
 
   ! Derived types for the inputs to the radiation scheme
-  type(config_type)            :: config
-  type(canopy_properties_type) :: canopy_props
+  type(config_type)                 :: config
+  type(canopy_properties_type)      :: canopy_props
   type(sw_spectral_properties_type) :: sw_spectral_props
   type(lw_spectral_properties_type) :: lw_spectral_props
-    type(boundary_conds_out_type):: bc_out
+  type(boundary_conds_out_type)     :: bc_out
+
   ! Canopy flux components, the last three normalized by top-of-canopy
   ! downwelling
-  type(canopy_flux_type)       :: lw_internal, lw_norm, sw_norm_diff, sw_norm_dir
+  type(canopy_flux_type)       :: lw_internal,  lw_norm,&
+       &                          sw_norm_diff, sw_norm_dir
   ! Total canopy fluxes
   type(canopy_flux_type)       :: lw_flux, sw_flux
 
@@ -151,28 +153,22 @@ program spartacus_surface_driver
 
   call bc_out%allocate(ncol, config%nsw, config%nlw)
   if (config%do_sw) then
-    call sw_norm_dir%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
-    call sw_norm_diff%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call sw_norm_dir%allocate(config, ncol, ntotlay, config%nsw, use_direct=.true.)
+    call sw_norm_diff%allocate(config, ncol, ntotlay, config%nsw, use_direct=.true.)
     
     call sw_norm_dir%zero_all()
     call sw_norm_diff%zero_all()
 
-    call sw_flux%allocate(ncol, ntotlay, config%nsw, use_direct=.true., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call sw_flux%allocate(config, ncol, ntotlay, config%nsw, use_direct=.true.)
   end if
   if (config%do_lw) then
-    call lw_internal%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
-    call lw_norm%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call lw_internal%allocate(config, ncol, ntotlay, config%nlw, use_direct=.false.)
+    call lw_norm%allocate(config, ncol, ntotlay, config%nlw, use_direct=.false.)
 
     call lw_internal%zero_all()
     call lw_norm%zero_all()
 
-    call lw_flux%allocate(ncol, ntotlay, config%nlw, use_direct=.false., &
-         &  do_vegetation=config%do_vegetation, do_urban=config%do_urban)
+    call lw_flux%allocate(config, ncol, ntotlay, config%nlw, use_direct=.false.)
   end if
   
   ! --------------------------------------------------------

@@ -46,7 +46,7 @@ contains
 
   
   !---------------------------------------------------------------------
-  subroutine allocate_spectral(this, config, nspec, ncol, ntotlay, &
+  subroutine allocate_spectral(this, config, ncol, ntotlay, nspec, &
        &                       i_representation)
 
     use yomhook,        only : lhook, dr_hook
