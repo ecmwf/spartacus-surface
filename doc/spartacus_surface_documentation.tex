@@ -178,7 +178,7 @@ number of surfaces, and outputs a netCDF file containing the computed
 radiation properties. Sections
 \ref{sec:run}--\ref{sec:checking} describe how to configure
 and run the offline software, and the contents of the input and output
-data files.  Section \ref{sec:api} will describe to incorporate
+data files.  Section \ref{sec:api} outlines how to incorporate
 \spsurf\ into a larger Fortran program, such as an atmospheric model.
 
 %Chapter \ref{ch:api} describes the Application Programming Interface
@@ -402,8 +402,8 @@ Variable & Dimensions & Description \\
 \codetab{wall\_lw\_emissivity} & \codetab{col, layer, lw} & Longwave emissivity of walls \\
 %
 \codetab{sky\_temperature} & \codetab{col, layer} & Equivalent emitting temperature of sky (K) \\
-\codetab{top\_flux\_dn\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling shortwave flux (W m$^{-1}$) \\
-\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-1}$) \\
+\codetab{top\_flux\_dn\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling shortwave flux (W m$^{-2}$) \\
+\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-2}$) \\
 \hline
 \end{longtable}
 \end{center}
@@ -766,7 +766,7 @@ after an anomalous abort.
 \end{lstlisting}
 \fi
 
-\spsurf\ adopts a strict policy of no global variables, and no
+\spsurf\ adopts a strict policy of no global variables and no
 variables in modules (which are really a type of global
 variable). Therefore, information is passed to and from routines only
 via the arguments to those routines.  This includes configuration
@@ -793,26 +793,62 @@ the canopy that are normalized with respect to downwelling shortwave
 and longwave fluxes at the top-of-canopy. It is envisaged that after
 this step, the top-of-canopy properties presented to the atmosphere
 are used as boundary conditions for a full atmospheric radiative
-transfer calculation.  This results in a calculation of the
+transfer calculation.  One of the outputs of such a calculation is the
 downwelling spectral shortwave and longwave fluxes at
 top-of-canopy. The second (much simpler) part of the interface to
 \spsurf\ involves scaling the normalized fluxes computed in the first
-step to obtain the absolute fluxes within the canopy including net
+step to obtain the absolute fluxes within the canopy, including net
 fluxes into ground, roofs, walls and vegetation.  These fluxes and
 heating rates can then be used by a canopy energy balance model.
 
 The first part involves calling the \code{radsurf} routine, which
-takes as input three Fortran derived types describing (1) the
-wavelength-independent properties of the canopy, (2) the shortwave
-spectral properties and (3) the longwave spectral properties.  Each
-object describes \code{ncol} surface `columns' to be treated
-independently; each column could correspond to an atmospheric model
-column, or alternatively may represent multiply `tiles' lying under
-one or more atmospheric columns. Since it is envisaged that many of
-these columns
+takes as arguments a number of objects.  The input description of the
+canopy is in the form of three Fortran derived types: the
+\code{canopy\_properties\_type} describes the wavelength-independent
+properties of the canopy, and the
+\code{sw\_spectral\_properties\_type} and
+\code{lw\_spectral\_properties\_type} describe the shortwave and
+longwave spectral properties.  Each object describes \code{ncol}
+surface `columns' to be treated independently; each column could
+correspond to an atmospheric model column, or alternatively may
+represent multiply `tiles' underlying one or more atmospheric columns.
 
+The arrays in the \code{canopy\_properties\_type} could have been
+dimensioned \code{nmaxlay}$\times$\code{ncol}, where \code{nmaxlay} is
+the maximum number of layers in any of the individual columns.
+However, it is recognised that in a global model many or even most of
+the columns would be treated as `flat' (type 0 in
+Fig.\ \ref{fig:type_schematic}) and many layers would be unused.
+Therefore the arrays in these objects use a `packed' representation,
+explained by considering some of the elements of
+\code{canopy\_properties\_type}:
+\begin{lstlisting}
+ ! Integers
+ ncol                ! Number of columns
+ ntotlay             ! Total number of layers
 
-These are prepared as follows:
+ ! Allocatable integer vectors of length "ncol"
+ nlay                ! Number of layers in column (can be 0)
+ istartlay           ! Index to first layer of the column
+ i_representation    ! Surface type (0-3)
+
+ ! Allocatable real vectors of length "ncol"
+ cos_sza, ground_temperature
+
+ ! Allocatable real vectors of length "ntotlay"
+ roof_temperature, wall_temperature, building_fraction, veg_fraction...
+\end{lstlisting}
+It can be seen that the variables describing properties as a function
+of height (e.g. wall temperature) are vectors of dimension
+\code{ntotlay}, expressing the total number of layers in this block of
+columns. The integer vectors \code{nlay} and \code{istartlay} enable
+the range of elements corresponding to the layers of a particular
+column to be identified.  The \code{sw\_spectral\_properties\_type}
+and \code{lw\_spectral\_properties\_type} are packed similarly, except
+that each array has an additional \code{nspec} dimension expressing
+the number of shortwave or longwave spectral intervals.
+
+Preparation of these three objects can be done as follows:
 %
 \begin{lstlisting}
  ! Read modules defining the three derived types
@@ -825,40 +861,144 @@ These are prepared as follows:
  type(sw_spectral_properties_type) :: sw_spectral_props
  type(lw_spectral_properties_type) :: lw_spectral_props
 
-
- 
+ ! Allocate canopy properties given existing configuration object "config", number of columns 
+ ! "ncol", total number of layers "ntotlay" and number of shortwave and longwave spectral
+ ! intervals "nsw" and "nlw":
+ call      canopy_props%allocate(config, ncol, ntotlay)
+ call sw_spectral_props%allocate(config, ncol, ntotlay, nsw)
+ call lw_spectral_props%allocate(config, ncol, ntotlay, nlw)
 \end{lstlisting}
+Subsequent code would then populate the arrays within these three
+objects using data from the host model (consult the files
+\code{radsurf\_canopy\_properties.F90},
+\code{radsurf\_sw\_spectral\_properties.F90} and
+\code{radsurf\_lw\_spectral\_properties.F90} for precise contents of
+these arrays).  Note that the offline driver program
+\code{driver/spartacus\_surface\_driver.F90} does not use these
+\code{allocate} type-bound procedures, but rather populates the arrays
+within the objects directly using the contents of the input netCDF
+file.
 
+We also need to prepare objects to hold the output from the
+\code{radsurf} routine:
 \begin{lstlisting}
+ ! Read modules defining the relevant derived types
  use radsurf_boundary_conds_out,     only : boundary_conds_out_type
  use radsurf_canopy_flux,            only : canopy_flux_type
- use radsurf_interface,              only : radsurf
 
-  type(boundary_conds_out_type)     :: bc_out
- ! Canopy flux components, the last three normalized by top-of-canopy downwelling
- type(canopy_flux_type)            :: lw_internal, lw_norm, sw_norm_diff, sw_norm_dir
- ! Total canopy fluxes
- type(canopy_flux_type)            :: lw_flux, sw_flux
+ ! Declare an object holding the top-of-canopy boundary conditions presented to the atmosphere
+ ! above
+ type(boundary_conds_out_type) :: bc_out 
+ ! Declare canopy flux components: the first three contain the fluxes and net absorption rates
+ ! within the canopy normalized by the shortwave-diffuse, shortwave-direct and longwave
+ ! downwelling flux at top-of-canopy. The fourth contains the same but purely due to internal 
+ ! longwave emission within the canopy
+ type(canopy_flux_type)        :: sw_norm_diff, sw_norm_dir, lw_norm, lw_internal 
 
+ ! Allocate these objects, noting that the shortwave objects use internal arrays to also store 
+ ! direct fluxes, not needed in the longwave
+ call       bc_out%allocate(ncol, nsw, nlw)
+ call sw_norm_diff%allocate(config, ncol, ntotlay, nsw, use_direct=.true.)
+ call  sw_norm_dir%allocate(config, ncol, ntotlay, nsw, use_direct=.true.)
+ call  lw_internal%allocate(config, ncol, ntotlay, nlw, use_direct=.false.)
+ call      lw_norm%allocate(config, ncol, ntotlay, nlw, use_direct=.false.)
+
+ ! Optionally set all fluxes to zero
+ call  sw_norm_dir%zero_all()
+ call sw_norm_diff%zero_all()
+ call  lw_internal%zero_all()
+ call      lw_norm%zero_all()
 \end{lstlisting}
 
+We are now in a position to call the \code{radsurf} routine:
+\begin{lstlisting}
+ ! Read module defining the radsurf routine
+ use radsurf_interface, only : radsurf
 
-\iffalse
-\begin{center}
-\tablesetup
-\begin{longtable}{lll}
-\caption{\label{tab:canopy_props}}
-\hline
-Variable & dimensions
-\codetab{nlay}
-\codetab{istartlay}
-\codetab{dz}
-\codetab{cos\_sza}
-\codetab{ground\_temperature}
-\codetab{roof\_temperature
-    \end{longtable}
-\end{center}
-\fi
+ ! ...prepare the objects to pass to radsurf...
+
+ ! Call the SPARTACUS-Surface radiation scheme
+ call radsurf(config, canopy_props, sw_spectral_props, lw_spectral_props, & ! Inputs
+      &       bc_out, &                                                     ! Outputs
+      &       istartcol, iendcol, &                                         ! Optional inputs
+      &       sw_norm_dir, sw_norm_diff, lw_internal, lw_norm)              ! Optional outputs
+\end{lstlisting}
+Optionally, a call to \code{radsurf} may specify the range of columns
+to process via \code{istartcol} and \code{iendcol}.  This is useful
+for OpenMP parallelization: if the objects contain a large number of
+columns then \code{radsurf} can be called simultaneously by mutliple
+threads, each thread being instructed to work on a different range of
+columns.  This is done by the offline \spsurf\ driver. The final four
+canopy flux objects are marked as `optional' because the \code{config}
+object may have specified to only perform shortwave or longwave
+radiative transfer, in which case only two such output objects would
+be needed.
+
+The \code{boundary\_conds\_out\_type} is fairly small, containing four
+arrays. The arrays \code{sw\_albedo} and \code{sw\_albedo\_dir} are
+the shortwave spectral albedo at top-of-canopy presented to incoming
+diffuse and direct solar radiation, and are dimensioned
+\code{nsw}$\times$\code{ncol}. The arrays \code{lw\_emissivity} and
+\code{lw\_emission} are the top-of-canopy longwave spectral emissivity
+and upward emission (in W~m$^{-2}$), dimensioned
+\code{nlw}$\times$\code{ncol}.
+
+After the atmospheric radiative transfer calculation has completed
+using these arrays as boundary conditions, we need to use the
+downwelling fluxes at top-of-canopy to scale the normalized canopy
+fluxes. 
+\begin{lstlisting}
+ ! Declare objects to contain total (unnormalized) canopy fluxes
+ type(canopy_flux_type) :: lw_flux, sw_flux
+
+ ! Allocate these objects
+ call sw_flux%allocate(config, ncol, ntotlay, nsw, use_direct=.true.)
+ call lw_flux%allocate(config, ncol, ntotlay, nlw, use_direct=.false.)
+
+ ! Suppose the atmospheric radiative transfer scheme has provided three arrays of spectral
+ ! downwelling radiation at top of canopy, top_flux_dn_diffuse_sw(nsw,ncol),
+ ! top_flux_dn_direct_sw(nsw,ncol) and top_flux_dn_lw(nlw,ncol), we can use them to scale
+ ! the normalized shortwave and longwave canopy fluxes, also taking as input the number of
+ ! layers stored in each column, canopy_props%nlay
+ call sw_norm_diff%scale(canopy_props%nlay, top_flux_dn_diffuse_sw)
+ call  sw_norm_dir%scale(canopy_props%nlay, top_flux_dn_direct_sw)
+ call      lw_norm%scale(canopy_props%nlay, top_flux_dn_lw)
+
+ ! Finally, sum the two contributions in each spectral region to obtain total (unnormalized)
+ ! canopy fluxes
+ call sw_flux%sum(sw_norm_dir, sw_norm_diff)
+ call lw_flux%sum(lw_internal, lw_norm)
+\end{lstlisting}
+The contents of \code{sw\_flux} and \code{lw\_flux} are then available
+to use in a canopy energy balance scheme.  See
+\code{radsurf\_radsurf\_canopy\_flux.F90} for the precise contents of
+these objects. Note that at this stage they are still in the same
+spectral intervals as used by the \spsurf\ calculation.  In the
+shortwave this is useful as it enables the photosynthetically active
+part of the spectral absorption by vegetation to be computed.
+
+\emph{Further development is still needed on the spectral aspect of
+  \spsurf.  It is expected that in the shortwave, the radiation
+  calculations will all be performed in the user-specified spectral
+  intervals, and atmospheric extinction will either be ignored or it
+  will be left to the user to provide atmospheric extinction
+  coefficients, especially due to aerosols. It ought to be reasonable
+  to neglect gas absorption and Rayleigh scattering since the Rayleigh
+  optical depth is small through the limited depth of a surface
+  canopy, and in the parts of the near-infrared spectrum where the
+  gaseous absorpion is large, little solar radiation is likely to
+  penetrate down through the atmosphere to the top of the canopy.}
+
+\emph{In the longwave, there will need to be a mechanism to treat
+  gaseous absorption given its importance \cite[]{Hogan2019b}. This
+  could be implemented by mapping the user-specified longwave spectral
+  intervals on to a larger number of intervals suitable for longwave
+  radiative transfer and running \spsurf\ at this spectral resolution.
+  The larger number of intervals could then be passed to the
+  atmospheric longwave radiative transfer.  For the canopy energy
+  balance model, only the broadband longwave fluxes are likely to be
+  of interest, which could be computed by simply summing the fluxes along
+  the \code{nlw} dimension.}
 
 \begin{thebibliography}{00}
 \markright{References}
