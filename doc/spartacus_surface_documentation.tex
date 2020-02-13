@@ -106,13 +106,15 @@
 \author{Robin J. Hogan\\ \emph{European Centre for Medium Range
     Weather Forecasts, Reading, UK}}
 
-\date{Document version 0.6 (February 2020) applicable to
-  \spsurf\ version 0.6\thanks{This document is copyright
+\date{Document version 0.6.1 (February 2020) applicable to
+  \spsurf\ version 0.6.1\thanks{This document is copyright
     \copyright\ European Centre for Medium Range Weather Forecasts
-    2019. If you have any queries about \spsurf\ that are not
-    answered by this document or by the information on the \spsurf\ web
-    site
-    (\url{http://www.met.reading.ac.uk/clouds/spartacus})
+    2019. If you have any queries about \spsurf\ that are not answered
+    by this document
+%
+%or by the information on the \spsurf\ web site
+%(\url{http://www.met.reading.ac.uk/clouds/spartacus})
+%
     then please email me at
     \href{mailto:r.j.hogan@ecmwf.int}{\texttt{r.j.hogan@ecmwf.int}}.}}
 \begin{document}
@@ -120,6 +122,13 @@
 
 %\tableofcontents
 \def\thefootnote{\fnsymbol{footnote}}
+\begin{center}
+\textbf{The license conditions for \spsurf\ are under discussion at
+  ECMWF, but for the moment you are not permitted to redistribute any
+  part of the SPARTACUS-Surface code (modified or unmodified) outside
+  your institute, or to use it for commercial purposes.}
+\end{center}
+
 \chapter{Introduction}
 %\section{What is \spsurf?}
 \spsurf\ is a Fortran-2003 software library for computing the 3D
@@ -732,7 +741,6 @@ Writing NetCDF file test_surfaces_out.nc
 \section{Incorporating \spsurf\ into another program}
 \label{sec:api}
 %\label{ch:api}
-
 \spsurf\ is primarily a software library that is designed to be called
 from within a larger program such as an atmospheric model.  The
 library is written entirely using Fortran modules, and you will need
