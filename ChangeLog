@@ -1,2 +1,7 @@
+version 0.7.1
+	- Added Apache license statement to each source file
+	- Fixed behaviour when vegetation or building fraction are zero in
+	  a layer, and added two new cases in test/simple to check
+
 version 0.4 (19 December 2019)
 	- Fixed calc_matrices_[lw|sw] using eigenvalue decomposition

@@ -9,4 +9,14 @@ following test input files:
     urban solvers by running them on an identical forest profile; the
     fluxes components ought to be the same for these two profiles
 
+  test_empty_layers_in.nc - tests for the correct behaviour in layers
+    where the building or vegetation cover are set to zero, and in
+    those layers the effective building or tree size is also set to
+    zero
+
+  test_nearly_empty_layers_in.nc - validation case for
+    test_empty_layers_in.nc: small but non-zero values for building
+    and vegetation cover, so should be very close to the case when
+    they are actually zero
+
 The results are written in *_out.nc.
