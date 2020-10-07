@@ -1,11 +1,11 @@
-SPARTACUS-Surface - Canopy radiation scheme
+# SPARTACUS-Surface - Canopy radiation scheme
 
 Robin Hogan <r.j.hogan@ecmwf.int>
 
-This document was last updated 1 Feb 2020
+This document was last updated 7 October 2020
 
 
-INTRODUCTION
+## INTRODUCTION
 
 This package contains the offline version of a scheme for computing
 radiative transfer in complex 3D surface canopies, such as forests and
@@ -19,7 +19,7 @@ and Hogan (2019) for full details of the algorithm, and their
 validation.
 
 
-PACKAGE OVERVIEW
+## PACKAGE OVERVIEW
 
 The subdirectories are as follows:
 
@@ -44,7 +44,7 @@ The subdirectories are as follows:
 
   doc - LaTeX source for SPARTACUS-Surface documentation
 
-TO COMPILE
+## TO COMPILE
 
 1. Ensure you have a Fortran compiler supporting the 2003
 standard. Ensure you have the Fortran netCDF library installed
@@ -56,7 +56,7 @@ netCDF library was compiled for.
 
   make PROFILE=<prof>
 
-where <prof> is one of gfortran, pgi or intel.  This will read the
+where `<prof>` is one of gfortran, pgi or intel.  This will read the
 compiler-specific configurations from the file
 Makefile_include.<prof>.  If you omit the PROFILE= option then
 gfortran will be assumed. If you have a compiler other than these
@@ -77,14 +77,14 @@ using, for example
   make PROFILE=<prof> OPTFLAGS=-O0 DEBUGFLAGS="-g -pg"
 
 
-TO TEST
+## TO TEST
 
 The offline driver is run via
 
     spartacus_surface <namelist.nam> <input_file.nc> <output_file.nc>
 
 where the radiation scheme is configured using the Fortran namelist
-<namelist.nam>, and the inputs and outputs are in netCDF format.  
+`<namelist.nam>`, and the inputs and outputs are in netCDF format.  
 
 To run the tests, type
 
@@ -105,13 +105,20 @@ The "test/urban" directory contains an urban profile from Fig. 1 of
 Hogan (2019).
 
 
-LICENSE
+## LICENSE
 
-This software may be used, modified and redistributed under the terms
-of the Apache License, Version 2, provided in the COPYING file.
+(C) Copyright 2020- ECMWF.
+
+This software is licensed under the terms of the Apache Licence Version 2.0
+which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+
+In applying this licence, ECMWF does not waive the privileges and immunities
+granted to it by virtue of its status as an intergovernmental organisation
+nor does it submit to any jurisdiction.
+Copyright statements are given in the file NOTICE.
 
 
-PUBLICATIONS
+## PUBLICATIONS
 
 Hogan, R. J., T. Quaife and R. Braghiere, 2018: Fast matrix treatment
 of 3-D radiative transfer in vegetation canopies: SPARTACUS-Vegetation
@@ -122,7 +129,7 @@ complex urban canopies for use in weather and climate
 models. Boundary-Layer Meteorol., 173, 53-78.
 
 
-CONTACT
+## CONTACT
 
 Any queries or bug fixes, please email Robin Hogan <r.j.hogan@ecmwf.int>
 

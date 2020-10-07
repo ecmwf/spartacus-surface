@@ -1,10 +1,16 @@
 ! spartacus_surface_driver.F90 - Driver for SPARTACUS-Surface radiation algorithm
 !
-! Copyright (C) 2020 ECMWF
+! (C) Copyright 2020- ECMWF.
+!
+! This software is licensed under the terms of the Apache Licence Version 2.0
+! which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+!
+! In applying this licence, ECMWF does not waive the privileges and immunities
+! granted to it by virtue of its status as an intergovernmental organisation
+! nor does it submit to any jurisdiction.
 !
 ! Author:  Robin Hogan
 ! Email:   r.j.hogan@ecmwf.int
-! License: see the COPYING file for details
 !
 ! This program takes three arguments:
 ! 1) Namelist file to configure the radiation calculation
@@ -100,7 +106,7 @@ program spartacus_surface_driver
   ! Print out configuration information
   if (driver_config%iverbose >= 2) then
     write(nulout,'(a)') '------------------ OFFLINE SPARTACUS-SURFACE RADIATION SCHEME ------------------'
-    write(nulout,'(a)') 'Copyright (C) 2019-2020 European Centre for Medium-Range Weather Forecasts'
+    write(nulout,'(a)') 'Copyright (C) 2019- ECMWF'
     write(nulout,'(a)') 'Contact: Robin Hogan (r.j.hogan@ecmwf.int)'
 #ifdef SINGLE_PRECISION
     write(nulout,'(a)') 'Floating-point precision: single'
