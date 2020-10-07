@@ -337,7 +337,7 @@ contains
     end if
 
     if (i_verbose_local >= 3) then
-      write(nulout,'(a)') 'Layer   Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual'
+      write(nulout,'(a)') 'Column  Ground      Air     Wall     Roof      Veg  Air-veg      Top   Residual'
     end if
     
     do jcol = icol1,icol2

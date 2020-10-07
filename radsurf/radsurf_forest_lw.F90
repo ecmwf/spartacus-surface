@@ -294,7 +294,7 @@ contains
         end if
 
         norm_perim = 0.0_jprb
-        if (nreg > 1) then
+        if (nreg > 1 .and. veg_fraction(jlay) > config%min_vegetation_fraction) then
           ! Compute the normalized vegetation perimeter length
           if (config%use_symmetric_vegetation_scale_forest) then
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
@@ -451,10 +451,24 @@ contains
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
-        call calc_matrices_lw_eig(nlw, nreg*ns, dz(jlay), &
-             &  gamma1, gamma2, emiss_rate, &
-             &  ref(:,:,:,jlay), trans(:,:,:,jlay), source_lay(:,:,jlay), &
-             &  int_flux_mat(:,:,:,jlay), int_source(:,:,jlay))
+        if (veg_fraction(jlay) > config%min_vegetation_fraction) then
+          call calc_matrices_lw_eig(nlw, nreg*ns, dz(jlay), &
+               &  gamma1, gamma2, emiss_rate, &
+               &  ref(:,:,:,jlay), trans(:,:,:,jlay), source_lay(:,:,jlay), &
+               &  int_flux_mat(:,:,:,jlay), int_source(:,:,jlay))
+        else
+          ! Vegetation-free calculation: set all coefficients to zero...
+          ref(:,:,:,jlay) = 0.0_jprb
+          trans(:,:,:,jlay) = 0.0_jprb
+          source_lay(:,:,jlay) = 0.0_jprb
+          int_flux_mat(:,:,:,jlay) = 0.0_jprb
+          int_source(:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the clear-sky region
+          call calc_matrices_lw_eig(nlw, ns, dz(jlay), &
+               &  gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), emiss_rate(:,1:ns), &
+               &  ref(:,1:ns,1:ns,jlay), trans(:,1:ns,1:ns,jlay), source_lay(:,1:ns,jlay), &
+               &  int_flux_mat(:,1:ns,1:ns,jlay), int_source(:,1:ns,jlay))
+        end if
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
 

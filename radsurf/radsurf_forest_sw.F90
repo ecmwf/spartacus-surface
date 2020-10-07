@@ -274,43 +274,50 @@ contains
         end if
         
         ! Compute the normalized vegetation perimeter length
-        if (config%use_symmetric_vegetation_scale_forest) then
-          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
-               &        / veg_scale(jlay)
+        if (veg_fraction(jlay) > config%min_vegetation_fraction) then
+          if (config%use_symmetric_vegetation_scale_forest) then
+            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
+                 &        / veg_scale(jlay)
+          else
+            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
+          end if
+
+          if (nreg > 2) then
+            ! Share the clear-air/vegetation perimeter between the two
+            ! vegetated regions
+            norm_perim(nreg) = config%vegetation_isolation_factor_forest * norm_perim(1)
+            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+                 &          * norm_perim(1) 
+            ! We assume that the horizontal scale of the vegetation
+            ! inhomogeneities is the same as the scale of the tree
+            ! crowns themselves. Therefore, to compute the interface
+            ! between the two vegetated regions, we use the same
+            ! formula as before but with the fraction associated with
+            ! one of the two vegetated regions, which is half the
+            ! total vegetation fraction.
+            if (config%use_symmetric_vegetation_scale_forest) then
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+                   &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
+                   &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+                   &  / veg_scale(jlay)
+            else
+              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+              !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+              ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+                   &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
+            end if
+          else
+            ! Only one vegetated region so the other column of norm_perim
+            ! is unused
+            norm_perim(2:) = 0.0_jprb
+          end if
+
         else
-          norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
+          ! No vegetation so no perimeters
+          norm_perim = 0.0_jprb
         end if
 
-        if (nreg > 2) then
-          ! Share the clear-air/vegetation perimeter between the two
-          ! vegetated regions
-          norm_perim(nreg) = config%vegetation_isolation_factor_forest * norm_perim(1)
-          norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-               &          * norm_perim(1) 
-          ! We assume that the horizontal scale of the vegetation
-          ! inhomogeneities is the same as the scale of the tree crowns
-          ! themselves. Therefore, to compute the interface between the
-          ! two vegetated regions, we use the same formula as before but
-          ! with the fraction associated with one of the two vegetated
-          ! regions, which is half the total vegetation fraction.
-          if (config%use_symmetric_vegetation_scale_forest) then
-            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
-                 &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
-                 &  / veg_scale(jlay)
-          else
-            !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-            !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
-            ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                 &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
-          end if
-        else
-          ! Only one vegetated region so the other column of norm_perim
-          ! is unused
-          norm_perim(2:) = 0.0_jprb
-        end if
-        
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
         f_exchange = 0.0_jprb

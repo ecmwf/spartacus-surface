@@ -84,6 +84,9 @@ module radsurf_config
     ! Minimum vegetation fraction below which vegetation is ignored
     real(kind=jprb) :: min_vegetation_fraction = 1.0e-6
 
+    ! Minimum building fraction below which buildings are ignored
+    real(kind=jprb) :: min_building_fraction = 1.0e-6
+
     ! Do we save broadband and spectral fluxes to output file?
     logical :: do_save_broadband_flux = .true.
     logical :: do_save_spectral_flux  = .false.

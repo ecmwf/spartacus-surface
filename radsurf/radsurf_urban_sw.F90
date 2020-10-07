@@ -324,7 +324,7 @@ contains
         end if
 
         norm_perim = 0.0_jprb
-        if (nreg > 1) then
+        if (nreg > 1 .and. veg_fraction(jlay) > config%min_vegetation_fraction) then
           ! Compute the normalized vegetation perimeter length
           if (config%use_symmetric_vegetation_scale_urban) then
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
@@ -370,28 +370,30 @@ contains
         ! Compute the normalized length of the interface between each
         ! region and a building wall
         norm_perim_wall = 0.0_jprb
-        norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
+        if (building_fraction(jlay) > config%min_building_fraction) then
+          norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
-        if (nreg > 1) then
-          if (veg_contact_fraction(jlay) > 0.0_jprb) then
-            ! Compute normalized length of interface between wall and
-            ! any vegetation
-            norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
-                 &                    norm_perim_wall(1))
-            if (nreg == 2) then
-              norm_perim_wall(2) = norm_perim_wall_veg
-              norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
-            else
-              norm_perim_wall(2) = norm_perim_wall_veg &
-                   &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
-              norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
-              norm_perim_wall(3) = norm_perim_wall_veg &
-                   &  * config%vegetation_isolation_factor_urban
-              norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
+          if (nreg > 1) then
+            if (veg_contact_fraction(jlay) > 0.0_jprb) then
+              ! Compute normalized length of interface between wall
+              ! and any vegetation
+              norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
+                   &                    norm_perim_wall(1))
+              if (nreg == 2) then
+                norm_perim_wall(2) = norm_perim_wall_veg
+                norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
+              else
+                norm_perim_wall(2) = norm_perim_wall_veg &
+                     &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
+                norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
+                norm_perim_wall(3) = norm_perim_wall_veg &
+                     &  * config%vegetation_isolation_factor_urban
+                norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
+              end if
+              ! Reduce length of interface between wall and clear-air
+              norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
             end if
-            ! Reduce length of interface between wall and clear-air
-            norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
-          end if
+          end if          
         end if
 
         ! Compute the rates of exchange between regions, excluding the
