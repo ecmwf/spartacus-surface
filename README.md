@@ -23,7 +23,7 @@ validation.
 
 The subdirectories are as follows:
 
-  radsurf - source code for radiative transfer in complex surfaces
+  `radsurf` - source code for radiative transfer in complex surfaces
        such as vegetation and urban areas
 
   radtool - source code for mathematical routines needed by the

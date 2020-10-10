@@ -1,5 +1,14 @@
 ! radtool_eigen_decomposition.F90 -- Eigen decomposition for real eigenvalues
 !
+! (C) Copyright 2019- ECMWF.
+!
+! This software is licensed under the terms of the Apache Licence Version 2.0
+! which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+!
+! In applying this licence, ECMWF does not waive the privileges and immunities
+! granted to it by virtue of its status as an intergovernmental organisation
+! nor does it submit to any jurisdiction.
+!
 ! This routine computes eigenvalues and eigenvectors for a real
 ! asymmetric matrix, for which it is known a priori that the
 ! eigenvalues are real.  Such matrices arise in radiative transfer
@@ -7,9 +16,11 @@
 ! algorithm.  Then the Martin-Wilkinson algorithm is applied.
 !
 ! This is a Fortran-90 version by Robin Hogan of the ASYMTX routine in
-! DISORT (replacing the GOTOs), which is itself an adaptation of the
-! complex-number routine EIGRF from the IMSL library. In turn, EIGRF
-! is based primarily on EISPACK routines.
+! DISORT, but with improvements such as replacing the GOTOs,
+! performing multiple eigen decompositions in one call and better
+! error handling.  DISORT is available from
+! http://www.rtatmocn.com/disort/ and is in the public domain (Snorre
+! Stamnes, personal communication).
 !
 !       References:
 !          Dongarra, J. and C. Moler, EISPACK -- A Package for Solving
