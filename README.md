@@ -2,7 +2,7 @@
 
 Robin Hogan <r.j.hogan@ecmwf.int>
 
-This document was last updated 7 October 2020
+This document was last updated 10 October 2020
 
 
 ## INTRODUCTION
@@ -23,58 +23,58 @@ validation.
 
 The subdirectories are as follows:
 
-  `radsurf` - source code for radiative transfer in complex surfaces
+- `radsurf` - source code for radiative transfer in complex surfaces
        such as vegetation and urban areas
 
-  radtool - source code for mathematical routines needed by the
+- `radtool` - source code for mathematical routines needed by the
        SPARTACUS algorithm
 
-  utilities - source code for useful utilities, such as reading NetCDF
+- `utilities` - source code for useful utilities, such as reading netCDF
        files
 
-  driver - the source code for the offline driver program
+- `driver` - the source code for the offline driver program
 
-  mod - where Fortran module files are written
+- `mod` - where Fortran module files are written
 
-  lib - where the static libraries are written
+- `lib` - where the static libraries are written
 
-  bin - where the executable ecrad is written
+- `bin` - where the executable ecrad is written
 
-  test - test cases including Matlab code to plot the outputs
+- `test` - test cases including Matlab code to plot the outputs
 
-  doc - LaTeX source for SPARTACUS-Surface documentation
+- `doc` - LaTeX source for SPARTACUS-Surface documentation
 
 ## TO COMPILE
 
 1. Ensure you have a Fortran compiler supporting the 2003
 standard. Ensure you have the Fortran netCDF library installed
-(version 3 or 4) for this compiler.  The command "nc-config --fc", if
+(version 3 or 4) for this compiler.  The command `nc-config --fc`, if
 available on your system, will tell you the Fortran compiler that your
 netCDF library was compiled for.
 
 2. You can compile the code using 
 
-  make PROFILE=<prof>
+       make PROFILE=<prof>
 
-where `<prof>` is one of gfortran, pgi or intel.  This will read the
-compiler-specific configurations from the file
-Makefile_include.<prof>.  If you omit the PROFILE= option then
-gfortran will be assumed. If you have a compiler other than these
-three then create such a file for your compiler following the example
-in Makefile_include.gfortran.
+   where `<prof>` is one of gfortran, pgi or intel.  This will read
+   the compiler-specific configurations from the file
+   `Makefile_include.<prof>`.  If you omit the `PROFILE=` option then
+   `gfortran` will be assumed. If you have a compiler other than these
+   three then create such a file for your compiler following the
+   example in `Makefile_include.gfortran`.
 
-If the compile is successful then static libraries should appear in
-the lib directory, and then the executable bin/spartacus_surface.
+   If the compile is successful then static libraries should appear in
+   the lib directory, and then the executable `bin/spartacus_surface`.
 
-3. To clean-up, type "make clean".  To build an unoptimized version
-for debugging, you can do
+3. To clean-up, type `make clean`.  To build an unoptimized version
+   for debugging, you can do
 
-  make PROFILE=<prof> DEBUG=1
+       make PROFILE=<prof> DEBUG=1
 
-or you can specifically override the variables in Makefile_include.<prof>
-using, for example
+   or you can specifically override the variables in
+   `Makefile_include.<prof>` using, for example
 
-  make PROFILE=<prof> OPTFLAGS=-O0 DEBUGFLAGS="-g -pg"
+       make PROFILE=<prof> OPTFLAGS=-O0 DEBUGFLAGS="-g -pg"
 
 
 ## TO TEST
@@ -84,28 +84,29 @@ The offline driver is run via
     spartacus_surface <namelist.nam> <input_file.nc> <output_file.nc>
 
 where the radiation scheme is configured using the Fortran namelist
-`<namelist.nam>`, and the inputs and outputs are in netCDF format.  
+file `<namelist.nam>`, and the inputs and outputs are in netCDF
+format.
 
 To run the tests, type
 
-   make test
+    make test
 
-from the top-level directory.  This runs "make" in each of the
+from the top-level directory.  This runs `make` in each of the
 subdirectories of the test directory, which in turn runs
 spartacus_surface on different input files.
 
-The "test/simple" directory contains a minimal test file of the four
+The `test/simple` directory contains a minimal test file of the four
 surface types that SPARTACUS-Surface supports: flat, forest,
 unvegetated urban and vegetated urban.
 
-The "test/rami4pilps" directory contains a configuration to run the
+The `test/rami4pilps` directory contains a configuration to run the
 RAMI4PILPS test cases that were used by Hogan et al. (2018).
 
-The "test/urban" directory contains an urban profile from Fig. 1 of
+The `test/urban` directory contains an urban profile from Fig. 1 of
 Hogan (2019).
 
 
-## LICENSE
+## LICENCE
 
 (C) Copyright 2019- ECMWF.
 
@@ -124,14 +125,16 @@ Hogan, R. J., T. Quaife and R. Braghiere, 2018: Fast matrix treatment
 of 3-D radiative transfer in vegetation canopies: SPARTACUS-Vegetation
 1.1. Geosci. Model Dev., 11, 339-350.
 
-Hogan, R. J., 2019b: Flexible treatment of radiative transfer in
+Hogan, R. J., 2019: Flexible treatment of radiative transfer in
 complex urban canopies for use in weather and climate
 models. Boundary-Layer Meteorol., 173, 53-78.
 
 
 ## CONTACT
 
-Any queries or bug fixes, please email Robin Hogan <r.j.hogan@ecmwf.int>
+Please email Robin Hogan <r.j.hogan@ecmwf.int> with any queries or bug
+fixes, but note that ECMWF does not commit to providing support to
+users of this software.
 
 
 
