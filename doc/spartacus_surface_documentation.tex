@@ -516,7 +516,8 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
 \codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
 \codetab{use\_symmetric\_vegetation\_scale\_forest} & L & \codetabemph{true} & Compute vegetation perimeter length using Eq.\ 20 of \cite{Hogan+2018}? Otherwise Eq.\ 19\\
-\codetab{vegetation\_isolation\_factor\_forest} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & Dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions\\
+\codetab{vegetation\_isolation\_factor\_forest} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & In forests dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions, or in between\\
+\codetab{vegetation\_isolation\_factor\_urban} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & In urban areas dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions, or in between\\
 \hline
 \multicolumn{4}{l}{\emph{Options specific to urban tiles}}\\
 \codetab{n\_vegetation\_region\_urban} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\

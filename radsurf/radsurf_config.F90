@@ -145,6 +145,8 @@ contains
          &  n_stream_sw_urban, n_stream_lw_forest, n_stream_lw_urban, &
          &  iverbose, n_vegetation_region_forest, &
          &  n_vegetation_region_urban
+    real(kind=jprb), pointer :: vegetation_isolation_factor_forest, &
+         &  vegetation_isolation_factor_urban
 
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
          &  do_urban, nsw, nlw, n_stream_sw_forest, n_stream_sw_urban, &
@@ -152,7 +154,8 @@ contains
          &  do_save_spectral_flux, do_save_broadband_flux, &
          &  n_vegetation_region_forest, n_vegetation_region_urban, &
          &  use_symmetric_vegetation_scale_forest, &
-         &  use_symmetric_vegetation_scale_urban
+         &  use_symmetric_vegetation_scale_urban, &
+         &  vegetation_isolation_factor_forest, vegetation_isolation_factor_urban
 
     real(jprb) :: hook_handle
 
@@ -176,6 +179,8 @@ contains
     n_vegetation_region_urban  => this%n_vegetation_region_urban
     use_symmetric_vegetation_scale_forest => this%use_symmetric_vegetation_scale_forest
     use_symmetric_vegetation_scale_urban  => this%use_symmetric_vegetation_scale_urban
+    vegetation_isolation_factor_forest    => this%vegetation_isolation_factor_forest
+    vegetation_isolation_factor_urban     => this%vegetation_isolation_factor_urban
 
     if (present(file_name) .and. present(unit)) then
       write(nulerr,'(a)') '*** Error: cannot specify both file_name and unit in call to config_type%read'
