@@ -180,6 +180,29 @@ contains
       allocate(this%veg_contact_fraction(ntotlay))
     end if
 
+    ! Create and populate representation vector inside the canopy
+    ! object
+    if (.not. allocated(this%i_representation)) then
+      allocate(this%i_representation(ncol))
+      if (present(i_representation)) then
+        this%i_representation = i_representation(1:ncol)
+      else
+        if (do_urban) then
+          if (do_vegetation) then
+            this%i_representation = ITileVegetatedUrban
+          else
+            this%i_representation = ITileUrban
+          end if
+        else 
+          if (do_vegetation) then
+            this%i_representation = ITileForest
+          else
+            this%i_representation = ITileFlat
+          end if         
+        end if
+      end if
+    end if
+
     if (lhook) call dr_hook('radiation_canopy_properties:allocate',1,hook_handle)
 
   end subroutine allocate_canopy

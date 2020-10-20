@@ -238,7 +238,6 @@ contains
          &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
          &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
          &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
-         &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
          &  veg_ssa               => sw_spectral_props%veg_ssa(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
@@ -246,7 +245,6 @@ contains
          &  air_ext               => sw_spectral_props%air_ext(:,ilay1:ilay2), &
          &  air_ssa               => sw_spectral_props%air_ssa(:,ilay1:ilay2), &
          &  roof_albedo           => sw_spectral_props%roof_albedo(:,ilay1:ilay2), &
-         &  roof_albedo_dir       => sw_spectral_props%roof_albedo_dir(:,ilay1:ilay2), &
          &  wall_albedo           => sw_spectral_props%wall_albedo(:,ilay1:ilay2), &
          &  wall_specular_frac    => sw_spectral_props%wall_specular_frac(:,ilay1:ilay2))
 
@@ -309,18 +307,20 @@ contains
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
         else if (nreg == 3) then
-          ! Approximate method to approximate a Gamma distribution
-          od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
-               &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
-          od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
-          ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
-          ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)
-          ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(2,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
-               &       / max(ext_reg(:,2), 1.0e-8_jprb)
-          ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
-               &          + od_scaling(3,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
-               &       / max(ext_reg(:,3), 1.0e-8_jprb)
+          associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2))
+            ! Approximate method to approximate a Gamma distribution
+            od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
+                 &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
+            od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
+            ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
+            ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)
+            ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) &
+                 &          + od_scaling(2,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
+                 &       / max(ext_reg(:,2), 1.0e-8_jprb)
+            ssa_reg(:,3) = (ext_reg(:,1)*ssa_reg(:,1) &
+                 &          + od_scaling(3,jlay)*veg_ext(jlay)*veg_ssa(:,jlay)) &
+                 &       / max(ext_reg(:,3), 1.0e-8_jprb)
+          end associate
         end if
 
         norm_perim = 0.0_jprb
@@ -585,9 +585,20 @@ contains
         do js = 1,ns
           a_below(:,nreg*ns+js,nreg*ns+1:(nreg+1)*ns,jlay+1) &
                &  = spread(roof_albedo(:,jlay) * lg%hweight(js), 2, ns)
-          d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-               &  = cos_sza * roof_albedo_dir(:,jlay) * lg%hweight(js)
         end do
+        if (allocated(sw_spectral_props%roof_albedo_dir)) then
+          associate(roof_albedo_dir => sw_spectral_props%roof_albedo_dir(:,ilay1:ilay2))
+            do js = 1,ns
+              d_below(:,nreg*ns+js,nreg+1,jlay+1) &
+                   &  = cos_sza * roof_albedo_dir(:,jlay) * lg%hweight(js)
+            end do
+          end associate
+        else
+          do js = 1,ns
+            d_below(:,nreg*ns+js,nreg+1,jlay+1) &
+                 &  = cos_sza * roof_albedo(:,jlay) * lg%hweight(js)
+          end do
+        end if
 
         ! Overlap: Hogan (2019), equations 22 and 23
         a_above(:,:,:,jlay+1) = rect_expandedmat_x_mat(nsw,nreg,nreg+1,ns,nreg*ns, &
