@@ -8,7 +8,7 @@ top_flux_dn_direct_sw = 1000.0,
 /
 
 &radsurf
-iverbose = 4,
+iverbose = 3,
 do_sw = true,
 do_lw = false,
 use_sw_direct_albedo = false,
@@ -17,5 +17,5 @@ do_urban = true,
 n_vegetation_region_urban = 1,
 nsw = 1,
 nlw = 1,
-n_stream_sw_urban = 1,
+n_stream_sw_urban = 2,
 /

@@ -6,6 +6,8 @@ Gas optics
 Closed forest: optimization by looking for veg cover = 0 or 1
 Report radiation components into a horizontal and vertical surface for calculation MRT
 Road/roofs/wall direct fraction, and direct flux attenuated only by air
+Dump out inputs like in ecRad
+Combine lw_spectral_props%calc_monochromatic_emission and calc_simple_spectrum_lw into one function call for broadband Planck function
 
 BUG FIXES
 
@@ -18,5 +20,5 @@ Separate temperatures for clear-air, veg-air and veg
 Check that removing tan0 on line 332 does not break the RAMI4PILPS agreement
 Longwave forest
 Longwave urban
-
+Computational cost w.r.t. ecRad and dependence on number of streams
 
