@@ -167,8 +167,6 @@ contains
     if (do_vegetation) then
       allocate(this%veg_air_temperature(ntotlay))
       allocate(this%veg_temperature(ntotlay))
-      allocate(this%veg_fraction(ntotlay))
-      allocate(this%veg_scale(ntotlay))
     end if
 
     if (config%n_vegetation_region_forest > 1 &
@@ -177,9 +175,20 @@ contains
     end if
 
     if (do_urban .or. do_vegetation) then
-      allocate(this%veg_contact_fraction(ntotlay))
+       !
+       ! FIXME: veg_fraction, and veg_scale are used a lot in urban routines
+       !        Thus allocate might be a good choice.
+       !
+       allocate(this%veg_fraction(ntotlay))
+       allocate(this%veg_scale(ntotlay))
+       allocate(this%veg_contact_fraction(ntotlay))
+       !
+       ! FIXME: Add allocation of veg_ext
+       !
+       allocate(this%veg_ext(ntotlay))
+       !
     end if
-
+    !
     ! Create and populate representation vector inside the canopy
     ! object
     if (.not. allocated(this%i_representation)) then
@@ -231,6 +240,11 @@ contains
     if (allocated(this%veg_fraction))           deallocate(this%veg_fraction)
     if (allocated(this%building_scale))         deallocate(this%building_scale)
     if (allocated(this%veg_scale))              deallocate(this%veg_scale)
+    !
+    ! FIXME: add deallocation of veg_ext
+    !
+    if (allocated(this%veg_ext))                deallocate(this%veg_ext)
+    !
     if (allocated(this%veg_fsd))                deallocate(this%veg_fsd)
     if (allocated(this%veg_contact_fraction))   deallocate(this%veg_contact_fraction)
 
