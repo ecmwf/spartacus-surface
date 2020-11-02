@@ -8,6 +8,8 @@ Report radiation components into a horizontal and vertical surface for calculati
 Road/roofs/wall direct fraction, and direct flux attenuated only by air
 Dump out inputs like in ecRad
 Combine lw_spectral_props%calc_monochromatic_emission and calc_simple_spectrum_lw into one function call for broadband Planck function
+Support implicit solvers, e.g. windows in TEB with very low heat capacity
+Way to calculate thermal comfort / mean radiant temperature considering diffuse angles
 
 BUG FIXES
 
