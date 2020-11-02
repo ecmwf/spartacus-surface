@@ -104,16 +104,13 @@ contains
       allocate(this%air_ext(nspec,ntotlay))
       allocate(this%air_ssa(nspec,ntotlay))
       allocate(this%clear_air_planck(nspec,ntotlay))
-      !
-      ! FIXME: Allocate veg_ssa, veg_air_planck, veg_planck
-      ! in both cases since they are a lot used in urban routines
-      !
+    end if
+    if (do_vegetation) then
       allocate(this%veg_ssa(nspec,ntotlay))
       allocate(this%veg_air_planck(nspec,ntotlay))
       allocate(this%veg_planck(nspec,ntotlay))
-      !
     end if
-    !
+
     allocate(this%ground_emissivity(nspec,ncol))
     allocate(this%ground_emission(nspec,ncol))
     if (do_urban) then
@@ -122,9 +119,9 @@ contains
       allocate(this%roof_emission(nspec,ntotlay))
       allocate(this%wall_emission(nspec,ntotlay))
     end if
-    !
+
     if (lhook) call dr_hook('radiation_lw_spectral_properties:allocate',1,hook_handle)
-    !
+
   end subroutine allocate_spectral
 
 

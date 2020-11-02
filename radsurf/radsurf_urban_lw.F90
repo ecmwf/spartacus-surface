@@ -238,8 +238,6 @@ contains
          &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
          &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
          &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
-         ! FIXME: remove associate of veg_fsd here
-         ! &  veg_fsd               => canopy_props%veg_fsd(ilay1:ilay2), &
          &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
          &  veg_ssa               => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
          &  veg_planck            => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
@@ -317,16 +315,11 @@ contains
           od_scaling(2,jlay) = 1.0_jprb
         else if (nreg == 3) then
           ! Approximate method to approximate a Gamma distribution
-          !
-          ! FIXME: add associate here
-          !
           associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2))
-          !
-          od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
-               &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
-          !
+            od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
+                 &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
           end associate
-          !
+
           od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
           ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
           ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)

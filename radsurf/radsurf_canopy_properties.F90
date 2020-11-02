@@ -134,6 +134,8 @@ contains
     do_vegetation = config%do_vegetation
     do_urban      = config%do_urban
 
+    ! If the vector i_representation is present the only allocate
+    ! vegetation or urban arrays if they will be needed
     if (present(i_representation)) then
       if (.not. any(i_representation == ITileForest &
            &        .or. i_representation == ITileVegetatedUrban)) then
@@ -167,6 +169,9 @@ contains
     if (do_vegetation) then
       allocate(this%veg_air_temperature(ntotlay))
       allocate(this%veg_temperature(ntotlay))
+      allocate(this%veg_fraction(ntotlay))
+      allocate(this%veg_scale(ntotlay))
+      allocate(this%veg_ext(ntotlay))
     end if
 
     if (config%n_vegetation_region_forest > 1 &
@@ -174,21 +179,10 @@ contains
       allocate(this%veg_fsd(ntotlay))
     end if
 
-    if (do_urban .or. do_vegetation) then
-       !
-       ! FIXME: veg_fraction, and veg_scale are used a lot in urban routines
-       !        Thus allocate might be a good choice.
-       !
-       allocate(this%veg_fraction(ntotlay))
-       allocate(this%veg_scale(ntotlay))
-       allocate(this%veg_contact_fraction(ntotlay))
-       !
-       ! FIXME: Add allocation of veg_ext
-       !
-       allocate(this%veg_ext(ntotlay))
-       !
+    if (do_urban .and. do_vegetation) then
+      allocate(this%veg_contact_fraction(ntotlay))
     end if
-    !
+
     ! Create and populate representation vector inside the canopy
     ! object
     if (.not. allocated(this%i_representation)) then
@@ -240,11 +234,7 @@ contains
     if (allocated(this%veg_fraction))           deallocate(this%veg_fraction)
     if (allocated(this%building_scale))         deallocate(this%building_scale)
     if (allocated(this%veg_scale))              deallocate(this%veg_scale)
-    !
-    ! FIXME: add deallocation of veg_ext
-    !
     if (allocated(this%veg_ext))                deallocate(this%veg_ext)
-    !
     if (allocated(this%veg_fsd))                deallocate(this%veg_fsd)
     if (allocated(this%veg_contact_fraction))   deallocate(this%veg_contact_fraction)
 
@@ -275,7 +265,7 @@ contains
     
   end subroutine print_surface_representation
 
-#ifdef PANTS
+#ifdef HAVE_READ_ROUTINE
 
   !---------------------------------------------------------------------
   subroutine read_from_netcdf(this, file)
