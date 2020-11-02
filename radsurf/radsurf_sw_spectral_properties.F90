@@ -96,10 +96,17 @@ contains
     if (do_canopy) then
       allocate(this%air_ext(nspec,ntotlay))
       allocate(this%air_ssa(nspec,ntotlay))
-    end if
-    if (do_vegetation) then
+      !
+      ! FIXME: allocate veg_ssa in do_canopy case
+      !
       allocate(this%veg_ssa(nspec,ntotlay))
+      !
     end if
+    !
+    !if (do_vegetation) then
+    !  allocate(this%veg_ssa(nspec,ntotlay))
+    !end if
+    !
     allocate(this%ground_albedo(nspec,ncol))
     if (config%use_sw_direct_albedo) then
       allocate(this%ground_albedo_dir(nspec,ncol))
