@@ -229,17 +229,15 @@ contains
     ! Do we do vegetation for this column?
     logical :: do_vegetation
 
+    ! Corrected value of cosine of the solar zenith angle
+    real(jprb) :: zcos_sza
+
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radsurf_urban_sw:spartacus_urban_sw',0,hook_handle)
 
     associate( &
          &  dz                    => canopy_props%dz(ilay1:ilay2), &
-         &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
-         &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
-         &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
-         &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_ssa               => sw_spectral_props%veg_ssa(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
          &  air_ext               => sw_spectral_props%air_ext(:,ilay1:ilay2), &
@@ -247,20 +245,25 @@ contains
          &  roof_albedo           => sw_spectral_props%roof_albedo(:,ilay1:ilay2), &
          &  wall_albedo           => sw_spectral_props%wall_albedo(:,ilay1:ilay2), &
          &  wall_specular_frac    => sw_spectral_props%wall_specular_frac(:,ilay1:ilay2))
-
+      !
+      ! The cosine of the solar zenith angle is corrected here, such
+      ! that all following calculations are consistent.
+      !
+      zcos_sza = max ( cos_sza, 1.0e-6_jprb)
+      !
       ! --------------------------------------------------------
       ! Section 2: Prepare general variables and arrays
       ! --------------------------------------------------------
-      
+      !
       do_vegetation = (nreg > 1)
       if (do_vegetation .and. .not. config%do_vegetation) then
         call radiation_abort('Attempt to perform urban radiative transfer with more than one region when vegetation not enabled')
       end if
-
+      !
       ! Tangent and sine of solar zenith angle
-      sin0 = sqrt(1.0_jprb - cos_sza*cos_sza)
-      tan0 = sin0 / max(cos_sza,1.0e-6_jprb)
-
+      sin0 = sqrt(1.0_jprb - zcos_sza*zcos_sza)
+      tan0 = sin0 / zcos_sza
+      !
       ! Set the area fraction of each region
       frac(1,1:nlay)  = 1.0_jprb - building_fraction
       frac(1,nlay+1)  = 1.0_jprb ! Free atmosphere
@@ -272,9 +275,9 @@ contains
       end if
 
 #ifdef PRINT_ARRAYS
-      call print_vector('veg_fraction',veg_fraction)
+      call print_vector('veg_fraction',canopy_props%veg_fraction(ilay1:ilay2))
       call print_vector('building_fraction',building_fraction)
-      call print_vector('veg_scale', veg_scale);
+      call print_vector('veg_scale', canopy_props%veg_scale(ilay1:ilay2));
       call print_matrix('frac', frac);
 #endif
 
@@ -302,12 +305,17 @@ contains
         ext_reg(:,1) = air_ext(:,jlay)
         ssa_reg(:,1) = air_ssa(:,jlay)
         if (nreg == 2) then
+          associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+            &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
+          end associate
         else if (nreg == 3) then
-          associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2))
+          associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2), &
+               &    veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+               &    veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
             ! Approximate method to approximate a Gamma distribution
             od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                  &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
@@ -324,15 +332,18 @@ contains
         end if
 
         norm_perim = 0.0_jprb
-        if (nreg > 1 .and. veg_fraction(jlay) > config%min_vegetation_fraction) then
+        if (nreg > 1) then
+          associate ( veg_fraction => canopy_props%veg_fraction(ilay1:ilay2) ) 
+          if ( veg_fraction(jlay) > config%min_vegetation_fraction) then
           ! Compute the normalized vegetation perimeter length
+          associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
           if (config%use_symmetric_vegetation_scale_urban) then
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
                  &        / veg_scale(jlay)
           else
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
           end if
-
+          end associate
           norm_perim_air_veg = norm_perim(1)
 
           if (nreg > 2) then
@@ -348,6 +359,7 @@ contains
             ! formula as before but with the fraction associated with
             ! one of the two vegetated regions, which is half the
             ! total vegetation fraction.
+            associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
             if (config%use_symmetric_vegetation_scale_urban) then
               norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
@@ -360,11 +372,14 @@ contains
               norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
             end if
+            end associate
           else
             ! Only one vegetated region so the other column of norm_perim
             ! is unused
             norm_perim(2:) = 0.0_jprb
           end if
+        end if
+        end associate
         end if
         
         ! Compute the normalized length of the interface between each
@@ -374,9 +389,11 @@ contains
           norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
           if (nreg > 1) then
+            associate (veg_contact_fraction => canopy_props%veg_contact_fraction(ilay1:ilay2))
             if (veg_contact_fraction(jlay) > 0.0_jprb) then
               ! Compute normalized length of interface between wall
               ! and any vegetation
+              !
               norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
                    &                    norm_perim_wall(1))
               if (nreg == 2) then
@@ -393,7 +410,8 @@ contains
               ! Reduce length of interface between wall and clear-air
               norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
             end if
-          end if          
+            end associate
+          end if
         end if
 
         ! Compute the rates of exchange between regions, excluding the
@@ -470,8 +488,10 @@ contains
         ! Diagonal elements of gamma0 and gamma1 also have loss term
         ! due to extinction through the regions
         do jreg = 1,nreg
-          gamma0(:,jreg,jreg) = gamma0(:,jreg,jreg) - ext_reg(:,jreg)/cos_sza &
+          !
+          gamma0(:,jreg,jreg) = gamma0(:,jreg,jreg) - ext_reg(:,jreg)/zcos_sza &
                &                   - tan0 * f_wall(jreg,jlay) * wall_ext
+          !
           do js = 1,ns
             ifr = js + (jreg-1)*ns
             gamma1(:,ifr,ifr) = gamma1(:,ifr,ifr) - ext_reg(:,jreg)/lg%mu(js) &
@@ -532,7 +552,7 @@ contains
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
-        call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
+        call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), zcos_sza, &
              &  gamma0, gamma1, gamma2, gamma3, &
              &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
              &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
@@ -551,7 +571,7 @@ contains
       do jreg = 1,nreg
         do js_to = 1,ns
           d_above(:,js_to+(jreg-1)*ns,jreg,1) &
-               &  = cos_sza * ground_albedo_dir * lg%hweight(js_to)
+               &  = zcos_sza * ground_albedo_dir * lg%hweight(js_to)
           do js_fr = 1,ns
             a_above(:,js_to+(jreg-1)*ns,js_fr+(jreg-1)*ns,1) &
                  &  = ground_albedo_diff * lg%hweight(js_to)
@@ -590,13 +610,13 @@ contains
           associate(roof_albedo_dir => sw_spectral_props%roof_albedo_dir(:,ilay1:ilay2))
             do js = 1,ns
               d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-                   &  = cos_sza * roof_albedo_dir(:,jlay) * lg%hweight(js)
+                   &  = zcos_sza * roof_albedo_dir(:,jlay) * lg%hweight(js)
             end do
           end associate
         else
           do js = 1,ns
             d_below(:,nreg*ns+js,nreg+1,jlay+1) &
-                 &  = cos_sza * roof_albedo(:,jlay) * lg%hweight(js)
+                 &  = zcos_sza * roof_albedo(:,jlay) * lg%hweight(js)
           end do
         end if
 
@@ -629,7 +649,7 @@ contains
       ! only need to consider the clear-sky region (indexed 1:ns).
       top_albedo_diff = sum(mat_x_vec(nsw,nsw,ns,a_above(:,1:ns,1:ns,nlay+1), &
            &                    spread(lg%hweight,1,nsw)),2)
-      top_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / cos_sza
+      top_albedo_dir = sum(d_above(:,1:ns,1,nlay+1),2) / zcos_sza
 
       ! --------------------------------------------------------
       ! Section 5: Compute normalized flux profile
@@ -644,7 +664,7 @@ contains
 
       ! Initial normalized direct flux is therefore 1 in each spectral
       ! interval
-      flux_dn_dir_above(:,1)  = 1.0_jprb / cos_sza
+      flux_dn_dir_above(:,1)  = 1.0_jprb / zcos_sza
       flux_dn_dir_above(:,2:) = 0.0_jprb
       flux_dn_diff_above      = 0.0_jprb
       
@@ -668,7 +688,7 @@ contains
              &  + rect_mat_x_vec(nsw,(nreg+1)*ns,nreg+1,d_below(:,:,:,jlay+1),flux_dn_dir_below)
 
         ! Store the fluxes into the exposed roof
-        sw_norm_dir%roof_in(:,ilay) = cos_sza * flux_dn_dir_below(:,nreg+1) &
+        sw_norm_dir%roof_in(:,ilay) = zcos_sza * flux_dn_dir_below(:,nreg+1) &
              &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
         sw_norm_dir%roof_net(:,ilay) = sw_norm_dir%roof_in(:,ilay) &
              &  - sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
@@ -700,22 +720,25 @@ contains
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
-             &    * (int_flux_dir(:,1) & ! / cos_sza &
+             &    * (int_flux_dir(:,1) & ! / zcos_sza &
              &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
         if (do_vegetation) then
+           associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+             &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
                  &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
-                 &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+                 &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
             sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
-                 &    * (int_flux_dir(:,jreg) & ! / cos_sza &
+                 &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
           end do
+          end associate
         end if
 
         ! Inward and net flux into walls
@@ -739,7 +762,7 @@ contains
 #endif
 
       end do
-      sw_norm_dir%ground_dn_dir(:,icol) = cos_sza * sum(flux_dn_dir_above,2)
+      sw_norm_dir%ground_dn_dir(:,icol) = zcos_sza * sum(flux_dn_dir_above,2)
       sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_dir(:,icol) &
            &  + sum(flux_dn_diff_above,2)
       sw_norm_dir%ground_net(:,icol) = sw_norm_dir%ground_dn(:,icol) &
@@ -794,6 +817,8 @@ contains
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2)
         if (do_vegetation) then
+          associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+            &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
@@ -805,6 +830,7 @@ contains
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
           end do
+          end associate
         end if
 
         ! Inward and net flux into walls
@@ -846,9 +872,9 @@ contains
       call print_vector('  ground_net', sw_norm_diff%ground_net(1,:))
       call print_vector('  ground_dn_dir', sw_norm_diff%ground_dn_dir(1,:))
 #endif
-
+    !
     end associate
-
+    !
     if (lhook) call dr_hook('radsurf_urban_sw:spartacus_urban_sw',1,hook_handle)
 
   end subroutine spartacus_urban_sw
