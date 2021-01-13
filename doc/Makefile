@@ -1,5 +1,6 @@
 # If you have pdflatex installed, type "make" to create the
-# documentation, "make clean" to delete it
+# documentation, "make dist-clean" to delete it, "make clean" to just
+# remote the latex intermediate files
 
 BASE = spartacus_surface_documentation
 
@@ -13,7 +14,7 @@ $(BASE).pdf: $(BASE).tex surface_type_schematic.pdf isolation_schematic.pdf
 clean:
 	rm -f $(BASE).pdf $(BASE).aux $(BASE).log $(BASE).out
 
-dist-clean:
-	rm -f $(BASE).aux $(BASE).log $(BASE).out
+dist-clean: clean
+	rm -f $(BASE).pdf
 
 .PHONY: documentation clean
