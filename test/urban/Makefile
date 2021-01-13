@@ -1,5 +1,5 @@
-# Makefile to test SPARTACUS-Surface on the RAMI4PILPS vegetation
-# cases
+# Makefile to test shortwave SPARTACUS-Surface on the London "Russell
+# Square" case shown in Fig. 1 of Hogan (BLM 2019).
 
 SPSURF = ../../bin/spartacus_surface
 CONFIG = config.nam

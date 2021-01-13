@@ -19,4 +19,8 @@ following test input files:
     and vegetation cover, so should be very close to the case when
     they are actually zero
 
+  test_noscat_in.nc - as test_surfaces_in.nc but with all albedos set
+    to 0 and all emissivities set to 1, in order to more easily test
+    behaviour against analytical results in the case of no scattering
+
 The results are written in *_out.nc.
