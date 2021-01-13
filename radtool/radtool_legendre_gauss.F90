@@ -35,6 +35,7 @@ module radtool_legendre_gauss
     ! Term to ensure asymptotic longwave flux in deep canyons in
     ! vacuum equals the Planck flux from walls
     real(kind=jprb) :: vadjustment
+    real(kind=jprb) :: vadjustment2
     
     ! Number of streams in one hemisphere
     integer(kind=jpim) :: nstream = 0
@@ -76,8 +77,26 @@ contains
     this%hweight = this%hweight / sum(this%hweight)
     this%vweight = this%vweight / sum(this%vweight)
 
-    this%vadjustment = (4.0 / Pi) * sum(this%weight * this%sin_ang)
-    
+    ! A correction is required to the equations in the paper to ensure
+    ! that the asymptotic longwave flux in a deep canyon in vacuum
+    ! equals Planck flux from walls.  We scale the emission from the
+    ! walls by vadjustment and the rate of interception by the walls
+    ! (longwave only) by vadjustment2. Up to version 0.7.1 the
+    ! scalings were as follows, where the first term is around 1.1 for
+    ! the 2-stream case (1 stream per hemisphere) but gets much closer
+    ! to 1 for a larger number of streams:
+
+    ! this%vadjustment = (4.0 / Pi) * sum(this%weight * this%sin_ang)
+    ! this%vadjustment2 = 1.0_jprb
+
+    ! Unfortunately the scalings above lead to an incorrect rate of
+    ! emission from walls (10% error in the 2-stream case). A better
+    ! approach is to scale the rate of interception by walls. The
+    ! following numbers are consistent with the discussion in section
+    ! 3.2 of Schafer et al. (JGR 2016), especially Eq. 8:
+    this%vadjustment = 1.0_jprb
+    this%vadjustment2 = (Pi / 4.0) / sum(this%weight * this%sin_ang)
+
   end subroutine initialize_legendre_gauss
 
   subroutine deallocate_legendre_gauss(this)
