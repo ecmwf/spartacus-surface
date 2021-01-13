@@ -444,7 +444,8 @@ contains
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
             f_wall(jreg,jlay) = 0.0_jprb
           else
-            f_wall(jreg,jlay) = norm_perim_wall(jreg) / (Pi * frac(jreg,jlay))
+            f_wall(jreg,jlay) = norm_perim_wall(jreg) * lg%vadjustment2 &
+                 &            / (Pi * frac(jreg,jlay))
           end if
         end do
 
@@ -535,7 +536,6 @@ contains
 
         end do
         emiss_wall(:,jlay) = (sum(norm_perim_wall) * lg%vadjustment) * wall_emission(:,jlay)
-
         
         
 #ifdef PRINT_ARRAYS

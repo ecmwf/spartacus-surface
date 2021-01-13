@@ -1,4 +1,9 @@
-version 0.7.1
+version 0.7.2
+	- Longwave urban modifications to give correct emission from
+	  walls, fixing error most noticeable with 2-streams - see
+	  radtool_legendre_gauss.F90 and radsurf_urban_lw.F90
+
+version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file
 	- Fixed behaviour when vegetation or building fraction are zero in
 	  a layer, and added two new cases in test/simple to check
