@@ -232,29 +232,21 @@ contains
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radsurf_urban_lw:spartacus_urban_lw',0,hook_handle)
-
+    !
     associate( &
-         &  dz                    => canopy_props%dz(ilay1:ilay2), &
-         &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
-         &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
-         &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
-         &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
-         &  veg_ssa               => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
-         &  veg_planck            => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
-         &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
-         &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
-         &  air_ext               => lw_spectral_props%air_ext(:,ilay1:ilay2), &
-         &  air_ssa               => lw_spectral_props%air_ssa(:,ilay1:ilay2), &
-         &  clear_air_planck      => lw_spectral_props%clear_air_planck(:,ilay1:ilay2), &
-         &  veg_air_planck        => lw_spectral_props%veg_air_planck(:,ilay1:ilay2), &
-         &  ground_emissivity     => lw_spectral_props%ground_emissivity(:,icol), &
-         &  ground_emission       => lw_spectral_props%ground_emission(:,icol), &
-         &  roof_emissivity       => lw_spectral_props%roof_emissivity(:,ilay1:ilay2), &
-         &  roof_emission         => lw_spectral_props%roof_emission(:,ilay1:ilay2), &
-         &  wall_emissivity       => lw_spectral_props%wall_emissivity(:,ilay1:ilay2), &
-         &  wall_emission         => lw_spectral_props%wall_emission(:,ilay1:ilay2))
-
-
+         &  dz                => canopy_props%dz(ilay1:ilay2), &
+         &  building_fraction => canopy_props%building_fraction(ilay1:ilay2), &
+         &  building_scale    => canopy_props%building_scale(ilay1:ilay2), &
+         &  air_ext           => lw_spectral_props%air_ext(:,ilay1:ilay2), &
+         &  air_ssa           => lw_spectral_props%air_ssa(:,ilay1:ilay2), &
+         &  clear_air_planck  => lw_spectral_props%clear_air_planck(:,ilay1:ilay2), &
+         &  ground_emissivity => lw_spectral_props%ground_emissivity(:,icol), &
+         &  ground_emission   => lw_spectral_props%ground_emission(:,icol), &
+         &  roof_emissivity   => lw_spectral_props%roof_emissivity(:,ilay1:ilay2), &
+         &  roof_emission     => lw_spectral_props%roof_emission(:,ilay1:ilay2), &
+         &  wall_emissivity   => lw_spectral_props%wall_emissivity(:,ilay1:ilay2), &
+         &  wall_emission     => lw_spectral_props%wall_emission(:,ilay1:ilay2))
+      !
       ! --------------------------------------------------------
       ! Section 2: Prepare general variables and arrays
       ! --------------------------------------------------------
@@ -275,9 +267,9 @@ contains
       end if
 
 #ifdef PRINT_ARRAYS
-      call print_vector('veg_fraction',veg_fraction)
+      call print_vector('veg_fraction',canopy_props%veg_fraction)
       call print_vector('building_fraction',building_fraction)
-      call print_vector('veg_scale', veg_scale);
+      call print_vector('veg_scale', canopy_props%veg_scale);
       call print_matrix('frac', frac);
 #endif
 
@@ -306,6 +298,10 @@ contains
         ssa_reg(:,1)    = air_ssa(:,jlay)
         planck_reg(:,1) = clear_air_planck(:,jlay)
         if (nreg == 2) then
+          associate ( veg_ext        => canopy_props%veg_ext(ilay1:ilay2), &
+            &         veg_ssa        => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
+            &         veg_planck     => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
+            &         veg_air_planck => lw_spectral_props%veg_air_planck(:,ilay1:ilay2) )
           ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
@@ -313,13 +309,19 @@ contains
                &   + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,2)*(1.0_jprb-ssa_reg(:,2)), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
+          end associate
         else if (nreg == 3) then
           ! Approximate method to approximate a Gamma distribution
           associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2))
             od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                  &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
           end associate
-
+          !
+          associate ( veg_ext        => canopy_props%veg_ext(ilay1:ilay2), &
+            &         veg_ssa        => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
+            &         veg_planck     => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
+            &         veg_air_planck => lw_spectral_props%veg_air_planck(:,ilay1:ilay2))
+          !
           od_scaling(3,jlay) = 2.0_jprb - od_scaling(2,jlay)
           ext_reg(:,2) = air_ext(:,jlay) + od_scaling(2,jlay)*veg_ext(jlay)
           ext_reg(:,3) = air_ext(:,jlay) + od_scaling(3,jlay)*veg_ext(jlay)
@@ -335,17 +337,24 @@ contains
           planck_reg(:,3) = (ext_reg(:,1)*(1.0_jprb-ssa_reg(:,1))*veg_air_planck(:,jlay) &
                &   + od_scaling(3,jlay) * veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay))*veg_planck(:,jlay)) &
                &       / max(ext_reg(:,3)*(1.0_jprb-ssa_reg(:,3)), 1.0e-8_jprb)
+          !
+          end associate
+          !
         end if
 
         norm_perim = 0.0_jprb
-        if (nreg > 1 .and. veg_fraction(jlay) > config%min_vegetation_fraction) then
+        if (nreg > 1) then
+          associate (veg_fraction => canopy_props%veg_fraction(ilay1:ilay2)) 
+          if (veg_fraction(jlay) > config%min_vegetation_fraction) then
           ! Compute the normalized vegetation perimeter length
+          associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
           if (config%use_symmetric_vegetation_scale_urban) then
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
                  &        / veg_scale(jlay)
           else
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
           end if
+          end associate
 
           norm_perim_air_veg = norm_perim(1)
 
@@ -362,6 +371,7 @@ contains
             ! formula as before but with the fraction associated with
             ! one of the two vegetated regions, which is half the
             ! total vegetation fraction.
+            associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
             if (config%use_symmetric_vegetation_scale_urban) then
               norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
@@ -374,11 +384,14 @@ contains
               norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
                    &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
             end if
+            end associate
           else
             ! Only one vegetated region so the other column of norm_perim
             ! is unused
             norm_perim(2:) = 0.0_jprb
           end if
+          end if
+          end associate
         end if
         
         ! Compute the normalized length of the interface between each
@@ -386,11 +399,12 @@ contains
         norm_perim_wall = 0.0_jprb
         if (building_fraction(jlay) > config%min_building_fraction) then
           norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
-
           if (nreg > 1) then
+            associate ( veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2) )
             if (veg_contact_fraction(jlay) > 0.0_jprb) then
               ! Compute normalized length of interface between wall
               ! and any vegetation
+              !
               norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
                    &                    norm_perim_wall(1))
               if (nreg == 2) then
@@ -407,6 +421,7 @@ contains
               ! Reduce length of interface between wall and clear-air
               norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
             end if
+            end associate
           end if
         end if
 
@@ -526,12 +541,18 @@ contains
           emiss_reg(:,jreg,jlay) = emiss_factor * volume_emiss
 
           if (jreg > 1) then
+            associate ( veg_ext        => canopy_props%veg_ext(ilay1:ilay2), &
+              &         veg_ssa        => lw_spectral_props%veg_ssa(:,ilay1:ilay2), &
+              &         veg_planck     => lw_spectral_props%veg_planck(:,ilay1:ilay2), &
+              &         veg_air_planck => lw_spectral_props%veg_air_planck(:,ilay1:ilay2))
+            !
             ! Note that in the following we use the extinction and
             ! single-scattering albedo of the clear air region
             emiss_air(:,jreg,jlay) = emiss_factor * frac(jreg,jlay) * ext_reg(:,1) &
                  &              * (1.0_jprb-ssa_reg(:,1)) * veg_air_planck(:,jlay)
             emiss_veg(:,jreg,jlay) = emiss_factor * frac(jreg,jlay) * veg_ext(jlay) &
                  &   * (1.0_jprb-veg_ssa(:,jlay)) * veg_planck(:,jlay) * od_scaling(jreg,jlay)
+            end associate
           end if
 
         end do
@@ -549,13 +570,15 @@ contains
         call print_matrix('gamma2',gamma2(1,:,:))
         call print_vector('emiss_rate',emiss_rate(1,:))
         call print_vector('clear_air_planck', clear_air_planck(1,:))
-        call print_vector('veg_air_planck', veg_air_planck(1,:))
-        call print_vector('veg_planck', veg_planck(1,:))
+        call print_vector('veg_air_planck', lw_spectral_props%veg_air_planck(:,ilay1:ilay2))
+        call print_vector('veg_planck', lw_spectral_props%veg_planck(:,ilay1:ilay2))
 #endif        
 
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
+        if (do_vegetation) then
+        associate (veg_fraction => canopy_props%veg_fraction(ilay1:ilay2))
         if (veg_fraction(jlay) > config%min_vegetation_fraction) then
           call calc_matrices_lw_eig(nlw, nreg*ns, dz(jlay), &
                &  gamma1, gamma2, emiss_rate, &
@@ -574,7 +597,20 @@ contains
                &  ref(:,1:ns,1:ns,jlay), trans(:,1:ns,1:ns,jlay), source_lay(:,1:ns,jlay), &
                &  int_flux_mat(:,1:ns,1:ns,jlay), int_source(:,1:ns,jlay))
         end if
-
+        end associate
+        else
+          ! Vegetation-free calculation: set all coefficients to zero...
+          ref(:,:,:,jlay) = 0.0_jprb
+          trans(:,:,:,jlay) = 0.0_jprb
+          source_lay(:,:,jlay) = 0.0_jprb
+          int_flux_mat(:,:,:,jlay) = 0.0_jprb
+          int_source(:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the clear-sky region
+          call calc_matrices_lw_eig(nlw, ns, dz(jlay), &
+               &  gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), emiss_rate(:,1:ns), &
+               &  ref(:,1:ns,1:ns,jlay), trans(:,1:ns,1:ns,jlay), source_lay(:,1:ns,jlay), &
+               &  int_flux_mat(:,1:ns,1:ns,jlay), int_source(:,1:ns,jlay))
+        end if   
       end do ! Loop over layers to compute reflectance/transmittance matrices
 
       ! --------------------------------------------------------
@@ -717,6 +753,8 @@ contains
              &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2) &
              &  - emiss_reg(:,1,jlay)*dz(jlay)
         if (do_vegetation) then
+          associate ( veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+            &         veg_ssa => lw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
@@ -729,7 +767,8 @@ contains
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
                  &  - emiss_veg(:,jreg,jlay)*dz(jlay)
-          end do
+         end do
+         end associate
         end if
 
         ! Inward and net flux into walls
@@ -802,6 +841,8 @@ contains
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2)
         if (do_vegetation) then
+          associate ( veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+            &         veg_ssa => lw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             lw_norm%veg_air_abs(:,ilay) = lw_norm%veg_air_abs(:,ilay) &
@@ -813,6 +854,7 @@ contains
                  &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay)
           end do
+          end associate
         end if
 
         ! Inward and net flux into walls
