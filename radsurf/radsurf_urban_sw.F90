@@ -235,6 +235,11 @@ contains
 
     associate( &
          &  dz                    => canopy_props%dz(ilay1:ilay2), &
+         &  veg_fraction          => canopy_props%veg_fraction(ilay1:ilay2), &
+         &  veg_scale             => canopy_props%veg_scale(ilay1:ilay2), &
+         &  veg_ext               => canopy_props%veg_ext(ilay1:ilay2), &
+         &  veg_contact_fraction  => canopy_props%veg_contact_fraction(ilay1:ilay2), &
+         &  veg_ssa               => sw_spectral_props%veg_ssa(:,ilay1:ilay2), &
          &  building_fraction     => canopy_props%building_fraction(ilay1:ilay2), &
          &  building_scale        => canopy_props%building_scale(ilay1:ilay2), &
          &  air_ext               => sw_spectral_props%air_ext(:,ilay1:ilay2), &
@@ -267,9 +272,9 @@ contains
       end if
 
 #ifdef PRINT_ARRAYS
-      call print_vector('veg_fraction',canopy_props%veg_fraction)
+      call print_vector('veg_fraction',veg_fraction)
       call print_vector('building_fraction',building_fraction)
-      call print_vector('veg_scale', canopy_props%veg_scale);
+      call print_vector('veg_scale', veg_scale);
       call print_matrix('frac', frac);
 #endif
 
@@ -297,17 +302,12 @@ contains
         ext_reg(:,1) = air_ext(:,jlay)
         ssa_reg(:,1) = air_ssa(:,jlay)
         if (nreg == 2) then
-          associate ( veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
-                      veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           ext_reg(:,2) = air_ext(:,jlay) + veg_ext(jlay)
           ssa_reg(:,2) = (ext_reg(:,1)*ssa_reg(:,1) + veg_ext(jlay)*veg_ssa(:,jlay)) &
                &       / max(ext_reg(:,2), 1.0e-8_jprb)
           od_scaling(2,jlay) = 1.0_jprb
-          end associate
         else if (nreg == 3) then
-          associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2), &
-                    veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
-                    veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
+          associate(veg_fsd => canopy_props%veg_fsd(ilay1:ilay2))
             ! Approximate method to approximate a Gamma distribution
             od_scaling(2,jlay) = exp(-veg_fsd(jlay)*(1.0_jprb + 0.5_jprb*veg_fsd(jlay) &
                  &                            *(1.0_jprb + 0.5_jprb*veg_fsd(jlay))))
@@ -324,49 +324,46 @@ contains
         end if
 
         norm_perim = 0.0_jprb
-        if (nreg > 1) then
-          if (canopy_props%veg_fraction(jlay) > config%min_vegetation_fraction) then
-            ! Compute the normalized vegetation perimeter length
+        if (nreg > 1 .and. veg_fraction(jlay) > config%min_vegetation_fraction) then
+          ! Compute the normalized vegetation perimeter length
+          if (config%use_symmetric_vegetation_scale_urban) then
+            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
+                 &        / veg_scale(jlay)
+          else
+            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
+          end if
+
+          norm_perim_air_veg = norm_perim(1)
+
+          if (nreg > 2) then
+            ! Share the clear-air/vegetation perimeter between the two
+            ! vegetated regions
+            norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
+            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                 &          * norm_perim(1) 
+            ! We assume that the horizontal scale of the vegetation
+            ! inhomogeneities is the same as the scale of the tree
+            ! crowns themselves. Therefore, to compute the interface
+            ! between the two vegetated regions, we use the same
+            ! formula as before but with the fraction associated with
+            ! one of the two vegetated regions, which is half the
+            ! total vegetation fraction.
             if (config%use_symmetric_vegetation_scale_urban) then
-              norm_perim(1) = 4.0_jprb * canopy_props%veg_fraction(jlay) * (1.0_jprb - canopy_props%veg_fraction(jlay)) &
-                   &        / canopy_props%veg_scale(jlay)
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                   &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
+                   &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+                   &  / veg_scale(jlay)
             else
-              norm_perim(1) = 4.0_jprb * canopy_props%veg_fraction(jlay) / canopy_props%veg_scale(jlay)
+              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+              !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+              ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
+              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                   &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
             end if
-
-            norm_perim_air_veg = norm_perim(1)
-
-            if (nreg > 2) then
-              ! Share the clear-air/vegetation perimeter between the two
-              ! vegetated regions
-              norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
-              norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                   &          * norm_perim(1) 
-              ! We assume that the horizontal scale of the vegetation
-              ! inhomogeneities is the same as the scale of the tree
-              ! crowns themselves. Therefore, to compute the interface
-              ! between the two vegetated regions, we use the same
-              ! formula as before but with the fraction associated with
-              ! one of the two vegetated regions, which is half the
-              ! total vegetation fraction.
-              if (config%use_symmetric_vegetation_scale_urban) then
-                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                     &  * 4.0_jprb * (0.5_jprb*canopy_props%veg_fraction(jlay)) &
-                     &  * (1.0_jprb - (0.5_jprb*canopy_props%veg_fraction(jlay))) &
-                     &  / canopy_props%veg_scale(jlay)
-              else
-                !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / canopy_props%veg_scale(jlay)
-                ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                     &  * 4.0_jprb * canopy_props%veg_fraction(jlay) / (sqrt(2.0_jprb)*canopy_props%veg_scale(jlay))
-              end if
-              !
-            else
-              ! Only one vegetated region so the other column of norm_perim
-              ! is unused
-              norm_perim(2:) = 0.0_jprb
-            end if
+          else
+            ! Only one vegetated region so the other column of norm_perim
+            ! is unused
+            norm_perim(2:) = 0.0_jprb
           end if
         end if
         
@@ -377,9 +374,6 @@ contains
           norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
           if (nreg > 1) then
-            !
-            associate (veg_contact_fraction => canopy_props%veg_contact_fraction(ilay1:ilay2))
-            !
             if (veg_contact_fraction(jlay) > 0.0_jprb) then
               ! Compute normalized length of interface between wall
               ! and any vegetation
@@ -399,10 +393,7 @@ contains
               ! Reduce length of interface between wall and clear-air
               norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
             end if
-            !
-            end associate
-            !
-          end if
+          end if          
         end if
 
         ! Compute the rates of exchange between regions, excluding the
@@ -720,7 +711,7 @@ contains
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
             sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
-                 &  + canopy_props%veg_ext(jlay)*(1.0_jprb-sw_spectral_props%veg_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * (int_flux_dir(:,jreg) & ! / cos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
@@ -810,7 +801,7 @@ contains
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
             sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
-                 &  + canopy_props%veg_ext(jlay)*(1.0_jprb-sw_spectral_props%veg_ssa(:,jlay)) & ! Use vegetation properties
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
           end do
