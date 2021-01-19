@@ -5,6 +5,7 @@ vegetation_fsd = 0.5,
 top_flux_dn_sw = 1000.0,
 top_flux_dn_direct_sw = 1000.0,
 !cos_solar_zenith_angle = 0.5,
+do_conservation_check = true,
 /
 
 &radsurf

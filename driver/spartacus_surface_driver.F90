@@ -264,15 +264,15 @@ program spartacus_surface_driver
       iendcol = ncol
     end if
     if (config%do_sw) then
-      write(nulout, '(a)') 'Direct shortwave budget'
+      write(nulout, '(a)') 'Direct shortwave budget: radiation originating from direct solar at canopy top'
       call sw_norm_dir%check(canopy_props, istartcol, iendcol)
-      write(nulout, '(a)') 'Diffuse shortwave budget'
+      write(nulout, '(a)') 'Diffuse shortwave budget: radiation originating from downward diffuse solar at canopy top'
       call sw_norm_diff%check(canopy_props, istartcol, iendcol)
     end if
     if (config%do_lw) then
-      write(nulout, '(a)') 'Internal longwave budget'
+      write(nulout, '(a)') 'Internal longwave budget: radiation originating from emission within canopy'
       call lw_internal%check(canopy_props, istartcol, iendcol)
-      write(nulout, '(a)') 'Incoming longwave budget'
+      write(nulout, '(a)') 'Incoming longwave budget: radiation originating from downward longwave at canopy top'
       call lw_norm%check(canopy_props, istartcol, iendcol)
     end if
   end if
