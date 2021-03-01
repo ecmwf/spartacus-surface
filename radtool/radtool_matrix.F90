@@ -1331,7 +1331,7 @@ contains
     lambda1 = -tmp1 + tmp2
     lambda2 = -tmp1 - tmp2
 
-    ! Eigenvectors, with securities such taht if a--d are all zero
+    ! Eigenvectors, with securities such that if a--d are all zero
     ! then V is non-singular and the identity matrix is returned in R;
     ! note that lambdaX is typically negative so we need a
     ! sign-preserving security

@@ -131,6 +131,7 @@ contains
           sw_norm_dir%ground_dn_dir(:,jcol) = 1.0_jprb
           sw_norm_dir%ground_dn(:,jcol)  = 1.0_jprb
           sw_norm_dir%ground_net(:,jcol) = 1.0_jprb - ground_sw_albedo_dir(:,jcol)
+          sw_norm_dir%ground_horiz_diff(:,jcol) = 0.5_jprb * ground_sw_albedo_dir(:,jcol)
           sw_norm_dir%top_dn_dir(:,jcol) = 1.0_jprb
           sw_norm_dir%top_dn(:,jcol)  = 1.0_jprb
           sw_norm_dir%top_net(:,jcol) = 1.0_jprb - ground_sw_albedo_dir(:,jcol)
@@ -139,6 +140,8 @@ contains
           sw_norm_diff%ground_dn_dir(:,jcol) = 0.0_jprb
           sw_norm_diff%ground_dn(:,jcol)  = 1.0_jprb
           sw_norm_diff%ground_net(:,jcol) = 1.0_jprb - sw_spectral_props%ground_albedo(:,jcol)
+          sw_norm_diff%ground_horiz_diff(:,jcol) &
+               &  = 0.5_jprb * (1.0_jprb + sw_spectral_props%ground_albedo(:,jcol))
           sw_norm_diff%top_dn_dir(:,jcol) = 0.0_jprb
           sw_norm_diff%top_dn(:,jcol)  = 1.0_jprb
           sw_norm_diff%top_net(:,jcol) = 1.0_jprb - sw_spectral_props%ground_albedo(:,jcol)
@@ -151,12 +154,15 @@ contains
           ! Longwave fluxes due to surface emission
           lw_internal%ground_dn(:,jcol)  = 0.0_jprb
           lw_internal%ground_net(:,jcol) = -lw_spectral_props%ground_emission(:,jcol)
+          lw_internal%ground_horiz_diff(:,jcol) = 0.5_jprb * lw_spectral_props%ground_emission(:,jcol)
           lw_internal%top_dn(:,jcol)  = 0.0_jprb
           lw_internal%top_net(:,jcol) = -lw_spectral_props%ground_emission(:,jcol)
           ! Rate of change of ground and top-of-canopy fluxes with
           ! respect to diffuse downward flux at top-of-canopy
           lw_norm%ground_dn(:,jcol) = 1.0_jprb
           lw_norm%ground_net(:,jcol) = lw_spectral_props%ground_emissivity(:,jcol)
+          lw_norm%ground_horiz_diff(:,jcol) &
+               &  = 0.5_jprb * (2.0_jprb - lw_spectral_props%ground_emissivity(:,jcol))
           lw_norm%top_dn(:,jcol) = 1.0_jprb
           lw_norm%top_net(:,jcol) = lw_spectral_props%ground_emissivity(:,jcol)
         end if

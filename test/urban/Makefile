@@ -16,11 +16,11 @@ test_single:
 	$(SPSURF) $(CONFIG_TMP) $(BASE_PROFILE) $(BASENAME)_single_out.nc
 
 test_streams: $(INPUT)
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=1
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=1 n_stream_lw_urban=1
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_1stream_out.nc
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=2
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=2 n_stream_lw_urban=2
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_2stream_out.nc
-	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=4
+	$(CHANGE_NL) $(CONFIG) $(CONFIG_TMP) n_stream_sw_urban=4 n_stream_lw_urban=4
 	$(SPSURF) $(CONFIG_TMP) $(INPUT) $(BASENAME)_4stream_out.nc
 
 # Duplicate the profiles in russell_square.nc to add a range of solar

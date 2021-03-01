@@ -90,6 +90,7 @@ module radsurf_config
     ! Do we save broadband and spectral fluxes to output file?
     logical :: do_save_broadband_flux = .true.
     logical :: do_save_spectral_flux  = .false.
+    logical :: do_save_flux_profile   = .false.
 
     integer(kind=jpim) :: iverbose = 3
 
@@ -140,7 +141,7 @@ contains
          &  do_urban, &
          &  use_symmetric_vegetation_scale_forest, &
          &  use_symmetric_vegetation_scale_urban, &
-         &  do_save_spectral_flux, do_save_broadband_flux
+         &  do_save_spectral_flux, do_save_broadband_flux, do_save_flux_profile
     integer(kind=jpim), pointer :: nsw, nlw, n_stream_sw_forest, &
          &  n_stream_sw_urban, n_stream_lw_forest, n_stream_lw_urban, &
          &  iverbose, n_vegetation_region_forest, &
@@ -151,7 +152,7 @@ contains
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
          &  do_urban, nsw, nlw, n_stream_sw_forest, n_stream_sw_urban, &
          &  n_stream_lw_forest, n_stream_lw_urban, iverbose, &
-         &  do_save_spectral_flux, do_save_broadband_flux, &
+         &  do_save_spectral_flux, do_save_broadband_flux, do_save_flux_profile, &
          &  n_vegetation_region_forest, n_vegetation_region_urban, &
          &  use_symmetric_vegetation_scale_forest, &
          &  use_symmetric_vegetation_scale_urban, &
@@ -174,6 +175,7 @@ contains
     n_stream_lw_urban    => this%n_stream_lw_urban
     do_save_spectral_flux=> this%do_save_spectral_flux
     do_save_broadband_flux=>this%do_save_broadband_flux
+    do_save_flux_profile => this%do_save_flux_profile
     iverbose             => this%iverbose
     n_vegetation_region_forest => this%n_vegetation_region_forest
     n_vegetation_region_urban  => this%n_vegetation_region_urban

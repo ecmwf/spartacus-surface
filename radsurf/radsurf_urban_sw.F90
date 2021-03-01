@@ -767,7 +767,15 @@ contains
            &  + sum(flux_dn_diff_above,2)
       sw_norm_dir%ground_net(:,icol) = sw_norm_dir%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
-
+      do jreg = 1,nreg
+        do js = 1,ns
+          ifr = js + (jreg-1)*ns
+          ! Project each stream into a horizontal plane
+          sw_norm_dir%ground_horiz_diff(:,icol) = sw_norm_dir%ground_horiz_diff(:,icol) &
+               &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
+        end do
+      end do
+ 
       ! Second the fluxes normalized by the diffuse downwelling flux
       ! at canopy top.
 
@@ -855,6 +863,14 @@ contains
       sw_norm_diff%ground_dn(:,icol) = sum(flux_dn_diff_above,2)
       sw_norm_diff%ground_net(:,icol) = sw_norm_diff%ground_dn(:,icol) &
            &  - sum(flux_up_above,2)
+      do jreg = 1,nreg
+        do js = 1,ns
+          ifr = js + (jreg-1)*ns
+          ! Project each stream into a horizontal plane
+          sw_norm_diff%ground_horiz_diff(:,icol) = sw_norm_diff%ground_horiz_diff(:,icol) &
+               &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
+        end do
+      end do
     
 #ifdef PRINT_ARRAYS
       print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION'

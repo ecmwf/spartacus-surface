@@ -3,6 +3,10 @@ version 0.7.2
 	  walls, fixing error most noticeable with 2-streams - see
 	  radtool_legendre_gauss.F90 and radsurf_urban_lw.F90
 	- Added test/simple/test_noscat_in.nc test case
+	- Added test/simple/test_simple_1stream_out.nc target
+	- Added ground-level fluxes into a horizontal plane
+	  (ground_flux_horiz_diffuse_sw and ground_flux_horiz_lw) needed to
+	  compute mean radiant temperature and comfort indices
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

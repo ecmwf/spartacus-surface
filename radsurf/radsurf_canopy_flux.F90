@@ -28,7 +28,8 @@ module radsurf_canopy_flux
 
     ! Flux components are dn/in for fluxes into a surface, and net for
     ! fluxes into minus out of a surface, where "top" is the top of
-    ! the canopy
+    ! the canopy.  Down fluxes include both the diffuse and direct
+    ! components, whereas "dir" indicates only the direct component.
     real(kind=jprb), allocatable :: ground_dn(:,:)     ! (nspec,ncol)
     real(kind=jprb), allocatable :: ground_dn_dir(:,:) ! (nspec,ncol)
     real(kind=jprb), allocatable :: ground_net(:,:)    ! (nspec,ncol)
@@ -40,11 +41,26 @@ module radsurf_canopy_flux
     real(kind=jprb), allocatable :: wall_in(:,:)       ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_net(:,:)      ! (nspec,ntotlay)
 
+    ! Diffuse flux into a horizontal surface at ground level, needed
+    ! for calculating the mean radiant temperature felt by a
+    ! human. Note that this quantity is still scaled by the fraction
+    ! of the lowest layer that is not building.
+    real(kind=jprb), allocatable :: ground_horiz_diff(:,:) ! (nspec,ncol)
+
     ! Absorption by the clear-air region, the vegetation in the
     ! vegetated region, and the air in the vegetated region
     real(kind=jprb), allocatable :: clear_air_abs(:,:) ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: veg_abs(:,:)       ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: veg_air_abs(:,:)   ! (nspec,ntotlay)
+
+    ! Optional: upward and downward fluxes at top and base of layers,
+    ! summing the clear+vegetated regions. 
+    real(kind=jprb), allocatable :: flux_dn_layer_top(:,:)     ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: flux_dn_dir_layer_top(:,:) ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: flux_up_layer_top(:,:)     ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: flux_dn_layer_base(:,:)    ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: flux_dn_dir_layer_base(:,:)! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: flux_up_layer_base(:,:)    ! (nspec,ntotlay)
 
     ! Number of spectral intervals, number of columns total number of
     ! layers across all columns
@@ -65,16 +81,17 @@ module radsurf_canopy_flux
 contains
 
   !---------------------------------------------------------------------
-  subroutine allocate_canopy_flux(this, config, ncol, ntotlay, nspec, use_direct)
+  subroutine allocate_canopy_flux(this, config, ncol, ntotlay, nspec, use_direct, &
+       &  do_save_flux_profile)
 
     use radsurf_config, only : config_type
 
     class(canopy_flux_type), intent(inout) :: this
     type(config_type),       intent(in)    :: config
     integer(kind=jpim),      intent(in)    :: ncol, ntotlay, nspec
-    logical, optional,       intent(in)    :: use_direct
+    logical, optional,       intent(in)    :: use_direct, do_save_flux_profile
 
-    logical :: use_direct_local
+    logical :: use_direct_local, do_save_flux_profile_local
 
     if (present(use_direct)) then
       use_direct_local = use_direct
@@ -82,10 +99,17 @@ contains
       use_direct_local = .true.
     end if
 
+    if (present(do_save_flux_profile)) then
+      do_save_flux_profile_local = do_save_flux_profile
+    else
+      do_save_flux_profile_local = .true.
+    end if
+
     call this%deallocate()
 
     allocate(this%ground_dn(nspec,ncol))
     allocate(this%ground_net(nspec,ncol))
+    allocate(this%ground_horiz_diff(nspec,ncol))
     allocate(this%top_dn(nspec,ncol))
     allocate(this%top_net(nspec,ncol))
     if (use_direct_local) then
@@ -103,6 +127,15 @@ contains
       allocate(this%veg_abs(nspec,ntotlay))
       allocate(this%veg_air_abs(nspec,ntotlay))
     end if
+    if (do_save_flux_profile_local) then
+      allocate(this%flux_dn_layer_top(nspec,ntotlay))
+      allocate(this%flux_dn_dir_layer_top(nspec,ntotlay))
+      allocate(this%flux_up_layer_top(nspec,ntotlay))
+      allocate(this%flux_dn_layer_base(nspec,ntotlay))
+      allocate(this%flux_dn_dir_layer_base(nspec,ntotlay))
+      allocate(this%flux_up_layer_base(nspec,ntotlay))
+    end if
+
     this%nspec   = nspec
     this%ncol    = ncol
     this%ntotlay = ntotlay
@@ -117,6 +150,7 @@ contains
     if (allocated(this%ground_dn))        deallocate(this%ground_dn)
     if (allocated(this%ground_dn_dir))    deallocate(this%ground_dn_dir)
     if (allocated(this%ground_net))       deallocate(this%ground_net)
+    if (allocated(this%ground_horiz_diff))deallocate(this%ground_horiz_diff)
     if (allocated(this%top_dn))           deallocate(this%top_dn)
     if (allocated(this%top_dn_dir))       deallocate(this%top_dn_dir)
     if (allocated(this%top_net))          deallocate(this%top_net)
@@ -127,6 +161,12 @@ contains
     if (allocated(this%clear_air_abs))    deallocate(this%clear_air_abs)
     if (allocated(this%veg_abs))          deallocate(this%veg_abs)
     if (allocated(this%veg_air_abs))      deallocate(this%veg_air_abs)
+    if (allocated(this%flux_dn_layer_top))      deallocate(this%flux_dn_layer_top)
+    if (allocated(this%flux_dn_dir_layer_top))  deallocate(this%flux_dn_dir_layer_top)
+    if (allocated(this%flux_up_layer_top))      deallocate(this%flux_up_layer_top)
+    if (allocated(this%flux_dn_layer_base))     deallocate(this%flux_dn_layer_base)
+    if (allocated(this%flux_dn_dir_layer_base)) deallocate(this%flux_dn_dir_layer_base)
+    if (allocated(this%flux_up_layer_base))     deallocate(this%flux_up_layer_base)
 
   end subroutine deallocate_canopy_flux
   
@@ -167,6 +207,7 @@ contains
     
     this%ground_dn        = factor * this%ground_dn
     this%ground_net       = factor * this%ground_net
+    this%ground_horiz_diff= factor * this%ground_horiz_diff
     this%top_dn           = factor * this%top_dn
     this%top_net          = factor * this%top_net
     if (allocated(this%ground_dn_dir)) then
@@ -186,6 +227,14 @@ contains
       this%veg_abs     = factor(:,indcol) * this%veg_abs
       this%veg_air_abs = factor(:,indcol) * this%veg_air_abs
     end if
+    if (allocated(this%flux_dn_layer_top)) then
+      this%flux_dn_layer_top      = factor(:,indcol) * this%flux_dn_layer_top
+      this%flux_dn_dir_layer_top  = factor(:,indcol) * this%flux_dn_dir_layer_top
+      this%flux_up_layer_top      = factor(:,indcol) * this%flux_up_layer_top
+      this%flux_dn_layer_base     = factor(:,indcol) * this%flux_dn_layer_base
+      this%flux_dn_dir_layer_base = factor(:,indcol) * this%flux_dn_dir_layer_base
+      this%flux_up_layer_base     = factor(:,indcol) * this%flux_up_layer_base
+    end if
 
   end subroutine scale_canopy_flux
 
@@ -199,6 +248,7 @@ contains
 
     this%ground_dn(:,icol)        = 0.0_jprb
     this%ground_net(:,icol)       = 0.0_jprb
+    this%ground_horiz_diff(:,icol)= 0.0_jprb
     this%top_dn(:,icol)           = 0.0_jprb
     this%top_net(:,icol)          = 0.0_jprb
     if (allocated(this%ground_dn_dir)) then
@@ -220,6 +270,14 @@ contains
           this%veg_abs(:,ilay1:ilay2)     = 0.0_jprb
           this%veg_air_abs(:,ilay1:ilay2) = 0.0_jprb
         end if
+        if (allocated(this%flux_dn_layer_top)) then
+          this%flux_dn_layer_top(:,ilay1:ilay2)      = 0.0_jprb
+          this%flux_dn_dir_layer_top(:,ilay1:ilay2)  = 0.0_jprb
+          this%flux_up_layer_top(:,ilay1:ilay2)      = 0.0_jprb
+          this%flux_dn_layer_base(:,ilay1:ilay2)     = 0.0_jprb
+          this%flux_dn_dir_layer_base(:,ilay1:ilay2) = 0.0_jprb
+          this%flux_up_layer_base(:,ilay1:ilay2)     = 0.0_jprb
+        end if
       end if
     end if
 
@@ -234,6 +292,7 @@ contains
 
     this%ground_dn        = 0.0_jprb
     this%ground_net       = 0.0_jprb
+    this%ground_horiz_diff= 0.0_jprb
     this%top_dn           = 0.0_jprb
     this%top_net          = 0.0_jprb
     if (allocated(this%ground_dn_dir)) then
@@ -252,6 +311,14 @@ contains
     if (allocated(this%veg_abs)) then
       this%veg_abs     = 0.0_jprb
       this%veg_air_abs = 0.0_jprb
+    end if
+    if (allocated(this%flux_dn_layer_top)) then
+      this%flux_dn_layer_top      = 0.0_jprb
+      this%flux_dn_dir_layer_top  = 0.0_jprb
+      this%flux_up_layer_top      = 0.0_jprb
+      this%flux_dn_layer_base     = 0.0_jprb
+      this%flux_dn_dir_layer_base = 0.0_jprb
+      this%flux_up_layer_base     = 0.0_jprb
     end if
 
   end subroutine zero_all_canopy_flux
@@ -277,6 +344,7 @@ contains
 
     this%ground_dn  = flux1%ground_dn + flux2%ground_dn
     this%ground_net = flux1%ground_net + flux2%ground_net
+    this%ground_horiz_diff = flux1%ground_horiz_diff + flux2%ground_horiz_diff
     this%top_dn     = flux1%top_dn + flux2%top_dn
     this%top_net    = flux1%top_net + flux2%top_net
     if (use_direct) then
@@ -293,6 +361,14 @@ contains
     if (allocated(this%veg_abs)) then
       this%veg_abs = flux1%veg_abs + flux2%veg_abs
       this%veg_air_abs = flux1%veg_air_abs + flux2%veg_air_abs
+    end if
+    if (allocated(this%flux_dn_layer_top)) then
+      this%flux_dn_layer_top      = flux1%flux_dn_layer_top + flux2%flux_dn_layer_top
+      this%flux_dn_dir_layer_top  = flux1%flux_dn_dir_layer_top + flux2%flux_dn_dir_layer_top
+      this%flux_up_layer_top      = flux1%flux_up_layer_top + flux2%flux_up_layer_top
+      this%flux_dn_layer_base     = flux1%flux_dn_layer_base + flux2%flux_dn_layer_base
+      this%flux_dn_dir_layer_base = flux1%flux_dn_dir_layer_base + flux2%flux_dn_dir_layer_base
+      this%flux_up_layer_base     = flux1%flux_up_layer_base + flux2%flux_up_layer_base
     end if
 
   end subroutine sum_canopy_flux
