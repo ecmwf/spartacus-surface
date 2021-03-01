@@ -184,12 +184,12 @@ contains
       call out_file%define_variable("ground_flux_dn_direct_"//band_name, units_str="W m-2", &
            &  long_name="Downwelling direct "//band_long_name//" flux at ground", &
            &  dim1_name="column")
-      call out_file%define_variable("ground_flux_horiz_diffuse_"//band_name, units_str="W m-2", &
-           &  long_name="Horizontal diffuse "//band_long_name//" flux at ground", &
+      call out_file%define_variable("ground_flux_vertical_diffuse_"//band_name, units_str="W m-2", &
+           &  long_name="Diffuse "//band_long_name//" flux into a vertical surface at ground level", &
            &  dim1_name="column")
     else
-      call out_file%define_variable("ground_flux_horiz_"//band_name, units_str="W m-2", &
-           &  long_name="Horizontal "//band_long_name//" flux at ground", &
+      call out_file%define_variable("ground_flux_vertical_"//band_name, units_str="W m-2", &
+           &  long_name="Flux in "//band_long_name//" into a vertical surface at ground level", &
            &  dim1_name="column")
     end if
     call out_file%define_variable("top_flux_dn_"//band_name, units_str="W m-2", &
@@ -256,11 +256,11 @@ contains
     if (allocated(flux%ground_dn_dir)) then
       call out_file%put("ground_flux_dn_direct_"//band_name, &
            &  sum(flux%ground_dn_dir,1))
-      call out_file%put("ground_flux_horiz_diffuse_"//band_name, &
-           &  sum(flux%ground_horiz_diff,1))
+      call out_file%put("ground_flux_vertical_diffuse_"//band_name, &
+           &  sum(flux%ground_vertical_diff,1))
     else
-      call out_file%put("ground_flux_horiz_"//band_name, &
-           &  sum(flux%ground_horiz_diff,1))
+      call out_file%put("ground_flux_vertical_"//band_name, &
+           &  sum(flux%ground_vertical_diff,1))
     end if
     call out_file%put("top_flux_dn_"//band_name, sum(flux%top_dn,1))
     call out_file%put("top_flux_net_"//band_name, sum(flux%top_net,1))

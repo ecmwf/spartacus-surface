@@ -771,7 +771,7 @@ contains
         do js = 1,ns
           ifr = js + (jreg-1)*ns
           ! Project each stream into a horizontal plane
-          sw_norm_dir%ground_horiz_diff(:,icol) = sw_norm_dir%ground_horiz_diff(:,icol) &
+          sw_norm_dir%ground_vertical_diff(:,icol) = sw_norm_dir%ground_vertical_diff(:,icol) &
                &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
         end do
       end do
@@ -867,7 +867,7 @@ contains
         do js = 1,ns
           ifr = js + (jreg-1)*ns
           ! Project each stream into a horizontal plane
-          sw_norm_diff%ground_horiz_diff(:,icol) = sw_norm_diff%ground_horiz_diff(:,icol) &
+          sw_norm_diff%ground_vertical_diff(:,icol) = sw_norm_diff%ground_vertical_diff(:,icol) &
                &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
         end do
       end do

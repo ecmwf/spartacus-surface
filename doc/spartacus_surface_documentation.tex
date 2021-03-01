@@ -403,9 +403,9 @@ Variable & Dimensions & Description \\
 \codetab{wall\_sw\_specular\_fraction} & \codetab{col, layer, sw} & Fraction of wall reflection that is specular \\
 \codetab{wall\_lw\_emissivity} & \codetab{col, layer, lw} & Longwave emissivity of walls \\
 %
-\codetab{sky\_temperature} & \codetab{col, layer} & Equivalent emitting temperature of sky (K) \\
-\codetab{top\_flux\_dn\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling shortwave flux (W m$^{-2}$) \\
-\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, layer, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-2}$) \\
+\codetab{sky\_temperature} & \codetab{col} & Equivalent emitting temperature of sky (K) \\
+\codetab{top\_flux\_dn\_sw} & \codetab{col, sw} & Top-of-canopy downwelling shortwave flux (W m$^{-2}$) \\
+\codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-2}$) \\
 \hline
 \end{longtable}
 \end{center}
@@ -428,8 +428,8 @@ them spectrally resolved (using the input spectral discretization)
 then set the \code{radsurf\_config} namelist variable
 \code{do\_spectral} to \code{true} and the same variables will be
 output but with the prefix
-\code{spectral\_}. \code{ground\_flux\_horiz\_*} fluxes are into a
-horizontal plane and are useful for computing thermal comfort indices
+\code{spectral\_}. \code{ground\_flux\_vertical\_*} fluxes are into a
+vertical plane and are useful for computing thermal comfort indices
 and mean radiant temperature.
 
 \begin{center}
@@ -449,7 +449,7 @@ Variable & Dimensions & Description\\
 \codetab{ground\_flux\_dn\_sw} & \codetab{col} & Downwelling shortwave flux into the ground \\
 \codetab{ground\_flux\_net\_sw} & \codetab{col} & Net shortwave flux into the ground\\
 \codetab{ground\_flux\_dn\_direct\_sw} & \codetab{col} & Direct downwelling shortwave flux into the ground\\
-\codetab{ground\_flux\_horiz\_diffuse\_sw} & \codetab{col} & Diffuse shortwave flux into a horizontal surface at ground level\\
+\codetab{ground\_flux\_vertical\_diffuse\_sw} & \codetab{col} & Diffuse shortwave flux into a vertical surface at ground level\\
 \codetab{top\_flux\_dn\_sw} & \codetab{col} & Top-of-canopy downwelling shortwave flux\\
 \codetab{top\_flux\_net\_sw} & \codetab{col} & Top-of-canopy net shortwave flux\\
 \codetab{top\_flux\_dn\_direct\_sw} & \codetab{col} & Top-of-canopy direct downwelling shortwave flux\\
@@ -462,7 +462,7 @@ Variable & Dimensions & Description\\
 \codetab{veg\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by air in vegetated part of layer\\
 \codetab{ground\_flux\_dn\_lw} & \codetab{col} & Downwelling longwave flux into the ground\\
 \codetab{ground\_flux\_net\_lw} & \codetab{col} & Net longwave flux into the ground\\
-\codetab{ground\_flux\_horiz\_lw} & \codetab{col} & Longwave flux into a horizontal surface at ground level\\
+\codetab{ground\_flux\_vertical\_lw} & \codetab{col} & Longwave flux into a vertical surface at ground level\\
 \codetab{top\_flux\_dn\_lw} & \codetab{col} & Top-of-canopy donwelling longwave flux\\
 \codetab{top\_flux\_net\_lw} & \codetab{col} & Top-of-canopy net longwave flux\\
 \codetab{roof\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into roofs\\

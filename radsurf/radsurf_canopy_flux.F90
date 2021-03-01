@@ -41,11 +41,11 @@ module radsurf_canopy_flux
     real(kind=jprb), allocatable :: wall_in(:,:)       ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_net(:,:)      ! (nspec,ntotlay)
 
-    ! Diffuse flux into a horizontal surface at ground level, needed
-    ! for calculating the mean radiant temperature felt by a
-    ! human. Note that this quantity is still scaled by the fraction
-    ! of the lowest layer that is not building.
-    real(kind=jprb), allocatable :: ground_horiz_diff(:,:) ! (nspec,ncol)
+    ! Diffuse flux into a vertical surface at ground level, needed for
+    ! calculating the mean radiant temperature felt by a human. Note
+    ! that this quantity is still scaled by the fraction of the lowest
+    ! layer that is not building.
+    real(kind=jprb), allocatable :: ground_vertical_diff(:,:) ! (nspec,ncol)
 
     ! Absorption by the clear-air region, the vegetation in the
     ! vegetated region, and the air in the vegetated region
@@ -109,7 +109,7 @@ contains
 
     allocate(this%ground_dn(nspec,ncol))
     allocate(this%ground_net(nspec,ncol))
-    allocate(this%ground_horiz_diff(nspec,ncol))
+    allocate(this%ground_vertical_diff(nspec,ncol))
     allocate(this%top_dn(nspec,ncol))
     allocate(this%top_net(nspec,ncol))
     if (use_direct_local) then
@@ -150,7 +150,7 @@ contains
     if (allocated(this%ground_dn))        deallocate(this%ground_dn)
     if (allocated(this%ground_dn_dir))    deallocate(this%ground_dn_dir)
     if (allocated(this%ground_net))       deallocate(this%ground_net)
-    if (allocated(this%ground_horiz_diff))deallocate(this%ground_horiz_diff)
+    if (allocated(this%ground_vertical_diff))deallocate(this%ground_vertical_diff)
     if (allocated(this%top_dn))           deallocate(this%top_dn)
     if (allocated(this%top_dn_dir))       deallocate(this%top_dn_dir)
     if (allocated(this%top_net))          deallocate(this%top_net)
@@ -207,7 +207,7 @@ contains
     
     this%ground_dn        = factor * this%ground_dn
     this%ground_net       = factor * this%ground_net
-    this%ground_horiz_diff= factor * this%ground_horiz_diff
+    this%ground_vertical_diff= factor * this%ground_vertical_diff
     this%top_dn           = factor * this%top_dn
     this%top_net          = factor * this%top_net
     if (allocated(this%ground_dn_dir)) then
@@ -248,7 +248,7 @@ contains
 
     this%ground_dn(:,icol)        = 0.0_jprb
     this%ground_net(:,icol)       = 0.0_jprb
-    this%ground_horiz_diff(:,icol)= 0.0_jprb
+    this%ground_vertical_diff(:,icol)= 0.0_jprb
     this%top_dn(:,icol)           = 0.0_jprb
     this%top_net(:,icol)          = 0.0_jprb
     if (allocated(this%ground_dn_dir)) then
@@ -292,7 +292,7 @@ contains
 
     this%ground_dn        = 0.0_jprb
     this%ground_net       = 0.0_jprb
-    this%ground_horiz_diff= 0.0_jprb
+    this%ground_vertical_diff= 0.0_jprb
     this%top_dn           = 0.0_jprb
     this%top_net          = 0.0_jprb
     if (allocated(this%ground_dn_dir)) then
@@ -344,7 +344,7 @@ contains
 
     this%ground_dn  = flux1%ground_dn + flux2%ground_dn
     this%ground_net = flux1%ground_net + flux2%ground_net
-    this%ground_horiz_diff = flux1%ground_horiz_diff + flux2%ground_horiz_diff
+    this%ground_vertical_diff = flux1%ground_vertical_diff + flux2%ground_vertical_diff
     this%top_dn     = flux1%top_dn + flux2%top_dn
     this%top_net    = flux1%top_net + flux2%top_net
     if (use_direct) then
