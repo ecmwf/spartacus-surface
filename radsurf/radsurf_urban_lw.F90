@@ -655,7 +655,13 @@ contains
              &  + mat_x_vec(nlw,nlw,nreg*ns,a_above(:,:,:,jlay),source_lay(:,:,jlay))))
         ! Add the contribution from the exposed roofs
         if (jlay < nlay) then
-          exposed_roof_frac = building_fraction(jlay)-building_fraction(jlay+1)
+          ! Here and in radsurf_overlap we have to deal with the case
+          ! of overhanging buildings - this is done by configuring the
+          ! overlap matrices so that no upwelling radiation from the
+          ! layer below enters the "floor" of the overhanging
+          ! building, and also ensuring that the exposed roof fraction
+          ! cannot be negative
+          exposed_roof_frac = max(0.0_jprb,building_fraction(jlay)-building_fraction(jlay+1))
         else
           exposed_roof_frac = building_fraction(jlay)
         end if

@@ -9,6 +9,9 @@ version 0.7.2
 	  needed to compute mean radiant temperature and comfort indices
 	- Namelist variable "do_save_flux_profile" saves additional flux
 	  profile variables
+	- Fixed radsurf_overlap and radsurf_urban_lw to treat overhanging
+	  buildings: no radiation is allowed to enter the base of the
+	  overhanging layer
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

@@ -282,9 +282,10 @@ contains
 
   !---------------------------------------------------------------------
   ! As calc_overlap_matrices, but for an urban canopy with vertically
-  ! varying building fraction, such the exposed roof at each layer
-  ! interface is treated as its own region in the lower layer. This
-  ! leads to the directional overlap matrices being diagonal.
+  ! varying building fraction, such that the exposed roof at each
+  ! layer interface is treated as its own region in the lower
+  ! layer. This leads to the directional overlap matrices being
+  ! diagonal.
   subroutine calc_overlap_matrices_urban(nlay,nreg, &
        &     region_fracs, u_overlap, v_overlap, &
        &     frac_threshold)
@@ -375,12 +376,17 @@ contains
       if (jlay < nlay) then
         frac_lower(nreg+1) = sum(region_fracs(:,jlay+1)) - sum(region_fracs(:,jlay))
         if (frac_lower(nreg+1) < 0.0_jprb) then
-          call radiation_abort('Building fraction cannot increase with height')
+          ! call radiation_abort('Building fraction cannot increase with height')
+          ! Overhanging building! Scale the clear/vegetated areas in
+          ! the lower layer so that they do not exceed the total of
+          ! the clear/vegetated areas in the upper layer
+          frac_lower(1:nreg) = frac_lower(1:nreg) * sum(region_fracs(:,jlay+1)) / sum(region_fracs(:,jlay))
+          frac_lower(nreg+1) = 0.0_jprb
         end if
       else if (jlay == nlay) then
         frac_lower(nreg+1) = 1.0_jprb - sum(region_fracs(:,jlay))
       end if
-        
+
     end do ! layers
 
     if (lhook) call dr_hook('radsurf_overlap:calc_overlap_matrices_urban',1,hook_handle)
