@@ -232,6 +232,31 @@ contains
          &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
     end if
 
+    if (allocated(flux%flux_dn_layer_top)) then
+      call out_file%define_variable("flux_dn_layer_top_"//band_name, units_str="W m-2", &
+           &  long_name="Downwelling "//band_long_name//" flux at top of layer", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      if (allocated(flux%flux_dn_dir_layer_top)) then
+        call out_file%define_variable("flux_dn_direct_layer_top_"//band_name, units_str="W m-2", &
+             &  long_name="Downwelling direct "//band_long_name//" flux at top of layer", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      end if
+      call out_file%define_variable("flux_up_layer_top_"//band_name, units_str="W m-2", &
+           &  long_name="Upwelling "//band_long_name//" flux at top of layer", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      call out_file%define_variable("flux_dn_layer_base_"//band_name, units_str="W m-2", &
+           &  long_name="Downwelling "//band_long_name//" flux at base of layer", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      if (allocated(flux%flux_dn_dir_layer_base)) then
+        call out_file%define_variable("flux_dn_direct_layer_base_"//band_name, units_str="W m-2", &
+             &  long_name="Downwelling direct "//band_long_name//" flux at base of layer", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      end if
+      call out_file%define_variable("flux_up_layer_base_"//band_name, units_str="W m-2", &
+           &  long_name="Upwelling "//band_long_name//" flux at base of layer", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+    end if
+
   end subroutine define_canopy_flux_variables
 
 
@@ -283,19 +308,43 @@ contains
       call out_file%put("wall_flux_net_"//band_name, tmp)
     end if
     if (allocated(flux%clear_air_abs)) then
-        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
            &  flux%clear_air_abs, tmp)
       call out_file%put("clear_air_absorption_"//band_name, tmp)    
     end if
     if (allocated(flux%veg_abs)) then
-        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
            &  flux%veg_abs, tmp)
       call out_file%put("veg_absorption_"//band_name, tmp)
-         call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
            &  flux%veg_air_abs, tmp)
       call out_file%put("veg_air_absorption_"//band_name, tmp)
-   end if
-
+    end if
+    if (allocated(flux%flux_dn_layer_top)) then
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%flux_dn_layer_top, tmp)
+      call out_file%put("flux_dn_layer_top_"//band_name, tmp)
+      if (allocated(flux%flux_dn_dir_layer_top)) then
+        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%flux_dn_dir_layer_top, tmp)
+        call out_file%put("flux_dn_direct_layer_top_"//band_name, tmp)
+      end if
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%flux_up_layer_top, tmp)
+      call out_file%put("flux_up_layer_top_"//band_name, tmp)
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%flux_dn_layer_base, tmp)
+      call out_file%put("flux_dn_layer_base_"//band_name, tmp)
+      if (allocated(flux%flux_dn_dir_layer_base)) then
+        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%flux_dn_dir_layer_base, tmp)
+        call out_file%put("flux_dn_direct_layer_base_"//band_name, tmp)
+      end if
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%flux_up_layer_base, tmp)
+      call out_file%put("flux_up_layer_base_"//band_name, tmp)
+    end if
+    
   end subroutine write_canopy_flux_variables
 
   subroutine unpack_variable_broadband(ncol, nmaxlay, nlay, fill_value, var_in, var_out)

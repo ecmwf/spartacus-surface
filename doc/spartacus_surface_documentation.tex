@@ -427,10 +427,20 @@ and absorption rates listed in Table \ref{tab:outvar}. If you need
 them spectrally resolved (using the input spectral discretization)
 then set the \code{radsurf\_config} namelist variable
 \code{do\_spectral} to \code{true} and the same variables will be
-output but with the prefix
-\code{spectral\_}. \code{ground\_flux\_vertical\_*} fluxes are into a
-vertical plane and are useful for computing thermal comfort indices
-and mean radiant temperature.
+output but with the prefix \code{spectral\_}. The
+\code{ground\_flux\_vertical\_*} variables are fluxes into a vertical
+plane at ground level, and are useful for computing thermal comfort
+indices and mean radiant temperature.
+
+If you set namelist parameter \code{do\_save\_flux\_profile} to
+\code{true}, then the flux-profile variables listed in Table
+\ref{tab:outfluxprofvar} will also be output, which are averaged over
+both the clear and vegetated regions. Note that these variables are
+output at the top and base of each layer.  In forests, the fluxes at
+the top of one layer will be equal to the fluxes at the base of the
+layer above, whereas in urban areas, since the fluxes are per unit
+horizontal area of the entire domain, these fluxes will not match when
+the building fraction decreases with height.
 
 \begin{center}
 \tablesetup
@@ -477,6 +487,34 @@ Variable & Dimensions & Description\\
 \end{center}
 
 
+\begin{center}
+\tablesetup
+\begin{longtable}{llLp{7cm}}%
+\caption{\label{tab:outfluxprofvar}Additional variables contained in the
+  output netCDF file from \spsurf\ if the namelist parameter
+  \code{do\_save\_flux\_profile} is set to \code{true}.  All fluxes
+  have units of W~m$^{-2}$, but
+  note that this is power per unit area of the \emph{entire domain},
+  not per unit area of the clear/vegetated part of the layer.}\\
+%
+\hline
+Variable & Dimensions & Description\\
+\hline
+\codetab{flux\_dn\_layer\_top\_sw} & \codetab{col, layer} & Downwelling shortwave flux in the clear/vegetated regions at the top of each layer\\
+\codetab{flux\_dn\_direct\_layer\_top\_sw} & \codetab{col, layer} & Direct downwelling shortwave flux in the clear/vegetated regions at the top of each layer\\
+\codetab{flux\_up\_layer\_top\_sw} & \codetab{col, layer} & Upwelling shortwave flux in the clear/vegetated regions at the top of each layer\\
+\codetab{flux\_dn\_layer\_base\_sw} & \codetab{col, layer} & Downwelling shortwave flux in the clear/vegetated regions at the base of each layer\\
+\codetab{flux\_dn\_direct\_layer\_base\_sw} & \codetab{col, layer} & Direct downwelling shortwave flux in the clear/vegetated regions at the base of each layer\\
+\codetab{flux\_up\_layer\_base\_sw} & \codetab{col, layer} & Upwelling shortwave flux in the clear/vegetated regions at the base of each layer\\
+\codetab{flux\_dn\_layer\_top\_lw} & \codetab{col, layer} & Downwelling longwave flux in the clear/vegetated regions at the top of each layer\\
+\codetab{flux\_up\_layer\_top\_lw} & \codetab{col, layer} & Upwelling longwave flux in the clear/vegetated regions at the top of each layer\\
+\codetab{flux\_dn\_layer\_base\_lw} & \codetab{col, layer} & Downwelling longwave flux in the clear/vegetated regions at the base of each layer\\
+\codetab{flux\_up\_layer\_base\_lw} & \codetab{col, layer} & Upwelling longwave flux in the clear/vegetated regions at the base of each layer\\
+\hline
+\end{longtable}
+\end{center}
+
+
 \section{Configuring the \spsurf\ algorithm}
 \label{sec:nam_radsurf}
 The detailed settings of \spsurf\ are configured using the
@@ -512,6 +550,7 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \codetab{do\_urban} & L & \codetabemph{true} & Will urban areas be represented? \\
 \codetab{use\_sw\_direct\_albedo} & L & \codetabemph{false} & Specify ground and roof albedos separately for direct solar radiation? \\
 \codetab{min\_vegetation\_fraction} & R & \codetabemph{10$^{-6}$} & Minimum area fraction below which a region is removed completely\\
+\codetab{do\_save\_flux\_profile} & L & \codetabemph{false} & Save the flux profile variables listed in Table \ref{tab:outfluxprofvar}\\
 \hline
 \multicolumn{4}{l}{\emph{Options specific to forest tiles}}\\
 \codetab{n\_vegetation\_region\_forest} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\

@@ -129,10 +129,14 @@ contains
     end if
     if (do_save_flux_profile_local) then
       allocate(this%flux_dn_layer_top(nspec,ntotlay))
-      allocate(this%flux_dn_dir_layer_top(nspec,ntotlay))
+      if (use_direct_local) then
+        allocate(this%flux_dn_dir_layer_top(nspec,ntotlay))
+      end if
       allocate(this%flux_up_layer_top(nspec,ntotlay))
       allocate(this%flux_dn_layer_base(nspec,ntotlay))
-      allocate(this%flux_dn_dir_layer_base(nspec,ntotlay))
+      if (use_direct_local) then
+        allocate(this%flux_dn_dir_layer_base(nspec,ntotlay))
+      end if
       allocate(this%flux_up_layer_base(nspec,ntotlay))
     end if
 
@@ -229,11 +233,13 @@ contains
     end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = factor(:,indcol) * this%flux_dn_layer_top
-      this%flux_dn_dir_layer_top  = factor(:,indcol) * this%flux_dn_dir_layer_top
       this%flux_up_layer_top      = factor(:,indcol) * this%flux_up_layer_top
       this%flux_dn_layer_base     = factor(:,indcol) * this%flux_dn_layer_base
-      this%flux_dn_dir_layer_base = factor(:,indcol) * this%flux_dn_dir_layer_base
       this%flux_up_layer_base     = factor(:,indcol) * this%flux_up_layer_base
+    end if
+    if (allocated(this%flux_dn_dir_layer_top)) then
+      this%flux_dn_dir_layer_top  = factor(:,indcol) * this%flux_dn_dir_layer_top
+      this%flux_dn_dir_layer_base = factor(:,indcol) * this%flux_dn_dir_layer_base
     end if
 
   end subroutine scale_canopy_flux
@@ -272,11 +278,13 @@ contains
         end if
         if (allocated(this%flux_dn_layer_top)) then
           this%flux_dn_layer_top(:,ilay1:ilay2)      = 0.0_jprb
-          this%flux_dn_dir_layer_top(:,ilay1:ilay2)  = 0.0_jprb
           this%flux_up_layer_top(:,ilay1:ilay2)      = 0.0_jprb
           this%flux_dn_layer_base(:,ilay1:ilay2)     = 0.0_jprb
-          this%flux_dn_dir_layer_base(:,ilay1:ilay2) = 0.0_jprb
           this%flux_up_layer_base(:,ilay1:ilay2)     = 0.0_jprb
+        end if
+        if (allocated(this%flux_dn_dir_layer_top)) then
+          this%flux_dn_dir_layer_top(:,ilay1:ilay2)  = 0.0_jprb
+          this%flux_dn_dir_layer_base(:,ilay1:ilay2) = 0.0_jprb
         end if
       end if
     end if
@@ -314,11 +322,13 @@ contains
     end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = 0.0_jprb
-      this%flux_dn_dir_layer_top  = 0.0_jprb
       this%flux_up_layer_top      = 0.0_jprb
       this%flux_dn_layer_base     = 0.0_jprb
-      this%flux_dn_dir_layer_base = 0.0_jprb
       this%flux_up_layer_base     = 0.0_jprb
+    end if
+    if (allocated(this%flux_dn_dir_layer_top)) then
+      this%flux_dn_dir_layer_top  = 0.0_jprb
+      this%flux_dn_dir_layer_base = 0.0_jprb
     end if
 
   end subroutine zero_all_canopy_flux
@@ -364,11 +374,13 @@ contains
     end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = flux1%flux_dn_layer_top + flux2%flux_dn_layer_top
-      this%flux_dn_dir_layer_top  = flux1%flux_dn_dir_layer_top + flux2%flux_dn_dir_layer_top
       this%flux_up_layer_top      = flux1%flux_up_layer_top + flux2%flux_up_layer_top
       this%flux_dn_layer_base     = flux1%flux_dn_layer_base + flux2%flux_dn_layer_base
-      this%flux_dn_dir_layer_base = flux1%flux_dn_dir_layer_base + flux2%flux_dn_dir_layer_base
       this%flux_up_layer_base     = flux1%flux_up_layer_base + flux2%flux_up_layer_base
+    end if
+    if (allocated(this%flux_dn_dir_layer_top)) then
+      this%flux_dn_dir_layer_top  = flux1%flux_dn_dir_layer_top + flux2%flux_dn_dir_layer_top
+      this%flux_dn_dir_layer_base = flux1%flux_dn_dir_layer_base + flux2%flux_dn_dir_layer_base
     end if
 
   end subroutine sum_canopy_flux

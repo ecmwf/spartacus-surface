@@ -740,6 +740,18 @@ contains
         flux_up_above = mat_x_vec(nlw,nlw,nreg*ns,a_above(:,:,:,jlay),flux_dn_above) &
              &  + source_above(:,:,jlay)
 
+        if (allocated(lw_internal%flux_dn_layer_top)) then
+          ! Store fluxes at top of layer (just below the upper
+          ! interface), summing over all regions except the last (the
+          ! roof)
+          lw_internal%flux_dn_layer_top(:,ilay) = sum(flux_dn_below(:,1:nreg*ns),2)
+          lw_internal%flux_up_layer_top(:,ilay) = sum(flux_up_below(:,1:nreg*ns),2)
+          ! Store fluxes at base of layer (just above the lower
+          ! interface), summing over all regions (no roof)
+          lw_internal%flux_dn_layer_base(:,ilay) = sum(flux_dn_above,2)
+          lw_internal%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
+        end if
+
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
@@ -835,6 +847,18 @@ contains
              &  mat_x_vec(nlw,nlw,nreg*ns,trans(:,:,:,jlay),flux_dn_below(:,1:nreg*ns)))
         flux_up_above = mat_x_vec(nlw,nlw,nreg*ns,a_above(:,:,:,jlay), &
              &  flux_dn_above)
+
+        if (allocated(lw_norm%flux_dn_layer_top)) then
+          ! Store fluxes at top of layer (just below the upper
+          ! interface), summing over all regions except the last (the
+          ! roof)
+          lw_norm%flux_dn_layer_top(:,ilay) = sum(flux_dn_below(:,1:nreg*ns),2)
+          lw_norm%flux_up_layer_top(:,ilay) = sum(flux_up_below(:,1:nreg*ns),2)
+          ! Store fluxes at base of layer (just above the lower
+          ! interface), summing over all regions (no roof)
+          lw_norm%flux_dn_layer_base(:,ilay) = sum(flux_dn_above,2)
+          lw_norm%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
+        end if
 
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below

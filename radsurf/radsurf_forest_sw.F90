@@ -536,6 +536,9 @@ contains
 
       ! Loop down through layers
       do jlay = nlay,1,-1
+        ! Find index into output arrays
+        ilay = ilay1 + jlay - 1
+
         ! Translate the downwelling flux component across the
         ! interface at the top of the layer
         flux_dn_dir_below = singlemat_x_vec(nsw,nsw,nreg, &
@@ -559,6 +562,21 @@ contains
         flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
              &  flux_dn_diff_above) + flux_reflected_dir
 
+        if (allocated(sw_norm_dir%flux_dn_layer_top)) then
+          ! Store fluxes at top of layer (just below the upper
+          ! interface), summing over all regions
+          sw_norm_dir%flux_dn_dir_layer_top(:,ilay) = cos_sza * sum(flux_dn_dir_below,2)
+          sw_norm_dir%flux_dn_layer_top(:,ilay) = sw_norm_dir%flux_dn_dir_layer_top(:,ilay) &
+               &  + sum(flux_dn_diff_below,2)
+          sw_norm_dir%flux_up_layer_top(:,ilay) = sum(flux_up_below,2)
+          ! Store fluxes at base of layer (just above the lower
+          ! interface), summing over all regions
+          sw_norm_dir%flux_dn_dir_layer_base(:,ilay) = cos_sza * sum(flux_dn_dir_above,2)
+          sw_norm_dir%flux_dn_layer_base(:,ilay) = sw_norm_dir%flux_dn_dir_layer_base(:,ilay) &
+               &  + sum(flux_dn_diff_above,2)
+          sw_norm_dir%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
+        end if
+
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
@@ -569,7 +587,6 @@ contains
              &  + rect_mat_x_vec(nsw,nreg*ns,nreg,int_dir_diff(:,:,:,jlay), &
              &                   flux_dn_dir_below - flux_dn_dir_above)
 
-        ilay = ilay1 + jlay - 1
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
@@ -629,6 +646,9 @@ contains
       
       ! Loop down through layers
       do jlay = nlay,1,-1
+        ! Find index into output arrays
+        ilay = ilay1 + jlay - 1
+
         ! Translate the downwelling flux component across the
         ! interface at the top of the layer
         flux_dn_diff_below = rect_expandedmat_x_vec(nsw,nreg,nreg,ns, &
@@ -640,13 +660,23 @@ contains
         flux_up_above = mat_x_vec(nsw,nsw,nreg*ns,a_above(:,:,:,jlay), &
              &  flux_dn_diff_above)
 
+        if (allocated(sw_norm_diff%flux_dn_layer_top)) then
+          ! Store fluxes at top of layer (just below the upper
+          ! interface), summing over all regions
+          sw_norm_diff%flux_dn_layer_top(:,ilay) = sum(flux_dn_diff_below,2)
+          sw_norm_diff%flux_up_layer_top(:,ilay) = sum(flux_up_below,2)
+          ! Store fluxes at base of layer (just above the lower
+          ! interface), summing over all regions
+          sw_norm_diff%flux_dn_layer_base(:,ilay) = sum(flux_dn_diff_above,2)
+          sw_norm_diff%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
+        end if
+
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
         int_flux_diff= mat_x_vec(nsw,nsw,nreg*ns,int_diff(:,:,:,jlay), flux_dn_diff_below &
              &                   - flux_dn_diff_above - flux_up_below + flux_up_above)
 
-        ilay = ilay1 + jlay - 1
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &

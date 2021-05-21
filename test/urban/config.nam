@@ -20,4 +20,5 @@ nsw = 1,
 nlw = 1,
 n_stream_sw_urban = 2,
 n_stream_lw_urban = 2,
+do_save_flux_profile = true,
 /

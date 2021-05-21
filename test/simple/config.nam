@@ -23,4 +23,5 @@ n_stream_sw_forest = 2,
 n_stream_sw_urban = 2,
 n_stream_lw_forest = 2,
 n_stream_lw_urban = 2,
+do_save_flux_profile = true,
 /

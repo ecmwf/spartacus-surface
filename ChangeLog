@@ -7,6 +7,8 @@ version 0.7.2
 	- Added ground-level fluxes into a vertical plane
 	  (ground_flux_vertical_diffuse_sw and ground_flux_vertical_lw)
 	  needed to compute mean radiant temperature and comfort indices
+	- Namelist variable "do_save_flux_profile" saves additional flux
+	  profile variables
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file
