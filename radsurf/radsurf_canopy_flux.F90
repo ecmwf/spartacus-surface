@@ -37,9 +37,16 @@ module radsurf_canopy_flux
     real(kind=jprb), allocatable :: top_dn_dir(:,:)    ! (nspec,ncol)
     real(kind=jprb), allocatable :: top_net(:,:)       ! (nspec,ncol)
     real(kind=jprb), allocatable :: roof_in(:,:)       ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: roof_in_dir(:,:)   ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: roof_net(:,:)      ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_in(:,:)       ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: wall_in_dir(:,:)   ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: wall_net(:,:)      ! (nspec,ntotlay)
+
+    ! Fraction of roof/wall/ground that is in direct sunlight
+    real(kind=jprb), allocatable :: roof_sunlit_frac(:)   ! (ntotlay)
+    real(kind=jprb), allocatable :: wall_sunlit_frac(:)   ! (ntotlay)
+    real(kind=jprb), allocatable :: ground_sunlit_frac(:) ! (ncol)
 
     ! Diffuse flux into a vertical surface at ground level, needed for
     ! calculating the mean radiant temperature felt by a human. Note
@@ -115,12 +122,19 @@ contains
     if (use_direct_local) then
       allocate(this%ground_dn_dir(nspec,ncol))
       allocate(this%top_dn_dir(nspec,ncol))
+      allocate(this%ground_sunlit_frac(ncol))
     end if
     if (config%do_urban) then
       allocate(this%roof_in(nspec,ntotlay))
       allocate(this%roof_net(nspec,ntotlay))
       allocate(this%wall_in(nspec,ntotlay))
       allocate(this%wall_net(nspec,ntotlay))
+      if (use_direct_local) then
+        allocate(this%roof_in_dir(nspec,ntotlay))
+        allocate(this%wall_in_dir(nspec,ntotlay))
+        allocate(this%roof_sunlit_frac(ntotlay))
+        allocate(this%wall_sunlit_frac(ntotlay))
+      end if
     end if
     allocate(this%clear_air_abs(nspec,ntotlay))
     if (config%do_vegetation) then
@@ -154,14 +168,19 @@ contains
     if (allocated(this%ground_dn))        deallocate(this%ground_dn)
     if (allocated(this%ground_dn_dir))    deallocate(this%ground_dn_dir)
     if (allocated(this%ground_net))       deallocate(this%ground_net)
-    if (allocated(this%ground_vertical_diff))deallocate(this%ground_vertical_diff)
+    if (allocated(this%ground_vertical_diff)) deallocate(this%ground_vertical_diff)
+    if (allocated(this%ground_sunlit_frac))   deallocate(this%ground_sunlit_frac)
     if (allocated(this%top_dn))           deallocate(this%top_dn)
     if (allocated(this%top_dn_dir))       deallocate(this%top_dn_dir)
     if (allocated(this%top_net))          deallocate(this%top_net)
     if (allocated(this%roof_in))          deallocate(this%roof_in)
+    if (allocated(this%roof_in_dir))      deallocate(this%roof_in_dir)
     if (allocated(this%roof_net))         deallocate(this%roof_net)
     if (allocated(this%wall_in))          deallocate(this%wall_in)
+    if (allocated(this%wall_in_dir))      deallocate(this%wall_in_dir)
     if (allocated(this%wall_net))         deallocate(this%wall_net)
+    if (allocated(this%roof_sunlit_frac)) deallocate(this%roof_sunlit_frac)
+    if (allocated(this%wall_sunlit_frac)) deallocate(this%wall_sunlit_frac)
     if (allocated(this%clear_air_abs))    deallocate(this%clear_air_abs)
     if (allocated(this%veg_abs))          deallocate(this%veg_abs)
     if (allocated(this%veg_air_abs))      deallocate(this%veg_air_abs)
@@ -178,7 +197,8 @@ contains
   ! Typically the canopy_flux object initially contains normalized
   ! fluxes, e.g. for a top-of-canopy downwelling flux of unity.  Once
   ! the top-of-canopy downwelling flux is known, the canopy fluxes can
-  ! be scaled.
+  ! be scaled.  Note that the variables roof_sunlit_frac,
+  ! wall_sunlit_frac and ground_sunlit_frac are not scaled.
   subroutine scale_canopy_flux(this, nlay, factor)
 
     use radiation_io, only : nulerr, radiation_abort
@@ -224,6 +244,10 @@ contains
       this%wall_in  = factor(:,indcol) * this%wall_in
       this%wall_net = factor(:,indcol) * this%wall_net
     end if
+    if (allocated(this%roof_in_dir)) then
+      this%roof_in_dir = factor(:,indcol) * this%roof_in_dir
+      this%wall_in_dir = factor(:,indcol) * this%wall_in_dir
+    end if
     if (allocated(this%clear_air_abs)) then
       this%clear_air_abs = factor(:,indcol) * this%clear_air_abs
     end if
@@ -260,6 +284,7 @@ contains
     if (allocated(this%ground_dn_dir)) then
       this%ground_dn_dir(:,icol) = 0.0_jprb
       this%top_dn_dir(:,icol)    = 0.0_jprb
+      this%ground_sunlit_frac(icol) = 0.0_jprb
     end if
     if (present(ilay1) .and. present(ilay2)) then
       if (ilay2 >= ilay1) then
@@ -268,6 +293,12 @@ contains
           this%roof_net(:,ilay1:ilay2) = 0.0_jprb
           this%wall_in(:,ilay1:ilay2)  = 0.0_jprb
           this%wall_net(:,ilay1:ilay2) = 0.0_jprb
+        end if
+        if (allocated(this%roof_in_dir)) then
+          this%roof_in_dir(:,ilay1:ilay2)  = 0.0_jprb
+          this%wall_in_dir(:,ilay1:ilay2)  = 0.0_jprb
+          this%roof_sunlit_frac(ilay1:ilay2) = 0.0_jprb
+          this%wall_sunlit_frac(ilay1:ilay2) = 0.0_jprb
         end if
         if (allocated(this%clear_air_abs)) then
           this%clear_air_abs(:,ilay1:ilay2) = 0.0_jprb
@@ -306,12 +337,19 @@ contains
     if (allocated(this%ground_dn_dir)) then
       this%ground_dn_dir = 0.0_jprb
       this%top_dn_dir    = 0.0_jprb
+      this%ground_sunlit_frac = 0.0_jprb
     end if
     if (allocated(this%roof_in)) then
       this%roof_in  = 0.0_jprb
       this%roof_net = 0.0_jprb
       this%wall_in  = 0.0_jprb
       this%wall_net = 0.0_jprb
+    end if
+    if (allocated(this%roof_in_dir)) then
+      this%roof_in_dir = 0.0_jprb
+      this%wall_in_dir = 0.0_jprb
+      this%roof_sunlit_frac = 0.0_jprb
+      this%wall_sunlit_frac = 0.0_jprb
     end if
     if (allocated(this%clear_air_abs)) then
       this%clear_air_abs = 0.0_jprb
@@ -360,12 +398,21 @@ contains
     if (use_direct) then
       this%ground_dn_dir = flux1%ground_dn_dir + flux2%ground_dn_dir
       this%top_dn_dir    = flux1%top_dn_dir + flux2%top_dn_dir
+      ! Note that one of summed terms here ought to be zero:
+      this%ground_sunlit_frac = flux1%ground_sunlit_frac + flux2%ground_sunlit_frac
     end if
     if (allocated(this%roof_in)) then
       this%roof_in = flux1%roof_in + flux2%roof_in
       this%roof_net = flux1%roof_net + flux2%roof_net
       this%wall_in = flux1%wall_in + flux2%wall_in
       this%wall_net = flux1%wall_net + flux2%wall_net
+    end if
+    if (allocated(this%roof_in_dir)) then
+      this%roof_in_dir = flux1%roof_in_dir + flux2%roof_in_dir
+      this%wall_in_dir = flux1%wall_in_dir + flux2%wall_in_dir
+      ! Note that one of summed terms here ought to be zero:
+      this%roof_sunlit_frac = flux1%roof_sunlit_frac + flux2%roof_sunlit_frac
+      this%wall_sunlit_frac = flux1%wall_sunlit_frac + flux2%wall_sunlit_frac
     end if
     this%clear_air_abs = flux1%clear_air_abs + flux2%clear_air_abs
     if (allocated(this%veg_abs)) then

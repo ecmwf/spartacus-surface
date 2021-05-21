@@ -12,6 +12,8 @@ version 0.7.2
 	- Fixed radsurf_overlap and radsurf_urban_lw to treat overhanging
 	  buildings: no radiation is allowed to enter the base of the
 	  overhanging layer
+	- Store sunlit fractions on ground, roof and walls, along with
+	  direct radiation incident on these facets
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

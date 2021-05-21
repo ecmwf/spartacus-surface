@@ -187,6 +187,8 @@ contains
       call out_file%define_variable("ground_flux_vertical_diffuse_"//band_name, units_str="W m-2", &
            &  long_name="Diffuse "//band_long_name//" flux into a vertical surface at ground level", &
            &  dim1_name="column")
+      call out_file%define_variable("ground_sunlit_fraction", units_str="1", &
+           &  long_name="Fraction of ground in direct sunlight", dim1_name="column")
     else
       call out_file%define_variable("ground_flux_vertical_"//band_name, units_str="W m-2", &
            &  long_name="Flux in "//band_long_name//" into a vertical surface at ground level", &
@@ -204,18 +206,34 @@ contains
            &  dim1_name="column")
     end if
     if (allocated(flux%roof_in)) then
-     call out_file%define_variable("roof_flux_in_"//band_name, units_str="W m-2", &
-         &  long_name="Incoming "//band_long_name//" flux at roofs", &
-         &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
-     call out_file%define_variable("roof_flux_net_"//band_name, units_str="W m-2", &
-         &  long_name="Net "//band_long_name//" flux at roofs", &
-         &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
-     call out_file%define_variable("wall_flux_in_"//band_name, units_str="W m-2", &
-         &  long_name="Incoming "//band_long_name//" flux at walls", &
-         &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
-     call out_file%define_variable("wall_flux_net_"//band_name, units_str="W m-2", &
-         &  long_name="Net "//band_long_name//" flux at walls", &
-         &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      call out_file%define_variable("roof_flux_in_"//band_name, units_str="W m-2", &
+           &  long_name="Incoming "//band_long_name//" flux at roofs", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      if (allocated(flux%roof_in_dir)) then
+        call out_file%define_variable("roof_flux_in_dir_"//band_name, units_str="W m-2", &
+             &  long_name="Direct incoming "//band_long_name//" flux at roofs", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+        call out_file%define_variable("roof_sunlit_fraction", units_str="1", &
+             &  long_name="Fraction of roof in direct sunlight", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      end if
+      call out_file%define_variable("roof_flux_net_"//band_name, units_str="W m-2", &
+           &  long_name="Net "//band_long_name//" flux at roofs", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      call out_file%define_variable("wall_flux_in_"//band_name, units_str="W m-2", &
+           &  long_name="Incoming "//band_long_name//" flux at walls", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      if (allocated(flux%wall_in_dir)) then
+        call out_file%define_variable("wall_flux_in_dir_"//band_name, units_str="W m-2", &
+             &  long_name="Direct incoming "//band_long_name//" flux at walls", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+        call out_file%define_variable("wall_sunlit_fraction", units_str="1", &
+             &  long_name="Fraction of wall in direct sunlight", &
+             &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      end if
+      call out_file%define_variable("wall_flux_net_"//band_name, units_str="W m-2", &
+           &  long_name="Net "//band_long_name//" flux at walls", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
     end if
     if (allocated(flux%clear_air_abs)) then
       call out_file%define_variable("clear_air_absorption_"//band_name, units_str="W m-2", &
@@ -283,6 +301,7 @@ contains
            &  sum(flux%ground_dn_dir,1))
       call out_file%put("ground_flux_vertical_diffuse_"//band_name, &
            &  sum(flux%ground_vertical_diff,1))
+      call out_file%put("ground_sunlit_fraction", flux%ground_sunlit_frac)
     else
       call out_file%put("ground_flux_vertical_"//band_name, &
            &  sum(flux%ground_vertical_diff,1))
@@ -306,6 +325,20 @@ contains
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
            &  flux%wall_net, tmp)
       call out_file%put("wall_flux_net_"//band_name, tmp)
+      if (allocated(flux%roof_in_dir)) then
+        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%roof_in_dir, tmp)
+        call out_file%put("roof_flux_in_dir_"//band_name, tmp)
+        call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%wall_in_dir, tmp)
+        call out_file%put("wall_flux_in_dir_"//band_name, tmp)
+        call unpack_variable(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%roof_sunlit_frac, tmp)
+        call out_file%put("roof_sunlit_fraction", tmp)
+        call unpack_variable(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+             &  flux%wall_sunlit_frac, tmp)
+        call out_file%put("wall_sunlit_fraction", tmp)
+      end if
     end if
     if (allocated(flux%clear_air_abs)) then
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
@@ -346,6 +379,28 @@ contains
     end if
     
   end subroutine write_canopy_flux_variables
+
+  subroutine unpack_variable(ncol, nmaxlay, nlay, fill_value, var_in, var_out)
+
+    integer(kind=jpim), intent(in)  :: ncol, nmaxlay, nlay(:)
+    real(kind=jprb),    intent(in)  :: fill_value
+    real(kind=jprb),    intent(in)  :: var_in(:)
+    real(kind=jprb),    intent(out) :: var_out(nmaxlay,ncol)
+    
+    integer :: jcol, jlay, itotlay
+
+    var_out = fill_value
+    
+    itotlay = 1
+    
+    do jcol = 1,ncol
+      do jlay = 1,nlay(jcol)
+        var_out(jlay,jcol) = var_in(itotlay)
+        itotlay = itotlay + 1
+      end do
+    end do
+
+  end subroutine unpack_variable
 
   subroutine unpack_variable_broadband(ncol, nmaxlay, nlay, fill_value, var_in, var_out)
 

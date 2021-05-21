@@ -62,7 +62,7 @@ contains
 #ifdef PRINT_ARRAYS
     use print_matrix_mod
 #endif
-    
+
     implicit none
 
     ! --------------------------------------------------------
@@ -141,6 +141,10 @@ contains
     ! vegetation, m-1
     real(kind=jprb) :: norm_perim_air_veg, norm_perim_wall_veg
 
+    ! Fraction of the wall that are exposssed to the clear region
+    ! (rather than vegetation)
+    real(kind=jprb) :: wall_clear_frac(nlay)
+
     ! Tangent, sine of solar zenith angle
     real(kind=jprb) :: tan0, sin0
 
@@ -152,6 +156,14 @@ contains
     ! Rate of interception of radiation in each region with wall,
     ! excluding tangent term
     real(kind=jprb) :: f_wall(nreg,nlay)
+
+    ! Rate of interception of direct radiation in the clear region by
+    ! walls and trees, used to compute sunlit fractions
+    real(kind=jprb) :: f_wall_veg_dir(nlay)
+
+    ! Transmittance of the clear region to direct radiation (assuming
+    ! vacuum)
+    real(kind=jprb) :: clear_trans_dir
 
     ! Fraction of energy intercepting a wall that is absorbed and
     ! extinguished
@@ -385,6 +397,7 @@ contains
         ! Compute the normalized length of the interface between each
         ! region and a building wall
         norm_perim_wall = 0.0_jprb
+        wall_clear_frac(jlay) = 1.0_jprb
         if (building_fraction(jlay) > config%min_building_fraction) then
           norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
@@ -393,9 +406,12 @@ contains
             if (veg_contact_fraction(jlay) > 0.0_jprb) then
               ! Compute normalized length of interface between wall
               ! and any vegetation
-              !
               norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
                    &                    norm_perim_wall(1))
+              ! Compute fraction of wall in contact with clear, before
+              ! norm_perim_wall(1) is reduced
+              wall_clear_frac(jlay) = (norm_perim_wall(1) - norm_perim_wall_veg) &
+                   &                 / norm_perim_wall(1)
               if (nreg == 2) then
                 norm_perim_wall(2) = norm_perim_wall_veg
                 norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
@@ -451,6 +467,15 @@ contains
             f_wall(jreg,jlay) = norm_perim_wall(jreg) / (Pi * frac(jreg,jlay))
           end if
         end do
+
+        ! Compute rate of interception of direct radiation in the
+        ! clear region by walls or trees
+        if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
+          f_wall_veg_dir(jlay) = 0.0_jprb
+        else
+          f_wall_veg_dir(jlay) = (norm_perim_wall(1)+norm_perim(1)) &
+               &  * tan0 / (Pi * frac(1,jlay))
+        end if
 
         ! Compute fraction of intercepted radiation extinguished
         ! (absorption + scattering) and absorbed by wall
@@ -547,7 +572,7 @@ contains
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))
         call print_matrix('gamma3',gamma3(1,:,:))
-#endif        
+#endif
 
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
@@ -673,6 +698,9 @@ contains
       sw_norm_dir%top_net(:,icol)    = sw_norm_dir%top_dn_dir(:,icol) &
            &                         * (1.0_jprb-top_albedo_dir)
 
+      ! Uppermost roof is entirely sunlit
+      sw_norm_dir%roof_sunlit_frac(ilay2) = 1.0_jprb
+
       ! Loop down through layers
       do jlay = nlay,1,-1
         ! Find index into output arrays
@@ -688,7 +716,8 @@ contains
              &  + rect_mat_x_vec(nsw,(nreg+1)*ns,nreg+1,d_below(:,:,:,jlay+1),flux_dn_dir_below)
 
         ! Store the fluxes into the exposed roof
-        sw_norm_dir%roof_in(:,ilay) = zcos_sza * flux_dn_dir_below(:,nreg+1) &
+        sw_norm_dir%roof_in_dir(:,ilay) = zcos_sza * flux_dn_dir_below(:,nreg+1)
+        sw_norm_dir%roof_in(:,ilay) = sw_norm_dir%roof_in_dir(:,ilay) &
              &  + sum(flux_dn_diff_below(:,nreg*ns+1:(nreg+1)*ns),2)
         sw_norm_dir%roof_net(:,ilay) = sw_norm_dir%roof_in(:,ilay) &
              &  - sum(flux_up_below(:,nreg*ns+1:(nreg+1)*ns),2)
@@ -723,6 +752,28 @@ contains
           sw_norm_dir%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
         end if
 
+        ! Beer-Lambert law to compute roof/ground sunlit fraction at
+        ! base of layer
+        clear_trans_dir = exp(-f_wall_veg_dir(jlay)*dz(jlay))
+        if (jlay > 1) then
+          ! There is a roof below this layer
+          sw_norm_dir%roof_sunlit_frac(ilay-1) = sw_norm_dir%roof_sunlit_frac(ilay) &
+               &  * clear_trans_dir
+        else
+          ! There is ground below this layer
+          sw_norm_dir%ground_sunlit_frac(icol) = sw_norm_dir%roof_sunlit_frac(ilay) &
+               &  * clear_trans_dir
+        end if
+        ! Fraction of wall that is sunlit, assuming no direct
+        ! penetration through vegetation
+        if (f_wall_veg_dir(jlay) > 0.0_jprb) then
+          sw_norm_dir%wall_sunlit_frac(ilay) = sw_norm_dir%roof_sunlit_frac(ilay) * 0.5_jprb &
+               &  * (1.0_jprb - clear_trans_dir) * wall_clear_frac(jlay) &
+               &  / (f_wall_veg_dir(jlay) * dz(jlay))
+        else
+          sw_norm_dir%wall_sunlit_frac(ilay) = sw_norm_dir%roof_sunlit_frac(ilay) * 0.5_jprb
+        end if
+
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
@@ -739,8 +790,8 @@ contains
              &    * (int_flux_dir(:,1) & ! / zcos_sza &
              &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
         if (do_vegetation) then
-           associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
-             &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
+          associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+               &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
           do jreg = 2,nreg
             ! Absorption by clear-air in the vegetated regions
             sw_norm_dir%veg_air_abs(:,ilay) = sw_norm_dir%veg_air_abs(:,ilay) &
@@ -759,11 +810,14 @@ contains
 
         ! Inward and net flux into walls
         do jreg = 1,nreg
+          sw_norm_dir%wall_in_dir(:,ilay) = sw_norm_dir%wall_in_dir(:,ilay) &
+               &  + f_wall(jreg,jlay) * sin0 * int_flux_dir(:,jreg)
+        end do
+        sw_norm_dir%wall_in(:,ilay) = sw_norm_dir%wall_in_dir(:,ilay) 
+        do jreg = 1,nreg
           sw_norm_dir%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
-               &  + f_wall(jreg,jlay) &
-               &  * (sin0 * int_flux_dir(:,jreg) &
-               &     + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &           * spread(lg%tan_ang,1,nsw)))
+               &  + f_wall(jreg,jlay) * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
+               &                      * spread(lg%tan_ang,1,nsw))
         end do
         sw_norm_dir%wall_net(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
              &  * (1.0_jprb - wall_albedo(:,jlay))
