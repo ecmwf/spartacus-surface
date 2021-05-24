@@ -55,10 +55,15 @@ module radsurf_canopy_flux
     real(kind=jprb), allocatable :: ground_vertical_diff(:,:) ! (nspec,ncol)
 
     ! Absorption by the clear-air region, the vegetation in the
-    ! vegetated region, and the air in the vegetated region
+    ! vegetated region, and the air in the vegetated region; plus the
+    ! absorption of direct radiation by vegetation
     real(kind=jprb), allocatable :: clear_air_abs(:,:) ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: veg_abs(:,:)       ! (nspec,ntotlay)
     real(kind=jprb), allocatable :: veg_air_abs(:,:)   ! (nspec,ntotlay)
+    real(kind=jprb), allocatable :: veg_abs_dir(:,:)   ! (nspec,ntotlay)
+
+    ! Fraction of leaves (or one-sided leaf area) in direct sunlight
+    real(kind=jprb), allocatable :: veg_sunlit_frac(:) ! (ntotlay)
 
     ! Optional: upward and downward fluxes at top and base of layers,
     ! summing the clear+vegetated regions. 
@@ -140,6 +145,10 @@ contains
     if (config%do_vegetation) then
       allocate(this%veg_abs(nspec,ntotlay))
       allocate(this%veg_air_abs(nspec,ntotlay))
+      if (use_direct_local) then
+        allocate(this%veg_abs_dir(nspec,ntotlay))
+        allocate(this%veg_sunlit_frac(ntotlay))
+      end if
     end if
     if (do_save_flux_profile_local) then
       allocate(this%flux_dn_layer_top(nspec,ntotlay))
@@ -184,6 +193,8 @@ contains
     if (allocated(this%clear_air_abs))    deallocate(this%clear_air_abs)
     if (allocated(this%veg_abs))          deallocate(this%veg_abs)
     if (allocated(this%veg_air_abs))      deallocate(this%veg_air_abs)
+    if (allocated(this%veg_abs_dir))      deallocate(this%veg_abs_dir)
+    if (allocated(this%veg_sunlit_frac))  deallocate(this%veg_sunlit_frac)
     if (allocated(this%flux_dn_layer_top))      deallocate(this%flux_dn_layer_top)
     if (allocated(this%flux_dn_dir_layer_top))  deallocate(this%flux_dn_dir_layer_top)
     if (allocated(this%flux_up_layer_top))      deallocate(this%flux_up_layer_top)
@@ -197,8 +208,7 @@ contains
   ! Typically the canopy_flux object initially contains normalized
   ! fluxes, e.g. for a top-of-canopy downwelling flux of unity.  Once
   ! the top-of-canopy downwelling flux is known, the canopy fluxes can
-  ! be scaled.  Note that the variables roof_sunlit_frac,
-  ! wall_sunlit_frac and ground_sunlit_frac are not scaled.
+  ! be scaled.  Note that the sunlit fractions are not scaled.
   subroutine scale_canopy_flux(this, nlay, factor)
 
     use radiation_io, only : nulerr, radiation_abort
@@ -255,6 +265,9 @@ contains
       this%veg_abs     = factor(:,indcol) * this%veg_abs
       this%veg_air_abs = factor(:,indcol) * this%veg_air_abs
     end if
+    if (allocated(this%veg_abs_dir)) then
+      this%veg_abs_dir = factor(:,indcol) * this%veg_abs_dir
+    end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = factor(:,indcol) * this%flux_dn_layer_top
       this%flux_up_layer_top      = factor(:,indcol) * this%flux_up_layer_top
@@ -307,6 +320,11 @@ contains
           this%veg_abs(:,ilay1:ilay2)     = 0.0_jprb
           this%veg_air_abs(:,ilay1:ilay2) = 0.0_jprb
         end if
+        if (allocated(this%veg_abs_dir)) then
+          this%veg_abs_dir(:,ilay1:ilay2) = 0.0_jprb
+          this%veg_sunlit_frac(ilay1:ilay2) = 0.0_jprb
+        end if
+
         if (allocated(this%flux_dn_layer_top)) then
           this%flux_dn_layer_top(:,ilay1:ilay2)      = 0.0_jprb
           this%flux_up_layer_top(:,ilay1:ilay2)      = 0.0_jprb
@@ -357,6 +375,10 @@ contains
     if (allocated(this%veg_abs)) then
       this%veg_abs     = 0.0_jprb
       this%veg_air_abs = 0.0_jprb
+    end if
+    if (allocated(this%veg_abs_dir)) then
+      this%veg_abs_dir = 0.0_jprb
+      this%veg_sunlit_frac = 0.0_jprb
     end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = 0.0_jprb
@@ -418,6 +440,11 @@ contains
     if (allocated(this%veg_abs)) then
       this%veg_abs = flux1%veg_abs + flux2%veg_abs
       this%veg_air_abs = flux1%veg_air_abs + flux2%veg_air_abs
+    end if
+    if (allocated(this%veg_abs_dir)) then
+      this%veg_abs_dir = flux1%veg_abs_dir + flux2%veg_abs_dir
+      ! Note that one of summed terms here ought to be zero:
+      this%veg_sunlit_frac = flux1%veg_sunlit_frac + flux2%veg_sunlit_frac
     end if
     if (allocated(this%flux_dn_layer_top)) then
       this%flux_dn_layer_top      = flux1%flux_dn_layer_top + flux2%flux_dn_layer_top

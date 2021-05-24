@@ -203,6 +203,17 @@ contains
     ! Index to layer inside canopy_flux object
     integer(kind=jpim) :: ilay
 
+    ! Index to the most transparent spectral interval
+    integer(kind=jpim) :: itransp
+
+    ! Direct downward flux in clear sky (no vegetation), transmittance
+    ! of clear layer to direct radiation, integrated direct flux
+    ! across a layer if clear, and absorbed direct radiation by
+    ! vegetation in the absence of attenuation.  All are in the most
+    ! transparent spectral interval.
+    real(kind=jprb) :: flux_dn_dir_clear, trans_dir_clear
+    real(kind=jprb) :: int_flux_dir_clear, veg_abs_dir_clear
+
     ! Index to the matrix dimension expressing regions "from" and "to"
     ! in combination with a particular stream
     integer(kind=jpim) :: ifr, ito
@@ -234,6 +245,11 @@ contains
       ! Free atmosphere
       frac(1,nlay+1)  = 1.0_jprb
       frac(2:,nlay+1) = 0.0_jprb
+
+      ! Find the spectral interval that is most transparent by
+      ! computing the optical depth of the entire canopy in each
+      ! interval
+      itransp = minloc(sum(air_ext*spread(dz,1,nsw),2),1)
 
       ! Compute overlap matrices
       call calc_overlap_matrices(nlay,nreg,frac,u_overlap,v_overlap, &
@@ -534,6 +550,9 @@ contains
       sw_norm_dir%top_net(:,icol)       = sw_norm_dir%top_dn_dir(:,icol) &
            &                            * (1.0_jprb-top_albedo_dir)
 
+      ! Initially all regions are entirely sunlit
+      flux_dn_dir_clear = 1.0_jprb / cos_sza
+
       ! Loop down through layers
       do jlay = nlay,1,-1
         ! Find index into output arrays
@@ -599,12 +618,36 @@ contains
                &    * (int_flux_dir(:,jreg) & ! / cos_sza &
                &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
+          sw_norm_dir%veg_abs_dir(:,ilay) = sw_norm_dir%veg_abs_dir(:,ilay) &
+               &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
+               &    * int_flux_dir(:,jreg) * od_scaling(jreg,jlay)
           sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
                &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                &    * (int_flux_dir(:,jreg) & ! / cos_sza &
                &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
         end do
+
+        ! Compute sunlit fraction. First the layer transmittance in
+        ! the absence of vegetation
+        trans_dir_clear = exp(-air_ext(itransp,jlay)*dz(jlay)/cos_sza)
+        ! Then the integrated direct flux
+        if (air_ext(itransp,jlay) > 0.0_jprb) then
+          int_flux_dir_clear = flux_dn_dir_clear * (1.0_jprb-trans_dir_clear) &
+               &  * cos_sza / air_ext(itransp,jlay)
+        else
+          int_flux_dir_clear = flux_dn_dir_clear * dz(jlay)
+        end if
+
+        ! Then the equivalent absorption if this radiation illuminated
+        ! the leaves
+        veg_abs_dir_clear = int_flux_dir_clear * veg_ext(jlay) &
+             &  * (1.0_jprb-veg_ssa(itransp,jlay)) * veg_fraction(jlay)
+        ! And take the ratio
+        sw_norm_dir%veg_sunlit_frac(ilay) = sw_norm_dir%veg_abs_dir(itransp,ilay) &
+             &  / max(epsilon(1.0_jprb), veg_abs_dir_clear)
+        ! Transmission through the layer
+        flux_dn_dir_clear = flux_dn_dir_clear * trans_dir_clear
 
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
@@ -629,6 +672,9 @@ contains
                &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
         end do
       end do
+
+      sw_norm_dir%ground_sunlit_frac(icol) = sw_norm_dir%ground_dn_dir(itransp,icol) &
+           &  / (cos_sza * flux_dn_dir_clear)
 
       ! Second the fluxes normalized by the diffuse downwelling flux
       ! at canopy top.

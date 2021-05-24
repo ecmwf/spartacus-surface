@@ -14,6 +14,8 @@ version 0.7.2
 	  overhanging layer
 	- Store sunlit fractions on ground, roof and walls, along with
 	  direct radiation incident on these facets
+	- Store fraction of the one-sided leaf area that is in direct
+	  sunlight, and the direct radiation absorbed by leaves
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

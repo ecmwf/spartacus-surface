@@ -210,7 +210,7 @@ contains
            &  long_name="Incoming "//band_long_name//" flux at roofs", &
            &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
       if (allocated(flux%roof_in_dir)) then
-        call out_file%define_variable("roof_flux_in_dir_"//band_name, units_str="W m-2", &
+        call out_file%define_variable("roof_flux_in_direct_"//band_name, units_str="W m-2", &
              &  long_name="Direct incoming "//band_long_name//" flux at roofs", &
              &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
         call out_file%define_variable("roof_sunlit_fraction", units_str="1", &
@@ -224,7 +224,7 @@ contains
            &  long_name="Incoming "//band_long_name//" flux at walls", &
            &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
       if (allocated(flux%wall_in_dir)) then
-        call out_file%define_variable("wall_flux_in_dir_"//band_name, units_str="W m-2", &
+        call out_file%define_variable("wall_flux_in_direct_"//band_name, units_str="W m-2", &
              &  long_name="Direct incoming "//band_long_name//" flux at walls", &
              &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
         call out_file%define_variable("wall_sunlit_fraction", units_str="1", &
@@ -248,6 +248,14 @@ contains
       call out_file%define_variable("veg_air_absorption_"//band_name, units_str="W m-2", &
          &  long_name="Absorbed "//band_long_name//" by air in vegetated regions", &
          &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+    end if
+    if (allocated(flux%veg_abs_dir)) then
+      call out_file%define_variable("veg_absorption_direct_"//band_name, units_str="W m-2", &
+           &  long_name="Absorbed direct "//band_long_name//" by vegetation", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
+      call out_file%define_variable("veg_sunlit_fraction", units_str="W m-2", &
+           &  long_name="Fraction of vegetation in direct sunlight", &
+           &  dim2_name="column", dim1_name="layer", fill_value=FillValueFlux)
     end if
 
     if (allocated(flux%flux_dn_layer_top)) then
@@ -328,10 +336,10 @@ contains
       if (allocated(flux%roof_in_dir)) then
         call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
              &  flux%roof_in_dir, tmp)
-        call out_file%put("roof_flux_in_dir_"//band_name, tmp)
+        call out_file%put("roof_flux_in_direct_"//band_name, tmp)
         call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
              &  flux%wall_in_dir, tmp)
-        call out_file%put("wall_flux_in_dir_"//band_name, tmp)
+        call out_file%put("wall_flux_in_direct_"//band_name, tmp)
         call unpack_variable(flux%ncol, nmaxlay, nlay, FillValueFlux, &
              &  flux%roof_sunlit_frac, tmp)
         call out_file%put("roof_sunlit_fraction", tmp)
@@ -352,6 +360,14 @@ contains
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
            &  flux%veg_air_abs, tmp)
       call out_file%put("veg_air_absorption_"//band_name, tmp)
+    end if
+    if (allocated(flux%veg_abs_dir)) then
+      call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%veg_abs_dir, tmp)
+      call out_file%put("veg_absorption_direct_"//band_name, tmp)
+      call unpack_variable(flux%ncol, nmaxlay, nlay, FillValueFlux, &
+           &  flux%veg_sunlit_frac, tmp)
+      call out_file%put("veg_sunlit_fraction", tmp)
     end if
     if (allocated(flux%flux_dn_layer_top)) then
       call unpack_variable_broadband(flux%ncol, nmaxlay, nlay, FillValueFlux, &

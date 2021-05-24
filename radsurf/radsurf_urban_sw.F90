@@ -141,10 +141,6 @@ contains
     ! vegetation, m-1
     real(kind=jprb) :: norm_perim_air_veg, norm_perim_wall_veg
 
-    ! Fraction of the wall that are exposssed to the clear region
-    ! (rather than vegetation)
-    real(kind=jprb) :: wall_clear_frac(nlay)
-
     ! Tangent, sine of solar zenith angle
     real(kind=jprb) :: tan0, sin0
 
@@ -157,13 +153,9 @@ contains
     ! excluding tangent term
     real(kind=jprb) :: f_wall(nreg,nlay)
 
-    ! Rate of interception of direct radiation in the clear region by
-    ! walls and trees, used to compute sunlit fractions
-    real(kind=jprb) :: f_wall_veg_dir(nlay)
-
-    ! Transmittance of the clear region to direct radiation (assuming
-    ! vacuum)
-    real(kind=jprb) :: clear_trans_dir
+    ! Rate of interception of direct radiation by walls treating all
+    ! non-building regions as "clear"
+    real(kind=jprb) :: f_wall_dir_clear(nlay)
 
     ! Fraction of energy intercepting a wall that is absorbed and
     ! extinguished
@@ -234,6 +226,21 @@ contains
     ! Index to layer inside canopy_flux object
     integer(kind=jpim) :: ilay
 
+    ! Index to the most transparent spectral interval
+    integer(kind=jpim) :: itransp
+
+    ! Direct downward flux in clear sky (no vegetation or buildings),
+    ! transmittance of clear layer to direct radiation, integrated
+    ! direct flux across a layer if clear, and absorbed direct
+    ! radiation by vegetation in the absence of attenuation.  All are
+    ! in the most transparent spectral interval.
+    real(kind=jprb) :: flux_dn_dir_clear, trans_dir_clear
+    real(kind=jprb) :: int_flux_dir_clear, veg_abs_dir_clear
+
+    ! Area of exposed roof at top of each layer normalized by domain
+    ! area
+    real(kind=jprb) :: roof_fraction(nlay+1), non_building_fraction(nlay+1)
+
     ! Index to the matrix dimension expressing regions "from" and "to"
     ! in combination with a particular stream
     integer(kind=jpim) :: ifr, ito
@@ -285,6 +292,13 @@ contains
              &  - frac(1,1:nlay),1,nreg-1) / real(nreg-1,jprb)
         frac(2:,nlay+1) = 0.0_jprb
       end if
+      ! Define the roof fraction at the top of each layer
+      roof_fraction(nlay+1)   = 0.0_jprb
+      roof_fraction(nlay)     = building_fraction(nlay)
+      roof_fraction(1:nlay-1) = max(0.0_jprb, building_fraction(1:nlay-1) &
+           &                                 -building_fraction(2:nlay))
+      non_building_fraction(nlay+1) = 1.0_jprb
+      non_building_fraction(1:nlay) = 1.0_jprb - building_fraction
 
 #ifdef PRINT_ARRAYS
       call print_vector('veg_fraction',canopy_props%veg_fraction(ilay1:ilay2))
@@ -292,6 +306,11 @@ contains
       call print_vector('veg_scale', canopy_props%veg_scale(ilay1:ilay2));
       call print_matrix('frac', frac);
 #endif
+
+      ! Find the spectral interval that is most transparent by
+      ! computing the optical depth of the entire canopy in each
+      ! interval
+      itransp = minloc(sum(air_ext*spread(dz,1,nsw),2),1)
 
       ! Compute overlap matrices
       call calc_overlap_matrices_urban(nlay,nreg,frac,u_overlap,v_overlap, &
@@ -397,7 +416,7 @@ contains
         ! Compute the normalized length of the interface between each
         ! region and a building wall
         norm_perim_wall = 0.0_jprb
-        wall_clear_frac(jlay) = 1.0_jprb
+
         if (building_fraction(jlay) > config%min_building_fraction) then
           norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
 
@@ -408,10 +427,6 @@ contains
               ! and any vegetation
               norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
                    &                    norm_perim_wall(1))
-              ! Compute fraction of wall in contact with clear, before
-              ! norm_perim_wall(1) is reduced
-              wall_clear_frac(jlay) = (norm_perim_wall(1) - norm_perim_wall_veg) &
-                   &                 / norm_perim_wall(1)
               if (nreg == 2) then
                 norm_perim_wall(2) = norm_perim_wall_veg
                 norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
@@ -468,13 +483,11 @@ contains
           end if
         end do
 
-        ! Compute rate of interception of direct radiation in the
-        ! clear region by walls or trees
-        if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
-          f_wall_veg_dir(jlay) = 0.0_jprb
+        if (non_building_fraction(jlay) <= config%min_building_fraction) then
+          f_wall_dir_clear(jlay) = 0.0_jprb
         else
-          f_wall_veg_dir(jlay) = (norm_perim_wall(1)+norm_perim(1)) &
-               &  * tan0 / (Pi * frac(1,jlay))
+          f_wall_dir_clear(jlay) = sum(norm_perim_wall(1:nreg)) &
+               &  / (Pi * non_building_fraction(jlay))
         end if
 
         ! Compute fraction of intercepted radiation extinguished
@@ -700,6 +713,7 @@ contains
 
       ! Uppermost roof is entirely sunlit
       sw_norm_dir%roof_sunlit_frac(ilay2) = 1.0_jprb
+      flux_dn_dir_clear = 1.0_jprb / zcos_sza
 
       ! Loop down through layers
       do jlay = nlay,1,-1
@@ -752,28 +766,6 @@ contains
           sw_norm_dir%flux_up_layer_base(:,ilay) = sum(flux_up_above,2)
         end if
 
-        ! Beer-Lambert law to compute roof/ground sunlit fraction at
-        ! base of layer
-        clear_trans_dir = exp(-f_wall_veg_dir(jlay)*dz(jlay))
-        if (jlay > 1) then
-          ! There is a roof below this layer
-          sw_norm_dir%roof_sunlit_frac(ilay-1) = sw_norm_dir%roof_sunlit_frac(ilay) &
-               &  * clear_trans_dir
-        else
-          ! There is ground below this layer
-          sw_norm_dir%ground_sunlit_frac(icol) = sw_norm_dir%roof_sunlit_frac(ilay) &
-               &  * clear_trans_dir
-        end if
-        ! Fraction of wall that is sunlit, assuming no direct
-        ! penetration through vegetation
-        if (f_wall_veg_dir(jlay) > 0.0_jprb) then
-          sw_norm_dir%wall_sunlit_frac(ilay) = sw_norm_dir%roof_sunlit_frac(ilay) * 0.5_jprb &
-               &  * (1.0_jprb - clear_trans_dir) * wall_clear_frac(jlay) &
-               &  / (f_wall_veg_dir(jlay) * dz(jlay))
-        else
-          sw_norm_dir%wall_sunlit_frac(ilay) = sw_norm_dir%roof_sunlit_frac(ilay) * 0.5_jprb
-        end if
-
         ! Compute integrated flux vectors, recalling that _above means
         ! above the just above the *base* of the layer, and _below
         ! means just below the *top* of the layer
@@ -799,6 +791,9 @@ contains
                  &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
                  &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
+            sw_norm_dir%veg_abs_dir(:,ilay) = sw_norm_dir%veg_abs_dir(:,ilay) &
+                 &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
+                 &    * int_flux_dir(:,jreg) * od_scaling(jreg,jlay)
             sw_norm_dir%veg_abs(:,ilay) = sw_norm_dir%veg_abs(:,ilay) &
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
@@ -822,6 +817,52 @@ contains
         sw_norm_dir%wall_net(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
              &  * (1.0_jprb - wall_albedo(:,jlay))
 
+        ! Fraction of roof in sunlight
+        sw_norm_dir%roof_sunlit_frac(ilay) = sw_norm_dir%roof_in_dir(itransp,ilay) &
+             &  * non_building_fraction(jlay+1) / (zcos_sza * flux_dn_dir_clear &
+             &     * max(config%min_building_fraction, roof_fraction(jlay)))
+
+        ! Scale clear-sky flux to account for any reduction in clear
+        ! area
+        flux_dn_dir_clear = flux_dn_dir_clear &
+             &            * non_building_fraction(jlay) / non_building_fraction(jlay+1)
+
+        ! Compute sunlit of walls and vegetation fraction. First the
+        ! layer transmittance in the absence of vegetation and other
+        ! buildings.
+        trans_dir_clear = exp(-air_ext(itransp,jlay)*dz(jlay)/zcos_sza)
+        ! Then the integrated direct flux
+        if (air_ext(itransp,jlay) > 0.0_jprb) then
+          int_flux_dir_clear = flux_dn_dir_clear * (1.0_jprb-trans_dir_clear) &
+               &  * zcos_sza / air_ext(itransp,jlay)
+        else
+          int_flux_dir_clear = flux_dn_dir_clear * dz(jlay)
+        end if
+
+        if (do_vegetation) then
+          associate ( veg_fraction => canopy_props%veg_fraction(ilay1:ilay2), &
+               &      veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
+               &      veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
+
+          ! Then the equivalent absorption if this radiation
+          ! illuminated the leaves
+          veg_abs_dir_clear = int_flux_dir_clear * veg_ext(jlay) &
+               &  * (1.0_jprb-veg_ssa(itransp,jlay)) * veg_fraction(jlay)
+          ! And take the ratio
+          sw_norm_dir%veg_sunlit_frac(ilay) = sw_norm_dir%veg_abs_dir(itransp,ilay) &
+               &  / max(epsilon(1.0_jprb), veg_abs_dir_clear)
+          end associate
+        end if
+
+        ! Wall sunlit fraction is the ratio of the actual direct flux
+        ! into the wall to what there would have been without
+        ! shadowing by vegetation and other buildings
+        sw_norm_dir%wall_sunlit_frac(ilay) = 0.5_jprb * sw_norm_dir%wall_in_dir(itransp,ilay) &
+             &  / max(epsilon(1.0_jprb), (f_wall_dir_clear(jlay) * sin0 * int_flux_dir_clear))
+
+        ! Transmission through the layer
+        flux_dn_dir_clear = flux_dn_dir_clear * trans_dir_clear
+
 #ifdef PRINT_ARRAYS
         print *, 'NORMALIZED FLUXES W.R.T. DIRECT INCOMING RADIATION AT LAYER ', jlay
         call print_vector('  flux_dn_dir_below ', flux_dn_dir_below(1,:))
@@ -831,7 +872,8 @@ contains
         call print_vector('  flux_up_above ', flux_up_above(1,:))
 #endif
 
-      end do
+      end do ! Loop down through layers
+
       sw_norm_dir%ground_dn_dir(:,icol) = zcos_sza * sum(flux_dn_dir_above,2)
       sw_norm_dir%ground_dn(:,icol) = sw_norm_dir%ground_dn_dir(:,icol) &
            &  + sum(flux_dn_diff_above,2)
@@ -845,7 +887,10 @@ contains
                &  + (flux_dn_diff_above(:,ifr) +flux_up_above(:,ifr)) * lg%tan_ang(js)/Pi
         end do
       end do
- 
+
+      sw_norm_dir%ground_sunlit_frac(icol) = sw_norm_dir%ground_dn_dir(itransp,icol) &
+           &  / (zcos_sza * flux_dn_dir_clear)
+
       ! Second the fluxes normalized by the diffuse downwelling flux
       ! at canopy top.
 
