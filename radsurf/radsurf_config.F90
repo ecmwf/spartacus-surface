@@ -147,7 +147,8 @@ contains
          &  iverbose, n_vegetation_region_forest, &
          &  n_vegetation_region_urban
     real(kind=jprb), pointer :: vegetation_isolation_factor_forest, &
-         &  vegetation_isolation_factor_urban
+         &  vegetation_isolation_factor_urban, &
+         &  min_vegetation_fraction, min_building_fraction
 
     namelist /radsurf/ do_sw, do_lw, use_sw_direct_albedo, do_vegetation, &
          &  do_urban, nsw, nlw, n_stream_sw_forest, n_stream_sw_urban, &
@@ -156,7 +157,8 @@ contains
          &  n_vegetation_region_forest, n_vegetation_region_urban, &
          &  use_symmetric_vegetation_scale_forest, &
          &  use_symmetric_vegetation_scale_urban, &
-         &  vegetation_isolation_factor_forest, vegetation_isolation_factor_urban
+         &  vegetation_isolation_factor_forest, vegetation_isolation_factor_urban, &
+         &  min_vegetation_fraction, min_building_fraction
 
     real(jprb) :: hook_handle
 
@@ -183,6 +185,8 @@ contains
     use_symmetric_vegetation_scale_urban  => this%use_symmetric_vegetation_scale_urban
     vegetation_isolation_factor_forest    => this%vegetation_isolation_factor_forest
     vegetation_isolation_factor_urban     => this%vegetation_isolation_factor_urban
+    min_vegetation_fraction => this%min_vegetation_fraction
+    min_building_fraction   => this%min_building_fraction
 
     if (present(file_name) .and. present(unit)) then
       write(nulerr,'(a)') '*** Error: cannot specify both file_name and unit in call to config_type%read'
@@ -327,6 +331,8 @@ contains
 
       if (this%do_urban) then
         write(nulout, '(a)') 'Settings for urban areas:'
+        call print_real('  Minimum building fraction', &
+             &  'min_building_fraction', this%min_building_fraction)
         if (this%do_vegetation) then
           call print_integer('  Number of vegetation regions', &
                &  'n_vegetation_region_urban', this%n_vegetation_region_urban)

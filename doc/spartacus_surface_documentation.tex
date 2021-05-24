@@ -427,20 +427,7 @@ and absorption rates listed in Table \ref{tab:outvar}. If you need
 them spectrally resolved (using the input spectral discretization)
 then set the \code{radsurf\_config} namelist variable
 \code{do\_spectral} to \code{true} and the same variables will be
-output but with the prefix \code{spectral\_}. The
-\code{ground\_flux\_vertical\_*} variables are fluxes into a vertical
-plane at ground level, and are useful for computing thermal comfort
-indices and mean radiant temperature.
-
-If you set namelist parameter \code{do\_save\_flux\_profile} to
-\code{true}, then the flux-profile variables listed in Table
-\ref{tab:outfluxprofvar} will also be output, which are averaged over
-both the clear and vegetated regions. Note that these variables are
-output at the top and base of each layer.  In forests, the fluxes at
-the top of one layer will be equal to the fluxes at the base of the
-layer above, whereas in urban areas, since the fluxes are per unit
-horizontal area of the entire domain, these fluxes will not match when
-the building fraction decreases with height.
+output but with the prefix \code{spectral\_}.
 
 \begin{center}
 \tablesetup
@@ -457,6 +444,7 @@ Variable & Dimensions & Description\\
 \hline
 \codetab{height} & \codetab{col, layer\_int} & Height of layer interfaces above ground (m)\\
 \codetab{ground\_flux\_dn\_sw} & \codetab{col} & Downwelling shortwave flux into the ground \\
+\codetab{ground\_flux\_dn\_direct\_sw} & \codetab{col} & Direct downwelling shortwave flux into the ground \\
 \codetab{ground\_flux\_net\_sw} & \codetab{col} & Net shortwave flux into the ground\\
 \codetab{ground\_flux\_dn\_direct\_sw} & \codetab{col} & Direct downwelling shortwave flux into the ground\\
 \codetab{ground\_flux\_vertical\_diffuse\_sw} & \codetab{col} & Diffuse shortwave flux into a vertical surface at ground level\\
@@ -464,11 +452,14 @@ Variable & Dimensions & Description\\
 \codetab{top\_flux\_net\_sw} & \codetab{col} & Top-of-canopy net shortwave flux\\
 \codetab{top\_flux\_dn\_direct\_sw} & \codetab{col} & Top-of-canopy direct downwelling shortwave flux\\
 \codetab{roof\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into roofs \\
+\codetab{roof\_flux\_in\_direct\_sw} & \codetab{col, layer} & Direct shortwave flux into roofs \\
 \codetab{roof\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into roofs\\
 \codetab{wall\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into walls\\
+\codetab{wall\_flux\_in\_direct\_sw} & \codetab{col, layer} & Direct shortwave flux into walls\\
 \codetab{wall\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into walls\\
 \codetab{clear\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate in clear-air part of layer\\
 \codetab{veg\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by leaves\\
+\codetab{veg\_absorption\_direct\_sw} & \codetab{col, layer} & Direct shortwave absorption rate by leaves\\
 \codetab{veg\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by air in vegetated part of layer\\
 \codetab{ground\_flux\_dn\_lw} & \codetab{col} & Downwelling longwave flux into the ground\\
 \codetab{ground\_flux\_net\_lw} & \codetab{col} & Net longwave flux into the ground\\
@@ -482,10 +473,60 @@ Variable & Dimensions & Description\\
 \codetab{clear\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate in clear-air part of layer\\
 \codetab{veg\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by leaves\\
 \codetab{veg\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by air in vegetated part of layer\\
+\codetab{ground\_sunlit\_fraction} & \codetab{col} & Fraction of the ground area in direct sunlight\\
+\codetab{roof\_sunlit\_fraction} & \codetab{col, layer} & Fraction of the roof area in direct sunlight\\
+\codetab{wall\_sunlit\_fraction} & \codetab{col, layer} & Fraction of the wall area in direct sunlight\\
+\codetab{veg\_sunlit\_fraction} & \codetab{col, layer} & Fraction of the one-sided leaf area that is in direct sunlight\\
 \hline
 \end{longtable}
 \end{center}
 
+The \code{ground\_flux\_vertical\_*} variables are diffuse fluxes into
+a vertical plane at ground level, and are useful for computing thermal
+comfort indices and mean radiant temperature. If you want them at
+other heights in the urban canopy then they may be estimated from the
+wall incoming fluxes \code{wall\_flux\_in\_*}. For example, the
+diffuse flux into a vertical plane averaged over layer $i$ in the
+urban canopy may be computed from 
+%
+\begin{equation}
+V_i = \frac{2}{\pi}\frac{W_i}{L_i\Delta z_i},
+\end{equation}
+%
+where $W_i$ is the reported diffuse flux into walls in layer $i$
+(i.e.\ \code{wall\_flux\_in\_lw} in the longwave and
+\code{wall\_flux\_in\_sw - wall\_flux\_in\_direct\_sw} in the
+shortwave), $L_i$ is the normalized wall perimeter length and $\Delta
+z_i$ is the thickness of layer $i$. The factor of $2/\pi$ converts
+from fluxes into a wall that may be oriented in any azimuthal
+direction to fluxes into a vertical plane oriented in one direction.
+
+Some urban models predict temperatures separately for sunlit and
+shaded roofs, walls and streets.  Similarly, to compute photosynthesis
+rates more accurately, some vegetation models need to know the
+fraction of leaf area that is sunlit.  To support such applications,
+Table \ref{tab:outvar} lists four \code{*\_sunlit\_fraction} variables
+quantifying the fraction of these surfaces that are in direct
+sunlight.  Note that because walls are assumed to be vertical
+surfaces, the maximum wall fraction that can be sunlit is $1/2$. In
+the case of vegetation, the sunlit fraction refers to the fraction of
+one-sided leaf area, so can approach 1 in thin layers at the top of a
+vegetation canopy. These variables are accompanied by direct fluxes
+\code{ground\_dn\_direct\_sw}, \code{roof\_in\_direct\_sw},
+\code{wall\_in\_direct\_sw} and \code{veg\_absorption\_direct\_sw}.
+Therefore sufficient information is provided to treat sunlit and
+shaded surfaces separately, assuming that diffuse radiation evenly
+illuminates all surfaces in a layer.
+
+If you set namelist parameter \code{do\_save\_flux\_profile} to
+\code{true}, then the flux-profile variables listed in Table
+\ref{tab:outfluxprofvar} will also be output, which are averaged over
+both the clear and vegetated regions. Note that these variables are
+output at the top and base of each layer.  In forests, the fluxes at
+the top of one layer will be equal to the fluxes at the base of the
+layer above, whereas in urban areas, since the fluxes are per unit
+horizontal area of the entire domain, these fluxes will not match when
+the building fraction decreases with height.
 
 \begin{center}
 \tablesetup
@@ -561,6 +602,7 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \codetab{vegetation\_isolation\_factor\_urban} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & In urban areas dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions, or in between\\
 \hline
 \multicolumn{4}{l}{\emph{Options specific to urban tiles}}\\
+\codetab{min\_building\_fraction} & R & \codetabemph{10$^{-6}$} & Minimum building area fraction below which a building is ignored\\
 \codetab{n\_vegetation\_region\_urban} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\
 \codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
 \codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
