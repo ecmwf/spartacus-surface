@@ -124,7 +124,7 @@ contains
 
         if (config%do_sw) then
           ! Copy shortwave albedo
-          bc_out%sw_albedo(:,jcol)        = sw_spectral_props%ground_albedo(:,jcol)
+          bc_out%sw_albedo(:,jcol)     = sw_spectral_props%ground_albedo(:,jcol)
           bc_out%sw_albedo_dir(:,jcol) = ground_sw_albedo_dir(:,jcol)
           ! Rate of change of ground and top-of-canopy fluxes with
           ! respect to direct flux at top-of-canopy
@@ -175,15 +175,20 @@ contains
                &  config%n_vegetation_region_forest+1, ' regions'
         end if
         if (config%do_sw) then
-          call spartacus_forest_sw(config, config%nswinternal, &
-               &  config%lg_sw_forest%nstream, config%n_vegetation_region_forest+1, &
-               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_sw_forest, canopy_props%cos_sza(jcol), &
-               &  canopy_props, sw_spectral_props, &
-               &  sw_spectral_props%ground_albedo(:,jcol), &
-               &              ground_sw_albedo_dir(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
-               &  sw_norm_dir, sw_norm_diff)
+          if (canopy_props%cos_sza(jcol) > 0.0_jprb) then
+            call spartacus_forest_sw(config, config%nswinternal, &
+                 &  config%lg_sw_forest%nstream, config%n_vegetation_region_forest+1, &
+                 &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+                 &  config%lg_sw_forest, canopy_props%cos_sza(jcol), &
+                 &  canopy_props, sw_spectral_props, &
+                 &  sw_spectral_props%ground_albedo(:,jcol), &
+                 &              ground_sw_albedo_dir(:,jcol), &
+                 &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
+                 &  sw_norm_dir, sw_norm_diff)
+          else
+            call sw_norm_dir%zero(jcol,ilay1,ilay2)
+            call sw_norm_diff%zero(jcol,ilay1,ilay2)
+          end if
         end if
         if (config%do_lw) then
           call spartacus_forest_lw(config, config%nlwinternal, &
@@ -204,15 +209,17 @@ contains
         if (config%do_sw) then
           call sw_norm_dir%zero(jcol,ilay1,ilay2)
           call sw_norm_diff%zero(jcol,ilay1,ilay2)
-          call spartacus_urban_sw(config, config%nswinternal, &
-               &  config%lg_sw_urban%nstream, 1, &
-               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
-               &  canopy_props, sw_spectral_props, &
-               &  sw_spectral_props%ground_albedo(:,jcol), &
-               &              ground_sw_albedo_dir(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
-               &  sw_norm_dir, sw_norm_diff)
+          if (canopy_props%cos_sza(jcol) > 0.0_jprb) then
+            call spartacus_urban_sw(config, config%nswinternal, &
+                 &  config%lg_sw_urban%nstream, 1, &
+                 &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+                 &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
+                 &  canopy_props, sw_spectral_props, &
+                 &  sw_spectral_props%ground_albedo(:,jcol), &
+                 &              ground_sw_albedo_dir(:,jcol), &
+                 &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
+                 &  sw_norm_dir, sw_norm_diff)
+          end if
         end if
         if (config%do_lw) then
           call lw_internal%zero(jcol,ilay1,ilay2)
@@ -233,15 +240,20 @@ contains
                &  config%n_vegetation_region_urban+1, ' regions'
         end if
         if (config%do_sw) then
-          call spartacus_urban_sw(config, config%nswinternal, &
-               &  config%lg_sw_urban%nstream, config%n_vegetation_region_urban+1, &
-               &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
-               &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
-               &  canopy_props, sw_spectral_props, &
-               &  sw_spectral_props%ground_albedo(:,jcol), &
-               &                    ground_sw_albedo_dir(:,jcol), &
-               &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
-               &  sw_norm_dir, sw_norm_diff)
+          if (canopy_props%cos_sza(jcol) > 0.0_jprb) then
+            call spartacus_urban_sw(config, config%nswinternal, &
+                 &  config%lg_sw_urban%nstream, config%n_vegetation_region_urban+1, &
+                 &  canopy_props%nlay(jcol), jcol, ilay1, ilay2, &
+                 &  config%lg_sw_urban, canopy_props%cos_sza(jcol), &
+                 &  canopy_props, sw_spectral_props, &
+                 &  sw_spectral_props%ground_albedo(:,jcol), &
+                 &                    ground_sw_albedo_dir(:,jcol), &
+                 &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
+                 &  sw_norm_dir, sw_norm_diff)
+          else
+            call sw_norm_dir%zero(jcol,ilay1,ilay2)
+            call sw_norm_diff%zero(jcol,ilay1,ilay2)
+          end if
         end if
         if (config%do_lw) then
           call spartacus_urban_lw(config, config%nlwinternal, &
