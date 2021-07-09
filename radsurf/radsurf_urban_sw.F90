@@ -369,7 +369,7 @@ contains
           ! Compute the normalized vegetation perimeter length
           associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
           if (config%use_symmetric_vegetation_scale_urban) then
-            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
+            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * max(0.0_jprb, 1.0_jprb - building_fraction(jlay) - veg_fraction(jlay)) &
                  &        / veg_scale(jlay)
           else
             norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
