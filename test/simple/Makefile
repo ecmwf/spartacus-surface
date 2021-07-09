@@ -6,7 +6,7 @@ CONFIG = config.nam
 test: test_surfaces_out.nc test_consistency_out.nc \
 	test_empty_layers_out.nc test_nearly_empty_layers_out.nc \
 	test_noscat_out.nc test_surfaces_1stream_out.nc \
-	test_overhang_out.nc
+	test_overhang_out.nc test_closed_out.nc
 
 # This target runs SPARTACUS-Surface on any file named *_in.nc,
 # producing an output file *_out.nc

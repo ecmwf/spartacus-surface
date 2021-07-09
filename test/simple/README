@@ -23,4 +23,8 @@ following test input files:
     to 0 and all emissivities set to 1, in order to more easily test
     behaviour against analytical results in the case of no scattering
 
+  test_closed_in.nc - tests for "closed" canopies: cases when
+    vegetation fills a forest domain or fills the street in an urban
+    area
+
 The results are written in *_out.nc.
