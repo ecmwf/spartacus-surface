@@ -16,6 +16,10 @@ version 0.7.2
 	  direct radiation incident on these facets
 	- Store fraction of the one-sided leaf area that is in direct
 	  sunlight, and the direct radiation absorbed by leaves
+	- Fix behaviour when regions have zero area (either no vegetation
+	  or no clear-air region): exchange coefficients to/from such
+	  regions are now zero, and eigenvalues only computed for regions of
+	  finite size
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

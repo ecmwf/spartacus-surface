@@ -338,26 +338,22 @@ contains
         ! tangent term
         f_exchange = 0.0_jprb
         do jreg = 1,nreg-1
-          if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
+          if (frac(jreg,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg+1,jreg) = 0.0_jprb
-          else
-            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
-          end if
-          if (frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg,jreg+1) = 0.0_jprb
           else
+            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
             f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
           end if
         end do
         if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
-          if (frac(3,jlay) <= config%min_vegetation_fraction) then
+          if (frac(3,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
-          else
-            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
-          end if
-          if (frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(3,1) = 0.0_jprb
           else
+            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
             f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
           end if
         end if
@@ -447,13 +443,54 @@ contains
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
-        call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
-             &  gamma0, gamma1, gamma2, gamma3, &
-             &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
-             &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
-             &  trans_dir_dir(:,:,:,jlay), &
-             &  int_dir(:,:,:,jlay), int_diff(:,:,:,jlay), &
-             &  int_dir_diff(:,:,:,jlay))
+        if (veg_fraction(jlay) <= config%min_vegetation_fraction) then
+          ! Vegetation-free calculation: first set all coefficients to zero...
+          ref_diff(:,:,:,jlay) = 0.0_jprb
+          trans_diff(:,:,:,jlay) = 0.0_jprb
+          ref_dir(:,:,:,jlay) = 0.0_jprb
+          trans_dir_diff(:,:,:,jlay) = 0.0_jprb
+          trans_dir_dir(:,:,:,jlay) = 0.0_jprb
+          int_dir(:,:,:,jlay) = 0.0_jprb
+          int_diff(:,:,:,jlay) = 0.0_jprb
+          int_dir_diff(:,:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the clear-sky region
+          call calc_matrices_sw_eig(nsw, ns, 1, dz(jlay), cos_sza, &
+               &  gamma0(:,1:1,1:1), gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), gamma3(:,1:ns,1:1), &
+               &  ref_diff(:,1:ns,1:ns,jlay), trans_diff(:,1:ns,1:ns,jlay), &
+               &  ref_dir(:,1:ns,1:1,jlay), trans_dir_diff(:,1:ns,1:1,jlay), &
+               &  trans_dir_dir(:,1:1,1:1,jlay), &
+               &  int_dir(:,1:1,1:1,jlay), int_diff(:,1:ns,1:ns,jlay), &
+               &  int_dir_diff(:,1:ns,1:1,jlay))
+        else if (frac(1,jlay) <= config%min_vegetation_fraction) then
+          ! Vegetation fills the domain: set all coefficients to zero...
+          ref_diff(:,:,:,jlay) = 0.0_jprb
+          trans_diff(:,:,:,jlay) = 0.0_jprb
+          ref_dir(:,:,:,jlay) = 0.0_jprb
+          trans_dir_diff(:,:,:,jlay) = 0.0_jprb
+          trans_dir_dir(:,:,:,jlay) = 0.0_jprb
+          int_dir(:,:,:,jlay) = 0.0_jprb
+          int_diff(:,:,:,jlay) = 0.0_jprb
+          int_dir_diff(:,:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the vegetated regions
+          call calc_matrices_sw_eig(nsw, ns*(nreg-1), nreg-1, dz(jlay), cos_sza, &
+               &  gamma0(:,2:nreg,2:nreg), gamma1(:,ns+1:nreg*ns,ns+1:nreg*ns), &
+               &  gamma2(:,ns+1:nreg*ns,ns+1:nreg*ns), gamma3(:,ns+1:nreg*ns,2:nreg), &
+               &  ref_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+               &  trans_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+               &  ref_dir(:,ns+1:nreg*ns,2:nreg,jlay), &
+               &  trans_dir_diff(:,ns+1:nreg*ns,2:nreg,jlay), &
+               &  trans_dir_dir(:,2:nreg,2:nreg,jlay), &
+               &  int_dir(:,2:nreg,2:nreg,jlay), int_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+               &  int_dir_diff(:,ns+1:nreg*ns,2:nreg,jlay))
+        else
+          call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), cos_sza, &
+               &  gamma0, gamma1, gamma2, gamma3, &
+               &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
+               &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
+               &  trans_dir_dir(:,:,:,jlay), &
+               &  int_dir(:,:,:,jlay), int_diff(:,:,:,jlay), &
+               &  int_dir_diff(:,:,:,jlay))
+        end if
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
 

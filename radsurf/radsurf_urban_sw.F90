@@ -287,9 +287,9 @@ contains
       frac(1,1:nlay)  = 1.0_jprb - building_fraction
       frac(1,nlay+1)  = 1.0_jprb ! Free atmosphere
       if (do_vegetation) then
-        frac(1,1:nlay) = frac(1,1:nlay) - canopy_props%veg_fraction(ilay1:ilay2)
-        frac(2:,1:nlay) = spread(1.0_jprb - building_fraction &
-             &  - frac(1,1:nlay),1,nreg-1) / real(nreg-1,jprb)
+        frac(1,1:nlay) = max(0.0_jprb, frac(1,1:nlay) - canopy_props%veg_fraction(ilay1:ilay2))
+        frac(2:,1:nlay) = spread(max(0.0_jprb, 1.0_jprb - building_fraction &
+             &  - frac(1,1:nlay)),1,nreg-1) / real(nreg-1,jprb)
         frac(2:,nlay+1) = 0.0_jprb
       end if
       ! Define the roof fraction at the top of each layer
@@ -365,52 +365,53 @@ contains
         norm_perim = 0.0_jprb
         if (nreg > 1) then
           associate ( veg_fraction => canopy_props%veg_fraction(ilay1:ilay2) ) 
-          if ( veg_fraction(jlay) > config%min_vegetation_fraction) then
-          ! Compute the normalized vegetation perimeter length
-          associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
-          if (config%use_symmetric_vegetation_scale_urban) then
-            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
-                 &        / veg_scale(jlay)
-          else
-            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
-          end if
-          end associate
-          norm_perim_air_veg = norm_perim(1)
-
-          if (nreg > 2) then
-            ! Share the clear-air/vegetation perimeter between the two
-            ! vegetated regions
-            norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
-            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                 &          * norm_perim(1) 
-            ! We assume that the horizontal scale of the vegetation
-            ! inhomogeneities is the same as the scale of the tree
-            ! crowns themselves. Therefore, to compute the interface
-            ! between the two vegetated regions, we use the same
-            ! formula as before but with the fraction associated with
-            ! one of the two vegetated regions, which is half the
-            ! total vegetation fraction.
+          if (veg_fraction(jlay) > config%min_vegetation_fraction) then
+            ! Compute the normalized vegetation perimeter length
             associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
             if (config%use_symmetric_vegetation_scale_urban) then
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                   &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
-                   &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+              norm_perim(1) = 4.0_jprb * veg_fraction(jlay) &
+                   &  * max(0.0_jprb, 1.0_jprb - veg_fraction(jlay) - building_fraction(jlay)) &
                    &  / veg_scale(jlay)
             else
-              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-              !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
-              ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                   &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
+              norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
             end if
             end associate
-          else
-            ! Only one vegetated region so the other column of norm_perim
-            ! is unused
-            norm_perim(2:) = 0.0_jprb
+            norm_perim_air_veg = norm_perim(1)
+
+            if (nreg > 2) then
+              ! Share the clear-air/vegetation perimeter between the two
+              ! vegetated regions
+              norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
+              norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                   &          * norm_perim(1) 
+              ! We assume that the horizontal scale of the vegetation
+              ! inhomogeneities is the same as the scale of the tree
+              ! crowns themselves. Therefore, to compute the interface
+              ! between the two vegetated regions, we use the same
+              ! formula as before but with the fraction associated
+              ! with one of the two vegetated regions, which is half
+              ! the total vegetation fraction.
+              associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
+              if (config%use_symmetric_vegetation_scale_urban) then
+                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                     &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
+                     &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
+                     &  / veg_scale(jlay)
+              else
+                !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
+                ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
+                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+                     &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
+              end if
+              end associate
+            else
+              ! Only one vegetated region so the other column of
+              ! norm_perim is unused
+              norm_perim(2:) = 0.0_jprb
+            end if
           end if
-        end if
-        end associate
+          end associate
         end if
         
         ! Compute the normalized length of the interface between each
@@ -440,6 +441,19 @@ contains
               end if
               ! Reduce length of interface between wall and clear-air
               norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
+            else if (frac(1,jlay) <= config%min_vegetation_fraction) then
+              ! There is no clear region (region 1), so all walls must
+              ! be in contact with vegetation (region 2 and possibly
+              ! 3)
+              if (nreg == 2) then
+                norm_perim_wall(2) = norm_perim_wall(1)
+              else
+                norm_perim_wall(2) = norm_perim_wall(1) &
+                     &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
+                norm_perim_wall(3) = norm_perim_wall(1) &
+                     &  * config%vegetation_isolation_factor_urban
+              end if
+              norm_perim_wall(1) = 0.0_jprb
             end if
             end associate
           end if
@@ -449,26 +463,22 @@ contains
         ! tangent term
         f_exchange = 0.0_jprb
         do jreg = 1,nreg-1
-          if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
+          if (frac(jreg,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg+1,jreg) = 0.0_jprb
-          else
-            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
-          end if
-          if (frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg,jreg+1) = 0.0_jprb
           else
+            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
             f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
           end if
         end do
         if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
-          if (frac(3,jlay) <= config%min_vegetation_fraction) then
+          if (frac(3,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
-          else
-            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
-          end if
-          if (frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(3,1) = 0.0_jprb
           else
+            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
             f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
           end if
         end if
@@ -590,13 +600,78 @@ contains
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
-        call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), zcos_sza, &
-             &  gamma0, gamma1, gamma2, gamma3, &
-             &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
-             &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
-             &  trans_dir_dir(:,:,:,jlay), &
-             &  int_dir(:,:,:,jlay), int_diff(:,:,:,jlay), &
-             &  int_dir_diff(:,:,:,jlay))
+        if (do_vegetation) then
+          associate (veg_fraction => canopy_props%veg_fraction(ilay1:ilay2))
+
+          if (veg_fraction(jlay) <= config%min_vegetation_fraction) then
+            ! Vegetation-free calculation: first set all coefficients to zero...
+            ref_diff(:,:,:,jlay) = 0.0_jprb
+            trans_diff(:,:,:,jlay) = 0.0_jprb
+            ref_dir(:,:,:,jlay) = 0.0_jprb
+            trans_dir_diff(:,:,:,jlay) = 0.0_jprb
+            trans_dir_dir(:,:,:,jlay) = 0.0_jprb
+            int_dir(:,:,:,jlay) = 0.0_jprb
+            int_diff(:,:,:,jlay) = 0.0_jprb
+            int_dir_diff(:,:,:,jlay) = 0.0_jprb
+            ! ...then perform calculations only for the clear-sky region
+            call calc_matrices_sw_eig(nsw, ns, 1, dz(jlay), zcos_sza, &
+                 &  gamma0(:,1:1,1:1), gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), gamma3(:,1:ns,1:1), &
+                 &  ref_diff(:,1:ns,1:ns,jlay), trans_diff(:,1:ns,1:ns,jlay), &
+                 &  ref_dir(:,1:ns,1:1,jlay), trans_dir_diff(:,1:ns,1:1,jlay), &
+                 &  trans_dir_dir(:,1:1,1:1,jlay), &
+                 &  int_dir(:,1:1,1:1,jlay), int_diff(:,1:ns,1:ns,jlay), &
+                 &  int_dir_diff(:,1:ns,1:1,jlay))
+          else if (frac(1,jlay) <= config%min_vegetation_fraction) then
+            ! Vegetation fills the street: set all coefficients to zero...
+            ref_diff(:,:,:,jlay) = 0.0_jprb
+            trans_diff(:,:,:,jlay) = 0.0_jprb
+            ref_dir(:,:,:,jlay) = 0.0_jprb
+            trans_dir_diff(:,:,:,jlay) = 0.0_jprb
+            trans_dir_dir(:,:,:,jlay) = 0.0_jprb
+            int_dir(:,:,:,jlay) = 0.0_jprb
+            int_diff(:,:,:,jlay) = 0.0_jprb
+            int_dir_diff(:,:,:,jlay) = 0.0_jprb
+            ! ...then perform calculations only for the vegetated regions
+            call calc_matrices_sw_eig(nsw, ns*(nreg-1), nreg-1, dz(jlay), zcos_sza, &
+                 &  gamma0(:,2:nreg,2:nreg), gamma1(:,ns+1:nreg*ns,ns+1:nreg*ns), &
+                 &  gamma2(:,ns+1:nreg*ns,ns+1:nreg*ns), gamma3(:,ns+1:nreg*ns,2:nreg), &
+                 &  ref_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+                 &  trans_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+                 &  ref_dir(:,ns+1:nreg*ns,2:nreg,jlay), &
+                 &  trans_dir_diff(:,ns+1:nreg*ns,2:nreg,jlay), &
+                 &  trans_dir_dir(:,2:nreg,2:nreg,jlay), &
+                 &  int_dir(:,2:nreg,2:nreg,jlay), int_diff(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+                 &  int_dir_diff(:,ns+1:nreg*ns,2:nreg,jlay))
+          else
+            call calc_matrices_sw_eig(nsw, nreg*ns, nreg, dz(jlay), zcos_sza, &
+                 &  gamma0, gamma1, gamma2, gamma3, &
+                 &  ref_diff(:,:,:,jlay), trans_diff(:,:,:,jlay), &
+                 &  ref_dir(:,:,:,jlay), trans_dir_diff(:,:,:,jlay), &
+                 &  trans_dir_dir(:,:,:,jlay), &
+                 &  int_dir(:,:,:,jlay), int_diff(:,:,:,jlay), &
+                 &  int_dir_diff(:,:,:,jlay))
+          end if
+          end associate
+
+        else
+          ! Vegetation-free calculation: first set all coefficients to zero...
+          ref_diff(:,:,:,jlay) = 0.0_jprb
+          trans_diff(:,:,:,jlay) = 0.0_jprb
+          ref_dir(:,:,:,jlay) = 0.0_jprb
+          trans_dir_diff(:,:,:,jlay) = 0.0_jprb
+          trans_dir_dir(:,:,:,jlay) = 0.0_jprb
+          int_dir(:,:,:,jlay) = 0.0_jprb
+          int_diff(:,:,:,jlay) = 0.0_jprb
+          int_dir_diff(:,:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the clear-sky region
+          call calc_matrices_sw_eig(nsw, ns, 1, dz(jlay), zcos_sza, &
+               &  gamma0(:,1:1,1:1), gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), gamma3(:,1:ns,1:1), &
+               &  ref_diff(:,1:ns,1:ns,jlay), trans_diff(:,1:ns,1:ns,jlay), &
+               &  ref_dir(:,1:ns,1:1,jlay), trans_dir_diff(:,1:ns,1:1,jlay), &
+               &  trans_dir_dir(:,1:1,1:1,jlay), &
+               &  int_dir(:,1:1,1:1,jlay), int_diff(:,1:ns,1:ns,jlay), &
+               &  int_dir_diff(:,1:ns,1:1,jlay))
+        end if
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
 

@@ -114,9 +114,9 @@ contains
     ! Emission rate per unit height, "b" in Eq. 32 (W m-3)
     real(kind=jprb), dimension(nlw,nreg*ns) :: emiss_rate
 
-    ! Emission rate per unit height for walls, air and vegetation (the
-    ! last two in regions) considering all emission directions (W m-3)
-    real(kind=jprb) :: emiss_wall(nlw,nlay), emiss_reg(nlw,nreg,nlay), &
+    ! Emission rate per unit height for air and vegetation (the last
+    ! two in regions) considering all emission directions (W m-3)
+    real(kind=jprb) :: emiss_reg(nlw,nreg,nlay), &
          &             emiss_air(nlw,2:nreg,nlay), emiss_veg(nlw,2:nreg,nlay)
 
     ! Geometric factor needed in computing the emiss_* arrays above
@@ -339,26 +339,22 @@ contains
         ! tangent term
         f_exchange = 0.0_jprb
         do jreg = 1,nreg-1
-          if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
+          if (frac(jreg,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg+1,jreg) = 0.0_jprb
-          else
-            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
-          end if
-          if (frac(jreg+1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(jreg,jreg+1) = 0.0_jprb
           else
+            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
             f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
           end if
         end do
         if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
-          if (frac(3,jlay) <= config%min_vegetation_fraction) then
+          if (frac(3,jlay) <= config%min_vegetation_fraction &
+               &  .or. frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
-          else
-            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
-          end if
-          if (frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(3,1) = 0.0_jprb
           else
+            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
             f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
           end if
         end if
@@ -451,12 +447,7 @@ contains
         ! --------------------------------------------------------
         ! Section 3c: Compute reflection/transmission matrices for this layer
         ! --------------------------------------------------------
-        if (veg_fraction(jlay) > config%min_vegetation_fraction) then
-          call calc_matrices_lw_eig(nlw, nreg*ns, dz(jlay), &
-               &  gamma1, gamma2, emiss_rate, &
-               &  ref(:,:,:,jlay), trans(:,:,:,jlay), source_lay(:,:,jlay), &
-               &  int_flux_mat(:,:,:,jlay), int_source(:,:,jlay))
-        else
+        if (veg_fraction(jlay) <= config%min_vegetation_fraction) then
           ! Vegetation-free calculation: set all coefficients to zero...
           ref(:,:,:,jlay) = 0.0_jprb
           trans(:,:,:,jlay) = 0.0_jprb
@@ -468,6 +459,24 @@ contains
                &  gamma1(:,1:ns,1:ns), gamma2(:,1:ns,1:ns), emiss_rate(:,1:ns), &
                &  ref(:,1:ns,1:ns,jlay), trans(:,1:ns,1:ns,jlay), source_lay(:,1:ns,jlay), &
                &  int_flux_mat(:,1:ns,1:ns,jlay), int_source(:,1:ns,jlay))
+        else if (frac(1,jlay) <= config%min_vegetation_fraction) then
+          ! Vegetation fills the domain: set all coefficients to zero...
+          ref(:,:,:,jlay) = 0.0_jprb
+          trans(:,:,:,jlay) = 0.0_jprb
+          source_lay(:,:,jlay) = 0.0_jprb
+          int_flux_mat(:,:,:,jlay) = 0.0_jprb
+          int_source(:,:,jlay) = 0.0_jprb
+          ! ...then perform calculations only for the vegetated regions
+          call calc_matrices_lw_eig(nlw, ns*(nreg-1), dz(jlay), &
+               &  gamma1(:,ns+1:nreg*ns,ns+1:nreg*ns), gamma2(:,ns+1:nreg*ns,ns+1:nreg*ns), &
+               &  emiss_rate(:,ns+1:nreg*ns), ref(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), &
+               &  trans(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), source_lay(:,ns+1:nreg*ns,jlay), &
+               &  int_flux_mat(:,ns+1:nreg*ns,ns+1:nreg*ns,jlay), int_source(:,ns+1:nreg*ns,jlay))
+        else
+          call calc_matrices_lw_eig(nlw, nreg*ns, dz(jlay), &
+               &  gamma1, gamma2, emiss_rate, &
+               &  ref(:,:,:,jlay), trans(:,:,:,jlay), source_lay(:,:,jlay), &
+               &  int_flux_mat(:,:,:,jlay), int_source(:,:,jlay))
         end if
 
       end do ! Loop over layers to compute reflectance/transmittance matrices
@@ -726,16 +735,12 @@ contains
       call print_vector('  veg_abs ', lw_internal%veg_abs(1,ilay1:ilay2))
       print *, '  ground_dn  = ', lw_internal%ground_dn(1,icol)
       print *, '  ground_net = ', lw_internal%ground_net(1,icol)
-      call print_vector('  wall_in', lw_internal%wall_in(1,ilay1:ilay2))
-      call print_vector('  wall_net', lw_internal%wall_net(1,ilay1:ilay2))
       print *, 'NORMALIZED FLUXES W.R.T. DIFFUSE INCOMING RADIATION'
       call print_vector('  clear_air_abs ', lw_norm%clear_air_abs(1,ilay1:ilay2))
       call print_vector('  veg_air_abs ', lw_norm%veg_air_abs(1,ilay1:ilay2))
       call print_vector('  veg_abs ', lw_norm%veg_abs(1,ilay1:ilay2))
       print *, '  ground_dn  = ', lw_norm%ground_dn(1,icol)
       print *, '  ground_net = ', lw_norm%ground_net(1,icol)
-      call print_vector('  wall_in', lw_norm%wall_in(1,ilay1:ilay2))
-      call print_vector('  wall_net', lw_norm%wall_net(1,ilay1:ilay2))
 #endif
 
     end associate
