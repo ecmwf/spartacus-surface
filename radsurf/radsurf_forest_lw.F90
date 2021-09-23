@@ -608,19 +608,19 @@ contains
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_internal%clear_air_abs(:,ilay) = lw_internal%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
-             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2) &
+             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,1,nlw), 2) &
              &  - emiss_reg(:,1,jlay)*dz(jlay)
         do jreg = 2,nreg
           ! Absorption by clear-air in the vegetated regions
           lw_internal%veg_air_abs(:,ilay) = lw_internal%veg_air_abs(:,ilay) &
                &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nlw,1), 2) &
+               &             * spread(1.0_jprb/lg%mu,1,nlw), 2) &
                &  - emiss_air(:,jreg,jlay)*dz(jlay)
           lw_internal%veg_abs(:,ilay) = lw_internal%veg_abs(:,ilay) &
                &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay) &
+               &             * spread(1.0_jprb/lg%mu,1,nlw), 2) * od_scaling(jreg,jlay) &
                &  - emiss_veg(:,jreg,jlay)*dz(jlay)
         end do
 
@@ -651,7 +651,7 @@ contains
       ! each spectral interval, so use the Legendre-Gauss horizontal
       ! weights
       flux_dn_above           = 0.0_jprb
-      flux_dn_above(:,1:ns)   = spread(lg%hweight,nlw,1)
+      flux_dn_above(:,1:ns)   = spread(lg%hweight,1,nlw)
 
       lw_norm%top_dn(:,icol)  = 1.0_jprb
       lw_norm%top_net(:,icol) = top_emissivity
@@ -695,17 +695,17 @@ contains
         ! Absorption by clear-air region - see Eqs. 29 and 30
         lw_norm%clear_air_abs(:,ilay) = lw_norm%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
-             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,nlw,1), 2)
+             &    * sum(int_flux(:,1:ns) * spread(1.0_jprb/lg%mu,1,nlw), 2)
         do jreg = 2,nreg
           ! Absorption by clear-air in the vegetated regions
           lw_norm%veg_air_abs(:,ilay) = lw_norm%veg_air_abs(:,ilay) &
                &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nlw,1), 2)
+               &             * spread(1.0_jprb/lg%mu,1,nlw), 2)
           lw_norm%veg_abs(:,ilay) = lw_norm%veg_abs(:,ilay) &
                &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                &    * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &             * spread(1.0_jprb/lg%mu,nlw,1), 2) * od_scaling(jreg,jlay)
+               &             * spread(1.0_jprb/lg%mu,1,nlw), 2) * od_scaling(jreg,jlay)
         end do
 
 #ifdef PRINT_ARRAYS

@@ -459,6 +459,7 @@ contains
           end if
         end if
 
+
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
         f_exchange = 0.0_jprb
@@ -855,7 +856,7 @@ contains
         sw_norm_dir%clear_air_abs(:,ilay) = sw_norm_dir%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
              &    * (int_flux_dir(:,1) & ! / zcos_sza &
-             &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2))
+             &       + sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,1,nsw), 2))
         if (do_vegetation) then
           associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
                &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
@@ -865,7 +866,7 @@ contains
                  &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2))
+                 &             * spread(1.0_jprb/lg%mu,1,nsw), 2))
             sw_norm_dir%veg_abs_dir(:,ilay) = sw_norm_dir%veg_abs_dir(:,ilay) &
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * int_flux_dir(:,jreg) * od_scaling(jreg,jlay)
@@ -873,7 +874,7 @@ contains
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * (int_flux_dir(:,jreg) & ! / zcos_sza &
                  &       + sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2)) * od_scaling(jreg,jlay)
+                 &             * spread(1.0_jprb/lg%mu,1,nsw), 2)) * od_scaling(jreg,jlay)
           end do
           end associate
         end if
@@ -974,7 +975,7 @@ contains
       ! weights
       flux_dn_dir_above          = 0.0_jprb ! No direct calculation now needed below
       flux_dn_diff_above         = 0.0_jprb
-      flux_dn_diff_above(:,1:ns) = spread(lg%hweight,nsw,1)
+      flux_dn_diff_above(:,1:ns) = spread(lg%hweight,1,nsw)
 
       sw_norm_diff%top_dn_dir(:,icol) = 0.0_jprb
       sw_norm_diff%top_dn(:,icol)     = 1.0_jprb
@@ -1025,7 +1026,7 @@ contains
         ! Absorption by clear-air region - see Eqs. 29 and 30
         sw_norm_diff%clear_air_abs(:,ilay) = sw_norm_diff%clear_air_abs(:,ilay) &
              &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) &
-             &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,nsw,1), 2)
+             &    * sum(int_flux_diff(:,1:ns) * spread(1.0_jprb/lg%mu,1,nsw), 2)
         if (do_vegetation) then
           associate (veg_ext => canopy_props%veg_ext(ilay1:ilay2), &
             &        veg_ssa => sw_spectral_props%veg_ssa(:,ilay1:ilay2) )
@@ -1034,11 +1035,11 @@ contains
             sw_norm_diff%veg_air_abs(:,ilay) = sw_norm_diff%veg_air_abs(:,ilay) &
                  &  + air_ext(:,jlay)*(1.0_jprb-air_ssa(:,jlay)) & ! Use clear-air properties
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2)
+                 &             * spread(1.0_jprb/lg%mu,1,nsw), 2)
             sw_norm_diff%veg_abs(:,ilay) = sw_norm_diff%veg_abs(:,ilay) &
                  &  + veg_ext(jlay)*(1.0_jprb-veg_ssa(:,jlay)) & ! Use vegetation properties
                  &    * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-                 &             * spread(1.0_jprb/lg%mu,nsw,1), 2) * od_scaling(jreg,jlay)
+                 &             * spread(1.0_jprb/lg%mu,1,nsw), 2) * od_scaling(jreg,jlay)
           end do
           end associate
         end if
