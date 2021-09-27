@@ -20,6 +20,8 @@ version 0.7.2
 	  or no clear-air region): exchange coefficients to/from such
 	  regions are now zero, and eigenvalues only computed for regions of
 	  finite size
+	- Added solar_zenith_angle to driver namelist to specify in
+	  degrees as an alternative to cos_solar_zenith_angle
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

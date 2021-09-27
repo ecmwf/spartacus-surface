@@ -72,7 +72,8 @@ contains
   ! argument is missing then on error the program will be aborted.
   subroutine read_config_from_namelist(this, file_name, is_success)
 
-    use radiation_io, only : nulerr, radiation_abort
+    use radiation_io,        only : nulerr, radiation_abort
+    use radiation_constants, only : Pi
 
     class(driver_config_type), intent(inout), target :: this
     character(*), intent(in)          :: file_name
@@ -89,8 +90,10 @@ contains
     real(kind=jprb),    pointer :: top_flux_dn_sw, top_flux_dn_direct_sw
     real(kind=jprb),    pointer :: top_flux_dn_lw
 
+    real(kind=jprb) :: solar_zenith_angle
+
     namelist /radsurf_driver/ do_parallel, nblocksize, nrepeat, istartcol, iendcol, &
-         &  iverbose, cos_solar_zenith_angle, vegetation_fsd, &
+         &  iverbose, cos_solar_zenith_angle, solar_zenith_angle, vegetation_fsd, &
          &  ground_sw_albedo, roof_sw_albedo, wall_sw_albedo, &
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
          &  vegetation_extinction, vegetation_sw_ssa, vegetation_fraction, &
@@ -119,6 +122,9 @@ contains
     top_flux_dn_direct_sw  => this%top_flux_dn_direct_sw
     top_flux_dn_lw         => this%top_flux_dn_lw
 
+    ! Alternative way to specify solar zenith angle, in degrees
+    solar_zenith_angle     = -100.0_jprb
+
     ! Open the namelist file and read the radiation_driver namelist
     open(unit=10, iostat=iosopen, file=trim(file_name))
     if (iosopen /= 0) then
@@ -138,6 +144,15 @@ contains
       ! variables are present in the NetCDF data file instead
       read(unit=10, nml=radsurf_driver)
       close(unit=10)
+
+      if (cos_solar_zenith_angle == -1.0_jprb) then
+        ! User has not specified cos_solar_zenith_angle; try
+        ! solar_zenith_angle
+        if (solar_zenith_angle >= 0.0_jprb .and. solar_zenith_angle <= 180.0_jprb) then
+          cos_solar_zenith_angle = cos(solar_zenith_angle * Pi/180.0_jprb)
+        end if
+      end if
+
     end if
 
   end subroutine read_config_from_namelist
