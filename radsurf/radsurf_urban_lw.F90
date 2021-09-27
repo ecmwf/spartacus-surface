@@ -816,7 +816,7 @@ contains
           lw_internal%wall_in(:,ilay) = lw_internal%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
                &  * sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &           * spread(lg%tan_ang,1,nlw))
+               &           * spread(lg%tan_ang,1,nlw),2)
         end do
         lw_internal%wall_net(:,ilay) = lw_internal%wall_in(:,ilay) &
              &  * wall_emissivity(:,jlay) - emiss_wall(:,jlay)*dz(jlay)
@@ -922,7 +922,7 @@ contains
           lw_norm%wall_in(:,ilay) = lw_norm%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
                &  * (sum(int_flux(:,(jreg-1)*ns+1:jreg*ns) &
-               &           * spread(lg%tan_ang,1,nlw)))
+               &           * spread(lg%tan_ang,1,nlw),2))
         end do
         lw_norm%wall_net(:,ilay) = lw_norm%wall_in(:,ilay) &
              &  * wall_emissivity(:,jlay)

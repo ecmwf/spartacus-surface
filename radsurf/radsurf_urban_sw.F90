@@ -888,7 +888,7 @@ contains
         do jreg = 1,nreg
           sw_norm_dir%wall_in(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) * sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &                      * spread(lg%tan_ang,1,nsw))
+               &                      * spread(lg%tan_ang,1,nsw),2)
         end do
         sw_norm_dir%wall_net(:,ilay) = sw_norm_dir%wall_in(:,ilay) &
              &  * (1.0_jprb - wall_albedo(:,jlay))
@@ -1049,7 +1049,7 @@ contains
           sw_norm_diff%wall_in(:,ilay) = sw_norm_diff%wall_in(:,ilay) &
                &  + f_wall(jreg,jlay) &
                &  * (sum(int_flux_diff(:,(jreg-1)*ns+1:jreg*ns) &
-               &           * spread(lg%tan_ang,1,nsw)))
+               &           * spread(lg%tan_ang,1,nsw),2))
         end do
         sw_norm_diff%wall_net(:,ilay) = sw_norm_diff%wall_in(:,ilay) &
              &  * (1.0_jprb - wall_albedo(:,jlay))
