@@ -21,7 +21,7 @@ contains
        &                             istartcol, iendcol)
     
     use parkind1,                   only : jpim, jprb
-    use yomhook,                    only : lhook, dr_hook
+    !use yomhook,                    only : lhook, dr_hook
     use radiation_io,               only : radiation_abort
     use radsurf_config,             only : config_type
     use radsurf_canopy_properties,  only : canopy_properties_type

@@ -165,8 +165,7 @@ contains
     real(kind=jprb), dimension(nmat,ndiff,ndiff) :: gamma1i, gamma2i
     real(kind=jprb), dimension(nmat,ndiff,ndir)  :: gamma3i
 
-    ! Temporary vector and matrix
-    real(kind=jprb), dimension(nmat,ndiff) :: tmp_vec
+    ! Temporary matrix
     real(kind=jprb), dimension(nmat,ndiff,ndiff) :: tmp_mat
 
     ! Loop index over matrix elements
