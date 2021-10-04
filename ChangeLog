@@ -22,6 +22,7 @@ version 0.7.2
 	  finite size
 	- Added solar_zenith_angle to driver namelist to specify in
 	  degrees as an alternative to cos_solar_zenith_angle
+	- Added RAMI-V test scenes in test/rami5
 
 version 0.7.1 (23 October 2020)
 	- Added Apache license statement to each source file

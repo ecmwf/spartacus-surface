@@ -21,6 +21,7 @@ BSLOGSUFFIX = _blacksoil_out.log
 
 # Default target when you run "make": run the five actual actual cases
 # with solar configurations required by RAMI-V
+test: rami5
 rami5: HET09_JBS_SUM HET07_JPS_SUM HET08_OPS_WIN HET14_WCO_UND HET15_JBS_WIN
 
 # For a larger number of runs when you run "make all": also includes
