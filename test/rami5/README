@@ -1,0 +1,4 @@
+Running "make" will run SPARTACUS-Surface on five "actual" scenes from the RAMI-V intercomparison:
+  https://rami-benchmark.jrc.ec.europa.eu/_www/phase_descr.php?strPhase=RAMI5
+Note that the "urban" surface type is used to represent forests, with the tree trunks treated as buildings and other woody material (branches) merged into the vegetation properties.
+The output netCDF files are placed in the out_nc directory. The Matlab script process_spartacus_scenes.m then converts the outputs into ASCII files for the RAMI-V submission.

@@ -1,0 +1,29 @@
+&radsurf_driver
+do_parallel = true,
+vegetation_fsd = 0.5,
+iverbose = 3,
+do_conservation_check = true,
+top_flux_dn_direct_sw = 0.0,
+!solar_zenith_angle = 60,
+vegetation_fsd = 0.9,
+!ground_sw_albedo = 0.0,
+/
+
+&radsurf
+iverbose = 3,
+do_sw = true,
+do_lw = false,
+use_sw_direct_albedo = false,
+do_vegetation = true,
+do_urban = true,
+n_vegetation_region_forest = 2,
+n_vegetation_region_urban = 2,
+nsw = 14,
+nlw = 1,
+n_stream_sw_forest = 1,
+n_stream_sw_urban = 4,
+do_save_broadband_flux = false,
+do_save_spectral_flux = true,
+do_save_flux_profile = true,
+vegetation_isolation_factor_urban = 0.0,
+/
