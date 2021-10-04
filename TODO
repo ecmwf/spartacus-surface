@@ -1,18 +1,16 @@
 FEATURES
 
-Compute leaf sunlit fraction (wavelength independent)
-Broadband or spectral fluxes each optional
 Gas optics
-Closed forest: optimization by looking for veg cover = 0 or 1
-Report radiation components into a horizontal and vertical surface for calculation MRT
-Road/roofs/wall direct fraction, and direct flux attenuated only by air
 Dump out inputs like in ecRad
 Combine lw_spectral_props%calc_monochromatic_emission and calc_simple_spectrum_lw into one function call for broadband Planck function
 Support implicit solvers, e.g. windows in TEB with very low heat capacity
-Way to calculate thermal comfort / mean radiant temperature considering diffuse angles
+Store norm_perims for verification
 
 BUG FIXES
 
+Fix use of veg_contact_fraction
+test_surface_out.nc fails with number of veg regions = 1
+Fix crash when vegetation region has zero vegetation extinction, esp. in single precision
 Fix non-zero residual in urban longwave when nstream>=2
 
 CHECK

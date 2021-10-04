@@ -1,4 +1,4 @@
-version 0.7.2
+version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from
 	  walls, fixing error most noticeable with 2-streams - see
 	  radtool_legendre_gauss.F90 and radsurf_urban_lw.F90
