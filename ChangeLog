@@ -1,3 +1,15 @@
+version 0.7.3
+	- Redefined veg_contact_fraction: now the fraction of the building
+	  edge that is touching veg, not the fraction of the vegetation edge
+	  that is touching a building
+	- Default veg_contact_fraction (in
+	  spartacus_surface_read_input.F90) is equal to the fraction of the
+	  non-building area containing vegetation, equivalent to randomly
+	  placed vegetation
+	- Normalized perimeter of vegetation-air interface now properly
+	  takes into account the building fraction in the symmetric
+	  vegetation scale formula; this is now in radsurf_norm_perim.F90
+
 version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from
 	  walls, fixing error most noticeable with 2-streams - see

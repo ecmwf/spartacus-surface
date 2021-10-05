@@ -56,6 +56,7 @@ contains
          &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec, &
          &  solve_rect_mat, rect_mat_x_singlemat, rect_singlemat_x_vec
     use radsurf_overlap,            only : calc_overlap_matrices_urban
+    use radsurf_norm_perim,         only : calc_norm_perim_urban
 
 !#define PRINT_ARRAYS 1
 
@@ -125,21 +126,17 @@ contains
 
     ! Normalized vegetation perimeter length (perimeter length divided
     ! by domain area), m-1.  If nreg=2 then there is a clear-sky and a
-    ! vegetation region, and norm_perim(1) is the normalized length
-    ! between the two regions, while norm_perim(2) is unused.  If
-    ! nreg=3 then region 1 is clear-sky, region 2 is low optical depth
-    ! vegetation and region 3 is high optical depth
-    ! vegetation. norm_perim(1) is the normalized length between
-    ! regions 1 and 2, norm_perim(2) is that between regions 2 and 3,
-    ! and norm_perim(3) is that between regions 3 and 1.
-    real(kind=jprb) :: norm_perim(nreg)
+    ! vegetation region, and norm_perim(1,jlay) is the normalized
+    ! length between the two regions, while norm_perim(2,jlay) is
+    ! unused.  If nreg=3 then region 1 is clear-sky, region 2 is low
+    ! optical depth vegetation and region 3 is high optical depth
+    ! vegetation. norm_perim(1,jlay) is the normalized length between
+    ! regions 1 and 2, norm_perim(2,jlay) is that between regions 2
+    ! and 3, and norm_perim(3,jlay) is that between regions 3 and 1.
+    real(kind=jprb) :: norm_perim(nreg,nlay)
 
     ! Normalized perimeter between each region and the wall, m-1.
-    real(kind=jprb) :: norm_perim_wall(nreg)
-
-    ! Normalized perimeter length between air or wall and any
-    ! vegetation, m-1
-    real(kind=jprb) :: norm_perim_air_veg, norm_perim_wall_veg
+    real(kind=jprb) :: norm_perim_wall(nreg,nlay)
 
     ! Tangent, sine of solar zenith angle
     real(kind=jprb) :: tan0, sin0
@@ -321,6 +318,15 @@ contains
       call print_array3('v_overlap',v_overlap)
 #endif      
 
+      ! Compute normalized lengths
+      call calc_norm_perim_urban(config,nlay,nreg, &
+           &  canopy_props%building_fraction(ilay1:ilay2), &
+           &  canopy_props%building_scale(ilay1:ilay2), &
+           &  canopy_props%veg_fraction(ilay1:ilay2), &
+           &  canopy_props%veg_scale(ilay1:ilay2), &
+           &  canopy_props%veg_contact_fraction(ilay1:ilay2), &
+           &  norm_perim, norm_perim_wall)
+
       ! --------------------------------------------------------
       ! Section 3: First loop over layers
       ! --------------------------------------------------------
@@ -362,104 +368,6 @@ contains
           end associate
         end if
 
-        norm_perim = 0.0_jprb
-        if (nreg > 1) then
-          associate ( veg_fraction => canopy_props%veg_fraction(ilay1:ilay2) ) 
-          if (veg_fraction(jlay) > config%min_vegetation_fraction) then
-            ! Compute the normalized vegetation perimeter length
-            associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
-            if (config%use_symmetric_vegetation_scale_urban) then
-              norm_perim(1) = 4.0_jprb * veg_fraction(jlay) &
-                   &  * max(0.0_jprb, 1.0_jprb - veg_fraction(jlay) - building_fraction(jlay)) &
-                   &  / veg_scale(jlay)
-            else
-              norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
-            end if
-            end associate
-            norm_perim_air_veg = norm_perim(1)
-
-            if (nreg > 2) then
-              ! Share the clear-air/vegetation perimeter between the two
-              ! vegetated regions
-              norm_perim(nreg) = config%vegetation_isolation_factor_urban * norm_perim(1)
-              norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                   &          * norm_perim(1) 
-              ! We assume that the horizontal scale of the vegetation
-              ! inhomogeneities is the same as the scale of the tree
-              ! crowns themselves. Therefore, to compute the interface
-              ! between the two vegetated regions, we use the same
-              ! formula as before but with the fraction associated
-              ! with one of the two vegetated regions, which is half
-              ! the total vegetation fraction.
-              associate (veg_scale => canopy_props%veg_scale(ilay1:ilay2))
-              if (config%use_symmetric_vegetation_scale_urban) then
-                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                     &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
-                     &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
-                     &  / veg_scale(jlay)
-              else
-                !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
-                ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-                norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
-                     &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
-              end if
-              end associate
-            else
-              ! Only one vegetated region so the other column of
-              ! norm_perim is unused
-              norm_perim(2:) = 0.0_jprb
-            end if
-          end if
-          end associate
-        end if
-        
-        ! Compute the normalized length of the interface between each
-        ! region and a building wall
-        norm_perim_wall = 0.0_jprb
-
-        if (building_fraction(jlay) > config%min_building_fraction) then
-          norm_perim_wall(1) = 4.0_jprb * building_fraction(jlay) / building_scale(jlay)
-
-          if (nreg > 1) then
-            associate (veg_contact_fraction => canopy_props%veg_contact_fraction(ilay1:ilay2))
-            if (veg_contact_fraction(jlay) > 0.0_jprb) then
-              ! Compute normalized length of interface between wall
-              ! and any vegetation
-              norm_perim_wall_veg = min(norm_perim_air_veg*veg_contact_fraction(jlay), &
-                   &                    norm_perim_wall(1))
-              if (nreg == 2) then
-                norm_perim_wall(2) = norm_perim_wall_veg
-                norm_perim(1) = norm_perim(1) - norm_perim_wall_veg
-              else
-                norm_perim_wall(2) = norm_perim_wall_veg &
-                     &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
-                norm_perim(1) = norm_perim(1) - norm_perim_wall(2)
-                norm_perim_wall(3) = norm_perim_wall_veg &
-                     &  * config%vegetation_isolation_factor_urban
-                norm_perim(3) = norm_perim(3) - norm_perim_wall(3)
-              end if
-              ! Reduce length of interface between wall and clear-air
-              norm_perim_wall(1) = norm_perim_wall(1) - norm_perim_wall_veg
-            else if (frac(1,jlay) <= config%min_vegetation_fraction) then
-              ! There is no clear region (region 1), so all walls must
-              ! be in contact with vegetation (region 2 and possibly
-              ! 3)
-              if (nreg == 2) then
-                norm_perim_wall(2) = norm_perim_wall(1)
-              else
-                norm_perim_wall(2) = norm_perim_wall(1) &
-                     &  * (1.0_jprb - config%vegetation_isolation_factor_urban)
-                norm_perim_wall(3) = norm_perim_wall(1) &
-                     &  * config%vegetation_isolation_factor_urban
-              end if
-              norm_perim_wall(1) = 0.0_jprb
-            end if
-            end associate
-          end if
-        end if
-
-
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
         f_exchange = 0.0_jprb
@@ -469,18 +377,18 @@ contains
             f_exchange(jreg+1,jreg) = 0.0_jprb
             f_exchange(jreg,jreg+1) = 0.0_jprb
           else
-            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
-            f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
+            f_exchange(jreg+1,jreg) = norm_perim(jreg,jlay) / (Pi * frac(jreg,jlay))
+            f_exchange(jreg,jreg+1) = norm_perim(jreg,jlay) / (Pi * frac(jreg+1,jlay))
           end if
         end do
-        if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
+        if (nreg > 2 .and. norm_perim(nreg,jlay) > 0.0_jprb) then
           if (frac(3,jlay) <= config%min_vegetation_fraction &
                &  .or. frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
             f_exchange(3,1) = 0.0_jprb
           else
-            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
-            f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
+            f_exchange(1,3) = norm_perim(jreg,jlay) / (Pi * frac(3,jlay))
+            f_exchange(3,1) = norm_perim(jreg,jlay) / (Pi * frac(1,jlay))
           end if
         end if
 
@@ -490,14 +398,14 @@ contains
           if (frac(jreg,jlay) <= config%min_vegetation_fraction) then
             f_wall(jreg,jlay) = 0.0_jprb
           else
-            f_wall(jreg,jlay) = norm_perim_wall(jreg) / (Pi * frac(jreg,jlay))
+            f_wall(jreg,jlay) = norm_perim_wall(jreg,jlay) / (Pi * frac(jreg,jlay))
           end if
         end do
 
         if (non_building_fraction(jlay) <= config%min_building_fraction) then
           f_wall_dir_clear(jlay) = 0.0_jprb
         else
-          f_wall_dir_clear(jlay) = sum(norm_perim_wall(1:nreg)) &
+          f_wall_dir_clear(jlay) = sum(norm_perim_wall(1:nreg,jlay)) &
                &  / (Pi * non_building_fraction(jlay))
         end if
 
@@ -590,8 +498,8 @@ contains
         call print_vector('ext_reg',ext_reg(1,:))
         call print_vector('ssa_reg',ssa_reg(1,:))
         call print_matrix('f_exchange',f_exchange)
-        call print_vector('norm_perim', norm_perim)
-        call print_vector('norm_perim_wall', norm_perim_wall)
+        call print_vector('norm_perim', norm_perim(:,jlay))
+        call print_vector('norm_perim_wall', norm_perim_wall(:,jlay))
         call print_matrix('gamma0',gamma0(1,:,:))
         call print_matrix('gamma1',gamma1(1,:,:))
         call print_matrix('gamma2',gamma2(1,:,:))

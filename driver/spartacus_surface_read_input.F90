@@ -99,13 +99,6 @@ contains
            &              canopy_props%building_fraction)
       call read_packed_1d(file, 'building_scale', canopy_props%nlay, &
            &              canopy_props%building_scale)
-      if (file%exists('veg_contact_fraction')) then
-        call read_packed_1d(file, 'veg_contact_fraction', canopy_props%nlay, &
-             &              canopy_props%veg_contact_fraction)
-      else
-        allocate(canopy_props%veg_contact_fraction(ntotlay))
-        canopy_props%veg_contact_fraction = 0.0_jprb
-      end if
     end if
     if (config%do_vegetation) then
       if (driver_config%vegetation_fraction >= 0.0_jprb) then
@@ -133,6 +126,22 @@ contains
         call read_packed_1d(file, 'veg_fsd', canopy_props%nlay, &
              &              canopy_props%veg_fsd)
       end if
+
+      if (config%do_urban) then
+        if (file%exists('veg_contact_fraction')) then
+          call read_packed_1d(file, 'veg_contact_fraction', canopy_props%nlay, &
+               &              canopy_props%veg_contact_fraction)
+        else
+          allocate(canopy_props%veg_contact_fraction(ntotlay))
+          ! By default the vegetation is assumed to be randomly
+          ! placed, which means that the probability of a wall being
+          ! in contact with vegetation is equal to the fraction of the
+          ! non-building area that contains vegetation
+          canopy_props%veg_contact_fraction = min(1.0_jprb, canopy_props%veg_fraction &
+               &  / max(config%min_vegetation_fraction, 1.0_jprb-canopy_props%building_fraction))
+        end if
+      end if
+
     end if
 
     if (config%do_lw) then

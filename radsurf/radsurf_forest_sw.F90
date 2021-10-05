@@ -55,6 +55,7 @@ contains
          &  rect_mat_x_expandedmat, rect_expandedmat_x_vec, solve_vec, &
          &  solve_rect_mat, rect_mat_x_singlemat
     use radsurf_overlap,            only : calc_overlap_matrices
+    use radsurf_norm_perim,         only : calc_norm_perim_forest
 
 !#define PRINT_ARRAYS 1
 
@@ -124,14 +125,14 @@ contains
 
     ! Normalized vegetation perimeter length (perimeter length divided
     ! by domain area), m-1.  If nreg=2 then there is a clear-sky and a
-    ! vegetation region, and norm_perim(1) is the normalized length
-    ! between the two regions, while norm_perim(2) is unused.  If
-    ! nreg=3 then region 1 is clear-sky, region 2 is low optical depth
-    ! vegetation and region 3 is high optical depth
-    ! vegetation. norm_perim(1) is the normalized length between
-    ! regions 1 and 2, norm_perim(2) is that between regions 2 and 3,
-    ! and norm_perim(3) is that between regions 3 and 1.
-    real(kind=jprb) :: norm_perim(nreg)
+    ! vegetation region, and norm_perim(1,jlay) is the normalized
+    ! length between the two regions, while norm_perim(2,jlay) is
+    ! unused.  If nreg=3 then region 1 is clear-sky, region 2 is low
+    ! optical depth vegetation and region 3 is high optical depth
+    ! vegetation. norm_perim(1,jlay) is the normalized length between
+    ! regions 1 and 2, norm_perim(2,jlay) is that between regions 2
+    ! and 3, and norm_perim(3,jlay) is that between regions 3 and 1.
+    real(kind=jprb) :: norm_perim(nreg,nlay)
 
     ! Tangent of solar zenith angle
     real(kind=jprb) :: tan0
@@ -255,6 +256,12 @@ contains
       call calc_overlap_matrices(nlay,nreg,frac,u_overlap,v_overlap, &
            &  config%min_vegetation_fraction);
       
+      ! Compute normalized lengths
+      call calc_norm_perim_forest(config,nlay,nreg, &
+           &  canopy_props%veg_fraction(ilay1:ilay2), &
+           &  canopy_props%veg_scale(ilay1:ilay2), &
+           &  norm_perim)
+
       ! --------------------------------------------------------
       ! Section 3: First loop over layers
       ! --------------------------------------------------------
@@ -289,51 +296,6 @@ contains
                &       / max(ext_reg(:,3), 1.0e-8_jprb)
         end if
         
-        ! Compute the normalized vegetation perimeter length
-        if (veg_fraction(jlay) > config%min_vegetation_fraction) then
-          if (config%use_symmetric_vegetation_scale_forest) then
-            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) * (1.0_jprb - veg_fraction(jlay)) &
-                 &        / veg_scale(jlay)
-          else
-            norm_perim(1) = 4.0_jprb * veg_fraction(jlay) / veg_scale(jlay)
-          end if
-
-          if (nreg > 2) then
-            ! Share the clear-air/vegetation perimeter between the two
-            ! vegetated regions
-            norm_perim(nreg) = config%vegetation_isolation_factor_forest * norm_perim(1)
-            norm_perim(1) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                 &          * norm_perim(1) 
-            ! We assume that the horizontal scale of the vegetation
-            ! inhomogeneities is the same as the scale of the tree
-            ! crowns themselves. Therefore, to compute the interface
-            ! between the two vegetated regions, we use the same
-            ! formula as before but with the fraction associated with
-            ! one of the two vegetated regions, which is half the
-            ! total vegetation fraction.
-            if (config%use_symmetric_vegetation_scale_forest) then
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                   &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) &
-                   &  * (1.0_jprb - (0.5_jprb*veg_fraction(jlay))) &
-                   &  / veg_scale(jlay)
-            else
-              !            norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-              !                 &  * 4.0_jprb * (0.5_jprb*veg_fraction(jlay)) / veg_scale(jlay)
-              ! Lollipop model - see Hogan, Quaife and Braghiere (2018) explaining sqrt(2)
-              norm_perim(2) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
-                   &  * 4.0_jprb * veg_fraction(jlay) / (sqrt(2.0_jprb)*veg_scale(jlay))
-            end if
-          else
-            ! Only one vegetated region so the other column of norm_perim
-            ! is unused
-            norm_perim(2:) = 0.0_jprb
-          end if
-
-        else
-          ! No vegetation so no perimeters
-          norm_perim = 0.0_jprb
-        end if
-
         ! Compute the rates of exchange between regions, excluding the
         ! tangent term
         f_exchange = 0.0_jprb
@@ -343,18 +305,18 @@ contains
             f_exchange(jreg+1,jreg) = 0.0_jprb
             f_exchange(jreg,jreg+1) = 0.0_jprb
           else
-            f_exchange(jreg+1,jreg) = norm_perim(jreg) / (Pi * frac(jreg,jlay))
-            f_exchange(jreg,jreg+1) = norm_perim(jreg) / (Pi * frac(jreg+1,jlay))
+            f_exchange(jreg+1,jreg) = norm_perim(jreg,jlay) / (Pi * frac(jreg,jlay))
+            f_exchange(jreg,jreg+1) = norm_perim(jreg,jlay) / (Pi * frac(jreg+1,jlay))
           end if
         end do
-        if (nreg > 2 .and. norm_perim(nreg) > 0.0_jprb) then
+        if (nreg > 2 .and. norm_perim(nreg,jlay) > 0.0_jprb) then
           if (frac(3,jlay) <= config%min_vegetation_fraction &
                &  .or. frac(1,jlay) <= config%min_vegetation_fraction) then
             f_exchange(1,3) = 0.0_jprb
             f_exchange(3,1) = 0.0_jprb
           else
-            f_exchange(1,3) = norm_perim(jreg) / (Pi * frac(3,jlay))
-            f_exchange(3,1) = norm_perim(jreg) / (Pi * frac(1,jlay))
+            f_exchange(1,3) = norm_perim(jreg,jlay) / (Pi * frac(3,jlay))
+            f_exchange(3,1) = norm_perim(jreg,jlay) / (Pi * frac(1,jlay))
           end if
         end if
         
@@ -431,7 +393,7 @@ contains
         call print_vector('veg_fraction',veg_fraction)
         call print_vector('veg_scale', veg_scale);
         call print_matrix('frac', frac);
-        call print_vector('norm_perim', norm_perim)
+        call print_vector('norm_perim', norm_perim(:,jlay)
         call print_matrix('f_exchange',f_exchange)
         call print_vector('tan_ang',lg%tan_ang)
         call print_matrix('gamma0',gamma0(1,:,:))

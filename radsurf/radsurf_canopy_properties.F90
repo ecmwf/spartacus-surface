@@ -88,8 +88,8 @@ module radsurf_canopy_properties
     ! Fractional standard deviation of vegetation optical depth
     real(kind=jprb), allocatable :: veg_fsd(:) ! (ntotlay)
 
-    ! Fraction of vegetation edge in contact with buildings rather
-    ! than air
+    ! Fraction of building edge in contact with vegetation rather than
+    ! air (note that this was redefined in v0.7.3)
     real(kind=jprb), allocatable :: veg_contact_fraction(:) ! (ntotlay)
 
     ! Representation codes (ITileFlat etc) for each tile: dimensioning
