@@ -9,6 +9,10 @@ version 0.7.3
 	- Normalized perimeter of vegetation-air interface now properly
 	  takes into account the building fraction in the symmetric
 	  vegetation scale formula; this is now in radsurf_norm_perim.F90
+	- vegetation_isolation_factor treatment changed such that a value
+	  of 1 now indicates that thick and thin vegetation regions equally
+	  likely to be in contact with the clear-air region, rather than
+	  that only the thick region is in contact with clear-air
 
 version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from

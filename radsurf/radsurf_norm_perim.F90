@@ -80,8 +80,8 @@ contains
           if (nreg > 2) then
             ! Share the clear-air/vegetation perimeter between the two
             ! vegetated regions
-            norm_perim(nreg,jlay) = config%vegetation_isolation_factor_forest * norm_perim(1,jlay)
-            norm_perim(1,jlay) = (1.0_jprb - config%vegetation_isolation_factor_forest) &
+            norm_perim(nreg,jlay) = 0.5_jprb*config%vegetation_isolation_factor_forest * norm_perim(1,jlay)
+            norm_perim(1,jlay) = (1.0_jprb - 0.5_jprb*config%vegetation_isolation_factor_forest) &
                  &             * norm_perim(1,jlay) 
             ! We assume that the horizontal scale of the vegetation
             ! inhomogeneities is the same as the scale of the tree
@@ -198,8 +198,8 @@ contains
           if (nreg > 2) then
             ! Share the clear-air/vegetation perimeter between the two
             ! vegetated regions
-            norm_perim(nreg,jlay) = config%vegetation_isolation_factor_urban * norm_perim(1,jlay)
-            norm_perim(1,jlay) = (1.0_jprb - config%vegetation_isolation_factor_urban) &
+            norm_perim(nreg,jlay) = 0.5_jprb*config%vegetation_isolation_factor_urban * norm_perim(1,jlay)
+            norm_perim(1,jlay) = (1.0_jprb - 0.5_jprb*config%vegetation_isolation_factor_urban) &
                  &             * norm_perim(1,jlay) 
             ! We assume that the horizontal scale of the vegetation
             ! inhomogeneities is the same as the scale of the tree
