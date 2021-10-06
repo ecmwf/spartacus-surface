@@ -2,7 +2,7 @@
 
 Robin Hogan <r.j.hogan@ecmwf.int>
 
-This document was last updated 10 October 2020
+This document was last updated 6 October 2021
 
 
 ## INTRODUCTION
@@ -105,6 +105,8 @@ RAMI4PILPS test cases that were used by Hogan et al. (2018).
 The `test/urban` directory contains an urban profile from Fig. 1 of
 Hogan (2019).
 
+The `test/rami5` directory contains the files necessary to run five of
+the actual forest scenes from the RAMI-V intercomparison project.
 
 ## LICENCE
 
