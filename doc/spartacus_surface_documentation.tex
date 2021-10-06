@@ -106,8 +106,8 @@
 \author{Robin J. Hogan\\ \emph{European Centre for Medium Range
     Weather Forecasts, Reading, UK}}
 
-\date{Document version 0.7.1 (October 2020) applicable to
-  \spsurf\ version 0.7.1\thanks{This document is copyright
+\date{Document version 0.7.3 (October 2021) applicable to
+  \spsurf\ version 0.7.3\thanks{This document is copyright
     \copyright\ 2019-- ECMWF. If you have any queries about
     \spsurf\ that are not answered by this document
 %
@@ -358,7 +358,8 @@ used or these fields will be constructed according to
 \ref{sec:nam_radsurf_config}).
 
 \pagebreak
-\begin{center}
+%\begin{center}
+{
 \tablesetup
 \begin{longtable}{llLp{8cm}}%
 \caption{\label{tab:invar}Main variables contained in the input netCDF
@@ -375,7 +376,7 @@ Variable & Dimensions & Description \\
 \codetab{veg\_scale} & \codetab{col, layer} & Vegetation horizontal scale (m) \\
 \codetab{veg\_extinction} & \codetab{col, layer} & Wavelength-independent vegetation extinction coefficient (m$^{-1}$) \\
 \codetab{veg\_fsd} & \codetab{col, layer} & Fractional standard deviation of vegetation extinction \\
-\codetab{veg\_contact\_fraction} & \codetab{col, layer} & Fraction of vegetation edge in contact with building walls \\
+\codetab{veg\_contact\_fraction} & \codetab{col, layer} & Fraction of building walls in contact with vegetation; note that in version 0.7.2 and earlier this was instead defined as the fraction of vegetation edge in contact with buildings \\
 %
 \codetab{building\_fraction} & \codetab{col, layer} & Building fraction \\
 \codetab{building\_scale} & \codetab{col, layer} & Building horizontal scale (m) \\
@@ -408,7 +409,8 @@ Variable & Dimensions & Description \\
 \codetab{top\_flux\_dn\_direct\_sw} & \codetab{col, sw} & Top-of-canopy downwelling direct shortwave flux (W m$^{-2}$) \\
 \hline
 \end{longtable}
-\end{center}
+}
+%\end{center}
 
 Input fields should be provided in order of increasing height, and the
 output data use the same convention. The \code{surface\_type} variable
@@ -429,7 +431,8 @@ then set the \code{radsurf\_config} namelist variable
 \code{do\_spectral} to \code{true} and the same variables will be
 output but with the prefix \code{spectral\_}.
 
-\begin{center}
+%\begin{center}
+{
 \tablesetup
 \begin{longtable}{llLp{7cm}}%
 \caption{\label{tab:outvar}Variables contained in the output netCDF
@@ -479,7 +482,8 @@ Variable & Dimensions & Description\\
 \codetab{veg\_sunlit\_fraction} & \codetab{col, layer} & Fraction of the one-sided leaf area that is in direct sunlight\\
 \hline
 \end{longtable}
-\end{center}
+}
+%\end{center}
 
 The \code{ground\_flux\_vertical\_*} variables are diffuse fluxes into
 a vertical plane at ground level, and are useful for computing thermal
@@ -567,8 +571,10 @@ available namelist parameters are listed in Table
 %\newcommand{\namedef}{3}{\code{#1} & #2 & #3\\}
 
 %\begin{table}
-\begin{center}
+{
+%\begin{center}
 \tablesetup
+%\pagebreak
 %\begin{longtable}{lc>{\raggedright}p{5cm}>{\raggedright}p{5cm}}
 %\begin{longtable}{lXLp{4cm}Lp{5.5cm}}
 \begin{longtable}{lXlLp{5.5cm}}
@@ -615,7 +621,8 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 % To be added:
 %     &  do_canopy_gases_sw, do_canopy_gases_lw, 
 \end{longtable}
-\end{center}
+%\end{center}
+}
 %\end{table}
 
 The number of streams can be any positive integer, but note that this
@@ -640,51 +647,13 @@ region is completely embedded in the sparser region \cite[the
   assumption used by][]{Hogan+2018}, and 1.0 in which the dense and
 sparse regions form unconnected tree crowns.
 
-\begin{figure}[b!]
+\begin{figure}[tb!]
   \centerline{\includegraphics[width=0.75\textwidth]{isolation_schematic.pdf}}
   \caption{\label{fig:isolation_schematic}Schematic illustrating how
     the \code{vegetation\_isolation\_factor\_*} parameters in Table
     \ref{tab:nam_radsurf} describe the contact between the clear-air
     region and the two vegetated regions in each layer.}
 \end{figure}
-
-\spsurf\ assumes that the rate of lateral exchange of radiation
-between the clear and vegetated regions is proportional to the
-normalized perimeter length, $L$, separating the vegetation and clear
-regions, i.e.\ the perimeter length divided by the horizontal area of
-the domain. This variable has units of m$^{-1}$ and is a strong
-function of vegetation fraction, so it is more convenient for models to
-parameterize the horizontal size of typical tree crowns, as expressed
-by the \code{vegetation\_scale} input variable in Table
-\ref{tab:invar}. The \code{use\_symmetric\_vegetation\_scale\_*}
-parameters determine how this scale is used to compute $L$.  If a
-symmetric vegetation scale is selected then Eq.\ 20 of
-\cite{Hogan+2018} is used:
-%
-\begin{equation}
-  L=4v(1-v)/S,\label{eq:S}
-\end{equation}
-%
-where $v$ is the vegetation fraction and $S$ is the vegetation scale.
-In this case, as the vegetation fraction approaches one, the
-normalized perimeter approaches zero, indicating that the tree crowns
-effectively merge. If \code{use\_symmetric\_vegetation\_scale\_*} is
-\code{false} then Eq.\ 19 of \cite{Hogan+2018} is used:
-%
-\begin{equation}
-  L=4v/D,\label{eq:D}
-\end{equation}
-%
-where this time \code{vegetation\_scale} is interpreted as the
-effective crown diameter, $D$. This has the property that $L$
-approaches a constant value as the vegetation fraction approaches one,
-which could be thought of as the property of \emph{crown shyness}
-exhibited by some forest canopies.
-
-The \code{building\_scale} input variable in Table \ref{tab:invar} is
-always interpreted as an effective building diameter, i.e.\ the code
-uses (\ref{eq:D}) to convert to the normalized building perimeter
-length in each layer, $L$, given the building fraction $v$.
 
 \section{Configuring the offline package}
 \label{sec:nam_radsurf_config}
@@ -696,7 +665,8 @@ version of \spsurf\ and are listed in Table
 present in the namelist then they will override the corresponding
 variable provided in the input file.
 
-\begin{center}
+%\begin{center}
+{
 \tablesetup
 \begin{longtable}{ll}
 %
@@ -736,7 +706,176 @@ Parameter & Description\\
 \codetab{top\_flux\_dn\_lw} & Override top-of-canopy downwelling longwave flux (W~m$^{-2}$)\\
 \hline
 \end{longtable}
-\end{center}
+}
+%\end{center}
+
+\section{Interpretation of geometry input variables}
+\subsection{Forests}
+\spsurf\ assumes that the rate of lateral exchange of radiation
+between the clear-air and vegetated regions is proportional to the
+normalized length of the perimeter separating the vegetation and clear
+regions, $L_{av}$, i.e.\ the perimeter length divided by the horizontal
+area of the domain. This variable has units of m$^{-1}$ and in
+practice is a strong function of vegetation fraction, so it is more
+convenient for models to parameterize the horizontal size of typical
+tree crowns, as expressed by the \code{vegetation\_scale} input
+variable in Table \ref{tab:invar}. The
+\code{use\_symmetric\_vegetation\_scale\_*} parameters determine how
+this scale is used to compute $L_{av}$ in the `forest' and `vegetated
+urban' surface types (shown in Fig.\ \ref{fig:type_schematic}).  If a
+symmetric vegetation scale is selected then Eq.\ 20 of
+\cite{Hogan+2018} is used:
+%
+\begin{equation}
+  L_{av}=\frac{4av}{S_v},\label{eq:S}
+\end{equation}
+%
+where $a$ is the clear-air fraction, $v$ is the vegetation fraction
+and $S_v$ is the vegetation scale.  In the case of a forest, there are
+no other regions so $a=1-v$ and as the vegetation fraction approaches
+one, the normalized perimeter approaches zero, indicating that the
+tree crowns effectively merge. If
+\code{use\_symmetric\_vegetation\_scale\_*} is \code{false} then
+Eq.\ 19 of \cite{Hogan+2018} is used:
+%
+\begin{equation}
+  L_{av}=\frac{4v}{D_v},\label{eq:D}
+\end{equation}
+%
+where this time \code{vegetation\_scale} is interpreted as the
+effective crown diameter, $D_v$. This has the property that $L_{av}$
+approaches a constant value as the vegetation fraction approaches one,
+which could be thought of as the property of \emph{crown shyness}
+exhibited by some forest canopies.
+
+If you have two vegetated regions (\code{n\_vegetation\_region\_*} in
+Table \ref{tab:nam_radsurf} is 2) then the normalized perimeter length
+between vegetation and clear-air, $L_{av}$, will be partitioned between the
+two vegetated regions in proportion to the relevant
+\code{vegetation\_isolation\_factor\_*} parameter $f$:
+%
+\begin{align}
+L_{a1}=&L_{av}(1-f/2);\label{eq:La1}\\
+L_{a2}=&L_{av}f/2,\label{eq:La2}
+\end{align}
+%
+where $L_{a1}$ and $L_{a2}$ are the normalized perimeter lengths
+between clear-air and each of the two vegetation regions.  Figure
+\ref{fig:isolation_schematic} illustrates the limits of $f=0$ and
+$f=1$.
+%
+This still leaves the length of the interface between the two
+vegetated regions, $L_{12}$, to be determined, which is used
+internally to compute the rate of lateral radiation exchange between
+these two regions. It is computed in \spsurf\ as follows.  If the
+symmetric vegetation scale is selected then the horizontal scale of
+the vegetation inhomogeneities is assumed to be the same as the scale
+of the tree crowns themselves. Therefore, to compute the length of the
+interface between the two vegetated regions we use (\ref{eq:S}) but
+replace the vegetation fraction $v$ with the fraction of just one of
+the two vegetation regions, $v/2$, such that
+%
+\begin{equation}
+L_{12}=(1-f)\frac{4(v/2)(1-v/2)}{S_v}=(1-f)\frac{v(2-v)}{S_v}.\label{eq:L12S}
+\end{equation}
+%
+If the non-symmetric vegetation scale, $D_v$, is to be used then the
+following formula is applied instead
+%
+\begin{equation}
+L_{12}=(1-f)\frac{4v}{2^{1/2}D_v}.\label{eq:L12D}
+\end{equation}
+%
+The factor of $2^{1/2}$ on the denominator was used by
+\cite{Hogan+2018} and is consistent with a tree model depicted in
+their Fig.\ 1 in which crowns are quasi-circular in horizontal
+cross-section and the optically thicker of the two region lies within
+a quasi-circular core surrounded by the optically thinner region.
+
+If you are trying to simulate a 3D forest scene for which you know the
+exact location and sizes of the trees (e.g.\ from one of the RAMI
+intercomparisons) then you should analyze the scene to compute the
+vertical profile of $L_{av}$, then invert either (\ref{eq:S}) or
+(\ref{eq:D}) to obtain the profile of vegetation scale to use as input
+to the algorithm. The two formulas for $L_{12}$ above do not allow for
+both $L_{av}$ and $L_{12}$ to be specified independently, even if you are
+analysing a 3D scene for which information on $L_{12}$ might be known,
+but it should be noted that $L_{av}$ has a much larger impact on radiative
+fluxes in the canopy than $L_{12}$.
+
+\subsection{Urban areas}
+The \code{building\_scale} input variable in Table \ref{tab:invar} is
+always interpreted as an effective building diameter, i.e.\ the code
+uses the equivalent of (\ref{eq:D}) to convert to the normalized
+building perimeter length in each layer, $L_b$, given the building
+fraction $b$:
+%
+\begin{equation}
+  L_b=\frac{4b}{D_b}.
+\end{equation}
+%
+If there is no vegetation then all the building perimeter length is in
+contact with clear air, so $L_{ab}=L_b$. If vegetation is present then
+the building perimeter $L_b$ is divided between clear-air and
+vegetation according to the \code{veg\_contact\_fraction} variable,
+$c$:
+%
+\begin{align}
+  L_{ab}&=(1-c)L_b;\\
+  L_{vb}&=cL_b.
+\end{align}
+%
+In the offline version of \spsurf, if \code{veg\_contact\_fraction} is
+not provided in the input file then it is assumed that trees are
+randomly located in the space between buildings, and therefore that
+the probability of a building wall being in contact with vegetation is
+equal to the fraction of this space containing vegetation, i.e.:
+%
+\begin{equation}
+  c=v/(a+v).\label{eq:c}
+\end{equation}
+%
+Note that the building, clear-air and vegetation fractions sum to one:
+$b+a+v=1$. If \spsurf\ is embedded in a larger model then
+\code{veg\_contact\_fraction} must be provided explicitly, in which
+case it is recommended that (\ref{eq:c}) is used. Please note that in
+\spsurf\ version 0.7.2 and earlier, \code{veg\_contact\_fraction} was
+defined as the fraction of vegetation perimeter in contact with the
+walls, rather than the current definition which is the fraction of
+building perimeter in contact with vegetation.
+
+The length of the interface between vegetation and clear-air is
+treated slightly differently for vegetated urban areas than forests,
+due to the fact that the building fraction $b$ is removed from
+consideration. If a symmetric vegetation scale is selected then we
+apply (\ref{eq:S}) to the non-building part of the domain only (with
+fraction $a+v$):
+%
+\begin{equation}
+  \frac{L_{av}}{a+v}=\frac{4}{S_v}\,\frac{a}{a+v}\,\frac{v}{a+v},
+\end{equation}
+%
+leading to
+%
+\begin{equation}
+  L_{av}=\frac{4}{S_v}\frac{av}{a+v}.
+\end{equation}
+%
+If a non-symmetric vegetation scale is selected then (\ref{eq:D}) is
+applied as before.
+%
+If there are two vegetation regions in an urban area then the
+normalized perimeter length between clear-air and each of the two
+vegetation regions uses (\ref{eq:La1}) and (\ref{eq:La2}), as
+before. If the symmetric vegetation scale is selected then we take a
+similar approach and (\ref{eq:L12S}) becomes
+%
+\begin{equation}
+  L_{12}=(1-f)\frac{4(v/2)(1-v/2-b)}{(a+b)S_v},
+\end{equation}
+%
+while for a non-symmetric vegetation scale, (\ref{eq:L12D}) is applied
+as before.
 
 \section{Checking the configuration}
 \label{sec:checking}
