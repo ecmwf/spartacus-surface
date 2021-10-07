@@ -13,6 +13,9 @@ version 0.7.3
 	  of 1 now indicates that thick and thin vegetation regions equally
 	  likely to be in contact with the clear-air region, rather than
 	  that only the thick region is in contact with clear-air
+	- Modified the test/rami5/scene_nc files to use the new definition
+	  of veg_contact_fraction and a consistent definition of veg_scale
+	  to the code
 
 version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from
