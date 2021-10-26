@@ -1,0 +1,16 @@
+Calling make in this directory runs SPARTACUS-Surface on the
+test_single_layer.nc file containing a single-layer description of an
+urban canopy (i.e. all buildings the same height), with each column
+increasing the mean building height so as to cover a very wide range
+of street height-to-width ratios. Three solvers are applied,
+controlled by the isurfacetype namelist parameter:
+
+  Urban: the SPARTACUS solver with 8 diffuse streams per hemisphere
+
+  InfiniteStreet: the Harman et al. (2004) method of performing the
+    radiative transfer by solving a 2x2 matrix problem, and describing
+    the urban canopy as a single-layer infinite street
+
+  SimpleUrban: the Harman et al. (2004) method of solving a 2x2 matrix
+    problem, but assuming exponential model of urban geometry (Hogan
+    2019) as in the SPARTACUS method

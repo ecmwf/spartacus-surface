@@ -1,0 +1,26 @@
+&radsurf_driver
+do_parallel = true,
+!top_flux_dn_sw = 1000.0,
+!top_flux_dn_direct_sw = 0.0,
+cos_solar_zenith_angle = 0.5,
+!do_conservation_check = true,
+nrepeat = 1,
+iverbose = 2,
+nblocksize = 100,
+isurfacetype = 2,
+/
+
+&radsurf
+iverbose = 2,
+do_sw = true,
+do_lw = true,
+!use_sw_direct_albedo = false,
+do_vegetation = false,
+do_urban = true,
+n_vegetation_region_urban = 0,
+nsw = 1,
+nlw = 1,
+n_stream_sw_urban = 8,
+n_stream_lw_urban = 8,
+do_save_flux_profile = false,
+/

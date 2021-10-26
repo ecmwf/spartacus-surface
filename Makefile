@@ -83,7 +83,7 @@ libradsurf: libradtool
 driver: libradsurf
 	cd driver && $(MAKE)
 
-test: test_simple test_rami4pilps test_urban test_rami5
+test: test_simple test_rami4pilps test_urban test_rami5 test_single_layer
 
 test_simple:
 	cd test/simple && $(MAKE) test
@@ -94,8 +94,13 @@ test_rami4pilps:
 test_urban:
 	cd test/urban && $(MAKE) test
 
+# Single profile
 test_urban_single:
 	cd test/urban && $(MAKE) test_single
+
+# Single layer
+test_single_layer:
+	cd test/single_layer && $(MAKE) test
 
 test_rami5:
 	cd test/rami5 && $(MAKE) test
@@ -112,6 +117,7 @@ clean-tests:
 	cd test/rami4pilps && $(MAKE) clean
 	cd test/urban && $(MAKE) clean
 	cd test/rami5 && $(MAKE) clean
+	cd test/single_layer && $(MAKE) clean
 
 clean-toplevel:
 	cd radsurf && $(MAKE) clean

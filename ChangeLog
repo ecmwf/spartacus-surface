@@ -16,6 +16,11 @@ version 0.7.3
 	- Modified the test/rami5/scene_nc files to use the new definition
 	  of veg_contact_fraction and a consistent definition of veg_scale
 	  to the code
+	- Added surface types 4 (SimpleUrban) and 5 (InfiniteStreet): fast
+	  methods for single-layer unvegetated urban canopies
+	- test/single_layer case for testing the new surface types
+	- Namelist parameter radsurf_config:isurfacetype can be used to
+	  override the surface_type in the input file
 
 version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from
