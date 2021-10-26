@@ -20,22 +20,25 @@ module radsurf_canopy_properties
   implicit none
 
   ! Number of tile types
-  integer(kind=jpim), parameter :: NTileTypes = 4
+  integer(kind=jpim), parameter :: NTileTypes = 6
 
   ! Codes for the different type of tile
   enum, bind(c)
     enumerator :: ITileFlat = 0, &
          &        ITileForest, &
          &        ITileUrban, &
-         &        ITileVegetatedUrban
+         &        ITileVegetatedUrban, &
+         &        ITileSimpleUrban, &
+         &        ITileInfiniteStreet
   end enum
 
   character(len=*), parameter :: TileRepresentationName(NTileTypes) &
-       &  = (/ 'Flat          ', &
-       &       'Forest        ', &
-       &       'Urban         ', &
-       &       'VegetatedUrban' /)
-
+       &  = [ 'Flat          ', &
+       &      'Forest        ', &
+       &      'Urban         ', &
+       &      'VegetatedUrban', &
+       &      'SimpleUrban   ', &
+       &      'InfiniteStreet' ]
 
   !---------------------------------------------------------------------
   ! Derived type storing a physical, non spectral, description of the
@@ -142,7 +145,8 @@ contains
         do_vegetation = .false.
       end if
       if (.not. any(i_representation == ITileUrban &
-           &        .or. i_representation == ITileVegetatedUrban)) then
+           &        .or. i_representation == ITileVegetatedUrban &
+           &        .or. i_representation == ITileSimpleUrban)) then
         do_urban = .false.
       end if
     end if

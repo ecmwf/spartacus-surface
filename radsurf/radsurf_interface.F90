@@ -26,10 +26,11 @@ contains
 
     use parkind1,                   only : jpim, jprb
     use yomhook,                    only : lhook, dr_hook
-    use radiation_io,               only : nulout
+    use radiation_io,               only : nulout, nulerr, radiation_abort
     use radsurf_config,             only : config_type
     use radsurf_canopy_properties,  only : ITileFlat,  ITileForest, &
          &                                 ITileUrban, ITileVegetatedUrban, &
+         &                                 ITileSimpleUrban, ITileInfiniteStreet, &
          &                                 canopy_properties_type
     use radsurf_sw_spectral_properties, only : sw_spectral_properties_type
     use radsurf_lw_spectral_properties, only : lw_spectral_properties_type
@@ -39,6 +40,7 @@ contains
     use radsurf_forest_lw,          only : spartacus_forest_lw
     use radsurf_urban_sw,           only : spartacus_urban_sw
     use radsurf_urban_lw,           only : spartacus_urban_lw
+    use radsurf_simple_urban_sw,    only : simple_urban_sw
     
     implicit none
 
@@ -72,6 +74,8 @@ contains
 
     ! Direct ground shortwave albedo, in case not provided by user
     real(kind=jprb), pointer :: ground_sw_albedo_dir(:,:) ! (nswinterval,ncol)
+
+    logical :: is_infinite_street
 
     real(jprb) :: hook_handle
 
@@ -262,6 +266,36 @@ contains
                &  config%lg_lw_urban, canopy_props, lw_spectral_props, &
                &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
                &  lw_internal, lw_norm)
+        end if
+
+      case (ITileSimpleUrban : ITileInfiniteStreet)
+        is_infinite_street = (irep == ITileInfiniteStreet)
+        if (config%iverbose >= 4) then
+          if (is_infinite_street) then
+            write(nulout,'(i5,a)') jcol, ': Simple urban - infinite street model'
+          else
+            write(nulout,'(i5,a)') jcol, ': Simple urban - exponential street model'
+          end if
+        end if
+        if (canopy_props%nlay(jcol) > 1) then
+          write(nulerr, '(a)') '*** Error: simple urban representations must have only one layer'
+          call radiation_abort('Attempt to use simple urban representation with more than one layer')
+        end if
+
+        if (config%do_sw) then
+          if (canopy_props%cos_sza(jcol) > 0.0_jprb) then
+            call simple_urban_sw(config, is_infinite_street, &
+                 &  config%nswinternal, &
+                 &  jcol, ilay1, canopy_props%cos_sza(jcol), &
+                 &  canopy_props, sw_spectral_props, &
+                 &  sw_spectral_props%ground_albedo(:,jcol), &
+                 &                    ground_sw_albedo_dir(:,jcol), &
+                 &  bc_out%sw_albedo(:,jcol), bc_out%sw_albedo_dir(:,jcol), &
+                 &  sw_norm_dir, sw_norm_diff)
+          else
+            call sw_norm_dir%zero(jcol,ilay1,ilay2)
+            call sw_norm_diff%zero(jcol,ilay1,ilay2)
+          end if
         end if
 
       end select

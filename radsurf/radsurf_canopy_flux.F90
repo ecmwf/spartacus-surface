@@ -467,6 +467,7 @@ contains
     use radiation_io,               only : nulout
     use radsurf_canopy_properties,  only : ITileFlat,  ITileForest, &
          &                                 ITileUrban, ITileVegetatedUrban, &
+         &                                 ITileSimpleUrban, ITileInfiniteStreet, &
          &                                 canopy_properties_type
     
     class(canopy_flux_type),      intent(inout) :: this
@@ -513,7 +514,9 @@ contains
         clear_air_net = 0.0_jprb
       end if
       if (canopy_props%i_representation(jcol) == ITileUrban &
-           &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban) then
+           &  .or. canopy_props%i_representation(jcol) == ITileVegetatedUrban &
+           &  .or. canopy_props%i_representation(jcol) == ITileSimpleUrban &
+           &  .or. canopy_props%i_representation(jcol) == ITileInfiniteStreet ) then
         roof_net = sum(this%roof_net(:,ilay1:ilay2))
         wall_net = sum(this%wall_net(:,ilay1:ilay2))
       else
