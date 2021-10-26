@@ -41,22 +41,24 @@ module spartacus_surface_config
      logical :: do_conservation_check = .false.
      
      ! Override values
-     real(kind=jprb) :: cos_sza_override     = -1.0
-     real(kind=jprb) :: ground_sw_albedo     = -1.0
-     real(kind=jprb) :: roof_sw_albedo       = -1.0
-     real(kind=jprb) :: wall_sw_albedo       = -1.0
-     real(kind=jprb) :: ground_lw_emissivity = -1.0
-     real(kind=jprb) :: roof_lw_emissivity   = -1.0
-     real(kind=jprb) :: wall_lw_emissivity   = -1.0
-     real(kind=jprb) :: vegetation_fraction      = -1.0
-     real(kind=jprb) :: vegetation_extinction    = -1.0
-     real(kind=jprb) :: vegetation_fsd           = -1.0
-     real(kind=jprb) :: vegetation_sw_ssa        = -1.0
-     real(kind=jprb) :: vegetation_lw_ssa        = -1.0
-     real(kind=jprb) :: top_flux_dn_sw           = -1.0
-     real(kind=jprb) :: top_flux_dn_direct_sw    = -1.0
-     real(kind=jprb) :: top_flux_dn_lw           = -1.0
-     
+     real(kind=jprb) :: cos_sza_override      = -1.0_jprb
+     real(kind=jprb) :: ground_sw_albedo      = -1.0_jprb
+     real(kind=jprb) :: roof_sw_albedo        = -1.0_jprb
+     real(kind=jprb) :: wall_sw_albedo        = -1.0_jprb
+     real(kind=jprb) :: ground_lw_emissivity  = -1.0_jprb
+     real(kind=jprb) :: roof_lw_emissivity    = -1.0_jprb
+     real(kind=jprb) :: wall_lw_emissivity    = -1.0_jprb
+     real(kind=jprb) :: vegetation_fraction   = -1.0_jprb
+     real(kind=jprb) :: vegetation_extinction = -1.0_jprb
+     real(kind=jprb) :: vegetation_fsd        = -1.0_jprb
+     real(kind=jprb) :: vegetation_sw_ssa     = -1.0_jprb
+     real(kind=jprb) :: vegetation_lw_ssa     = -1.0_jprb
+     real(kind=jprb) :: top_flux_dn_sw        = -1.0_jprb
+     real(kind=jprb) :: top_flux_dn_direct_sw = -1.0_jprb
+     real(kind=jprb) :: top_flux_dn_lw        = -1.0_jprb
+
+     integer(kind=jpim) :: isurfacetype       = -1
+
    contains
      procedure :: read => read_config_from_namelist
 
@@ -89,6 +91,7 @@ contains
     real(kind=jprb),    pointer :: vegetation_extinction, vegetation_sw_ssa
     real(kind=jprb),    pointer :: top_flux_dn_sw, top_flux_dn_direct_sw
     real(kind=jprb),    pointer :: top_flux_dn_lw
+    integer(kind=jpim), pointer :: isurfacetype
 
     real(kind=jprb) :: solar_zenith_angle
 
@@ -98,7 +101,7 @@ contains
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
          &  vegetation_extinction, vegetation_sw_ssa, vegetation_fraction, &
          &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw, &
-         &  do_conservation_check
+         &  do_conservation_check, isurfacetype
 
     do_parallel            => this%do_parallel
     do_conservation_check  => this%do_conservation_check
@@ -121,6 +124,7 @@ contains
     top_flux_dn_sw         => this%top_flux_dn_sw
     top_flux_dn_direct_sw  => this%top_flux_dn_direct_sw
     top_flux_dn_lw         => this%top_flux_dn_lw
+    isurfacetype           => this%isurfacetype
 
     ! Alternative way to specify solar zenith angle, in degrees
     solar_zenith_angle     = -100.0_jprb

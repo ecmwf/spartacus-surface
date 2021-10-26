@@ -26,7 +26,7 @@ contains
     use easy_netcdf,               only : netcdf_file
     use radsurf_config,            only : config_type
     use spartacus_surface_config,  only : driver_config_type
-    use radsurf_canopy_properties, only : canopy_properties_type
+    use radsurf_canopy_properties, only : canopy_properties_type, TileRepresentationName
     use radsurf_sw_spectral_properties,  only : sw_spectral_properties_type
     use radsurf_lw_spectral_properties,  only : lw_spectral_properties_type
     use radiation_constants,       only : StefanBoltzmann
@@ -91,7 +91,17 @@ contains
       ilay = ilay + canopy_props%nlay(jcol)
     end do
 
-    call file%get('surface_type', canopy_props%i_representation)
+    if (driver_config%isurfacetype >= 0) then
+      allocate(canopy_props%i_representation(ncol))
+      if  (driver_config%iverbose >= 2) then
+        write(nulout,'(a,i0,a,a,a)') '  Overriding all surface types with ', &
+             &  driver_config%isurfacetype, ' (', &
+             &  trim(TileRepresentationName(driver_config%isurfacetype)), ')'
+      end if
+      canopy_props%i_representation = driver_config%isurfacetype
+    else
+      call file%get('surface_type', canopy_props%i_representation)
+    end if
 
     ! Read canopy geometry
     if (config%do_urban) then
