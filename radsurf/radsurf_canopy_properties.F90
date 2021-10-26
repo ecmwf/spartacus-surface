@@ -32,7 +32,7 @@ module radsurf_canopy_properties
          &        ITileInfiniteStreet
   end enum
 
-  character(len=*), parameter :: TileRepresentationName(NTileTypes) &
+  character(len=*), parameter :: TileRepresentationName(0:NTileTypes-1) &
        &  = [ 'Flat          ', &
        &      'Forest        ', &
        &      'Urban         ', &

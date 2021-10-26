@@ -1,4 +1,4 @@
-! radsurf_simple_urban_sw.F90 - Urban solver assuming single-layer infinite street canyon
+! radsurf_simple_urban_sw.F90 - Shortwave solver for unvegetated single-layer urban canopy
 !
 ! (C) Copyright 2021- ECMWF.
 !
@@ -98,6 +98,9 @@ contains
 
     ! The street width in the infinite-street assumption, metres
     real(kind=jprb) :: street_width
+
+    ! Tangent of solar zenith angle
+    real(kind=jprb) :: tan_sza
 
     ! Fundamentally the Harman et al. (BLM 2004) method solves a 2x2
     ! matrix problem of the form
@@ -201,10 +204,13 @@ contains
       ! Wall fluxes
       sw_norm_dir%wall_in_dir(:,ilay) = view_dir_wall &
            * (1.0_jprb-building_fraction)
-      !source_vector(:,2)
       sw_norm_dir%wall_in(:,ilay) = solution_vector(:,2)
       sw_norm_dir%wall_net(:,ilay) &
            &  =  sw_norm_dir%wall_in(:,ilay) * (1.0_jprb-wall_albedo)
+      tan_sza = sqrt(1.0_jprb / (cos_sza*cos_sza) - 1.0_jprb)
+      sw_norm_dir%wall_sunlit_frac(ilay) = 0.5_jprb * view_dir_wall &
+           &  / (max(tan_sza,1.0e-6_jprb) * norm_perim_wall(1)*dz &
+           &     / (Pi*(1.0_jprb - building_fraction)))
 
       ! Top-of-canopy fluxes
       sw_norm_dir%top_dn_dir(:,icol) = 1.0_jprb
@@ -217,14 +223,17 @@ contains
 
       ! Flux "profiles"
       if (allocated(sw_norm_dir%flux_dn_layer_top)) then
-        sw_norm_dir%flux_dn_dir_layer_top(:,ilay) = 1.0_jprb
-        sw_norm_dir%flux_dn_layer_top(:,ilay) = 1.0_jprb
+        sw_norm_dir%flux_dn_dir_layer_top(:,ilay) = (1.0_jprb-building_fraction)
+        sw_norm_dir%flux_dn_layer_top(:,ilay) = (1.0_jprb-building_fraction)
         sw_norm_dir%flux_up_layer_top(:,ilay) &
-             &  = sw_norm_dir%top_net(:,icol) - sw_norm_dir%top_dn(:,icol)
+             &  = (sw_norm_dir%ground_dn(:,ilay) - sw_norm_dir%ground_net(:,ilay)) &
+             &    * view_ground_sky &
+             &  + (sw_norm_dir%wall_in(:,ilay) - sw_norm_dir%wall_net(:,ilay)) &
+             &    * view_wall_ground
         sw_norm_dir%flux_dn_dir_layer_base(:,ilay) = sw_norm_dir%ground_dn_dir(:,ilay)
         sw_norm_dir%flux_dn_layer_base(:,ilay) = sw_norm_dir%ground_dn(:,ilay)
         sw_norm_dir%flux_up_layer_base(:,ilay) &
-             &  = sw_norm_dir%ground_net(:,ilay) - sw_norm_dir%ground_dn(:,ilay)
+             &  = sw_norm_dir%ground_dn(:,ilay) - sw_norm_dir%ground_net(:,ilay)
       end if
 
       ! Second the fluxes normalized by the diffuse downwelling flux
@@ -244,7 +253,7 @@ contains
       sw_norm_diff%ground_dn_dir(:,ilay) = 0.0_jprb
       sw_norm_diff%ground_dn(:,ilay)     = solution_vector(:,1)
       sw_norm_diff%ground_net(:,ilay) &
-           &  = sw_norm_diff%ground_dn(:,ilay) * (1.0_jprb-ground_albedo_dir)
+           &  = sw_norm_diff%ground_dn(:,ilay) * (1.0_jprb-ground_albedo_diff)
       ! vertical flux???
 
       ! Roof fluxes
@@ -267,12 +276,15 @@ contains
 
       ! Flux "profiles"
       if (allocated(sw_norm_diff%flux_dn_layer_top)) then
-        sw_norm_diff%flux_dn_layer_top(:,ilay) = 1.0_jprb
+        sw_norm_diff%flux_dn_layer_top(:,ilay) = (1.0_jprb-building_fraction)
         sw_norm_diff%flux_up_layer_top(:,ilay) &
-             &  = sw_norm_diff%top_net(:,icol) - sw_norm_diff%top_dn(:,icol)
+             &  = (sw_norm_diff%ground_dn(:,ilay) - sw_norm_diff%ground_net(:,ilay)) &
+             &    * view_ground_sky &
+             &  + (sw_norm_diff%wall_in(:,ilay) - sw_norm_diff%wall_net(:,ilay)) &
+             &    * view_wall_ground
         sw_norm_diff%flux_dn_layer_base(:,ilay) = sw_norm_diff%ground_dn(:,ilay)
         sw_norm_diff%flux_up_layer_base(:,ilay) &
-             &  = sw_norm_diff%ground_net(:,ilay) - sw_norm_diff%ground_dn(:,ilay)
+             &  = sw_norm_diff%ground_dn(:,ilay) - sw_norm_diff%ground_net(:,ilay)
       end if
 
     end associate

@@ -66,7 +66,8 @@ contains
     use radsurf_config, only : config_type
 
     use radsurf_canopy_properties, only : ITileFlat,  ITileForest, &
-         &                                ITileUrban, ITileVegetatedUrban
+         &                                ITileUrban, ITileVegetatedUrban, &
+         &                                ITileSimpleUrban, ITileInfiniteStreet
 
     class(lw_spectral_properties_type), intent(inout) :: this
     type(config_type),                  intent(in)    :: config
@@ -93,7 +94,9 @@ contains
         do_vegetation = .false.
       end if
       if (.not. any(i_representation == ITileUrban &
-           &        .or. i_representation == ITileVegetatedUrban)) then
+           &        .or. i_representation == ITileVegetatedUrban &
+           &        .or. i_representation == ITileSimpleUrban &
+           &        .or. i_representation == ITileInfiniteStreet)) then
         do_urban = .false.
       end if
     end if

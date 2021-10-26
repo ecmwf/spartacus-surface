@@ -116,7 +116,9 @@ contains
          &    "0: Flat"//NEW_LINE('A') &
          &  //"1: Forest"//NEW_LINE('A') &
          &  //"2: Unvegetated urban"//NEW_LINE('A') &
-         &  //"3: Vegetated urban")
+         &  //"3: Vegetated urban"//NEW_LINE('A') &
+         &  //"4: Simple urban"//NEW_LINE('A') &
+         &  //"5: Infinite street")
     call out_file%define_variable("nlayer", data_type_name="short", &
          &  dim1_name="column", long_name="Number of active layers")
 

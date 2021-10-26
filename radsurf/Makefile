@@ -15,7 +15,8 @@ SOURCES = \
 	radsurf_lw_spectral_properties.F90 \
 	radsurf_norm_perim.F90 \
 	radsurf_view_factor.F90 \
-	radsurf_simple_urban_sw.F90
+	radsurf_simple_urban_sw.F90 \
+	radsurf_simple_urban_lw.F90
 
 OBJECTS := $(SOURCES:.F90=.o)
 LIBSURF = ../lib/libradsurf.a
@@ -38,7 +39,8 @@ radsurf_interface.o: radsurf_canopy_properties.o \
 	radsurf_sw_spectral_properties.o radsurf_lw_spectral_properties.o \
 	radsurf_boundary_conds_out.o radsurf_simple_urban_sw.o \
 	radsurf_canopy_flux.o radsurf_config.o radsurf_forest_sw.o \
-	radsurf_forest_lw.o radsurf_urban_sw.o radsurf_urban_lw.o 
+	radsurf_forest_lw.o radsurf_urban_sw.o radsurf_urban_lw.o \
+	radsurf_simple_urban_lw.o
 radsurf_forest_sw.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_sw_spectral_properties.o radsurf_boundary_conds_out.o \
 	radsurf_canopy_flux.o radsurf_overlap.o radsurf_norm_perim.o
@@ -58,4 +60,7 @@ radsurf_simple_spectrum.o: radsurf_config.o radsurf_canopy_properties.o \
 radsurf_canopy_flux.o: radsurf_canopy_properties.o
 radsurf_simple_urban_sw.o: radsurf_config.o radsurf_canopy_properties.o \
 	radsurf_sw_spectral_properties.o radsurf_canopy_flux.o \
+	radsurf_norm_perim.o radsurf_view_factor.o
+radsurf_simple_urban_lw.o: radsurf_config.o radsurf_canopy_properties.o \
+	radsurf_lw_spectral_properties.o radsurf_canopy_flux.o \
 	radsurf_norm_perim.o radsurf_view_factor.o

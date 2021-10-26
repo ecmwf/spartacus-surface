@@ -41,6 +41,7 @@ contains
     use radsurf_urban_sw,           only : spartacus_urban_sw
     use radsurf_urban_lw,           only : spartacus_urban_lw
     use radsurf_simple_urban_sw,    only : simple_urban_sw
+    use radsurf_simple_urban_lw,    only : simple_urban_lw
     
     implicit none
 
@@ -296,6 +297,15 @@ contains
             call sw_norm_dir%zero(jcol,ilay1,ilay2)
             call sw_norm_diff%zero(jcol,ilay1,ilay2)
           end if
+        end if
+
+        if (config%do_lw) then
+          call simple_urban_lw(config, is_infinite_street, &
+               &  config%nlwinternal, &
+               &  jcol, ilay1, &
+               &  canopy_props, lw_spectral_props, &
+               &  bc_out%lw_emissivity(:,jcol), bc_out%lw_emission(:,jcol), &
+               &  lw_internal, lw_norm)
         end if
 
       end select
