@@ -23,7 +23,7 @@ program spartacus_surface_driver
   ! Section 1: Declarations
   ! --------------------------------------------------------
 
-  use parkind1,                     only : jprb ! Working precision
+  use parkind1,                     only : jprb, jprd ! Working precision
 
   use radiation_io,                 only : nulout
   use radsurf_config,               only : config_type
@@ -74,7 +74,13 @@ program spartacus_surface_driver
 
   ! For parallel processing of multiple blocks
   integer :: jblock, nblock ! Block loop index and number
+
+#ifndef NO_OPENMP
   integer, external :: omp_get_thread_num
+  double precision, external :: omp_get_wtime
+  ! Start/stop time in seconds
+  real(kind=jprd) :: tstart, tstop
+#endif
 
   ! Loop index for repeats (for benchmarking)
   integer :: jrepeat
@@ -185,6 +191,9 @@ program spartacus_surface_driver
 
   ! Option of repeating calculation multiple time for more accurate
   ! profiling
+#ifndef NO_OPENMP
+  tstart = omp_get_wtime()
+#endif
   do jrepeat = 1,driver_config%nrepeat
 
     if (driver_config%do_parallel) then
@@ -252,6 +261,12 @@ program spartacus_surface_driver
     end if
 
   end do
+#ifndef NO_OPENMP
+  tstop = omp_get_wtime()
+  if (driver_config%iverbose >= 2) then
+    write(nulout, '(a,g11.5,a)') 'Time elapsed in radiative transfer: ', tstop-tstart, ' seconds'
+  endif
+#endif
 
   ! --------------------------------------------------------
   ! Section 5: Check and save output
