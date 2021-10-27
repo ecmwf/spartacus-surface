@@ -54,6 +54,12 @@ module radtool_matrix
     module procedure fast_expm_exchange_2, fast_expm_exchange_3
   end interface fast_expm_exchange
 
+  ! The routines in this module can be called millions of times, so
+  ! calling Dr Hook for each one may be a significant overhead.
+  ! Uncomment the following to turn Dr Hook on.
+
+!#define DO_DR_HOOK_MATRIX
+
 contains
 
   ! --- MATRIX-VECTOR MULTIPLICATION ---
@@ -64,7 +70,9 @@ contains
   ! multiplications on first iend pairs
   function mat_x_vec(n,iend,m,A,b,do_top_left_only_in)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                   :: n, m, iend
     real(jprb), intent(in), dimension(:,:,:) :: A
@@ -72,12 +80,14 @@ contains
     logical,    intent(in), optional         :: do_top_left_only_in
     real(jprb),             dimension(iend,m):: mat_x_vec
 
-    integer :: j1, j2
+    integer :: j1, j2, jn
     logical :: do_top_left_only
 
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:mat_x_vec',0,hook_handle)
+#endif 
 
     if (present(do_top_left_only_in)) then
       do_top_left_only = do_top_left_only_in
@@ -88,18 +98,22 @@ contains
     ! Array-wise assignment
     mat_x_vec = 0.0_jprb
 
-    if (do_top_left_only) then
-      mat_x_vec(1:iend,1) = A(1:iend,1,1)*b(1:iend,1)
-    else
+    if (.not. do_top_left_only) then
       do j1 = 1,m
         do j2 = 1,m
-          mat_x_vec(1:iend,j1) = mat_x_vec(1:iend,j1) &
-               &               + A(1:iend,j1,j2)*b(1:iend,j2)
+          do jn = 1,iend
+            mat_x_vec(jn,j1) = mat_x_vec(jn,j1) &
+                 &           + A(jn,j1,j2)*b(jn,j2)
+          end do
         end do
       end do
+    else
+      mat_x_vec(1:iend,1) = A(1:iend,1,1)*b(1:iend,1)
     end if
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:mat_x_vec',1,hook_handle)
+#endif 
 
   end function mat_x_vec
 
@@ -110,7 +124,9 @@ contains
   ! multiplications on all n pairs
   function rect_mat_x_vec(n,k,l,A,b)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                   :: n, k, l
     real(jprb), intent(in), dimension(n,k,l) :: A
@@ -118,9 +134,12 @@ contains
 
     real(jprb),             dimension(n,k)   :: rect_mat_x_vec
     integer    :: j1, j2
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_vec',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_mat_x_vec = 0.0_jprb
@@ -133,7 +152,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_vec',1,hook_handle)
+#endif 
 
   end function rect_mat_x_vec
 
@@ -144,7 +165,9 @@ contains
   ! multiplications on first iend pairs
   function singlemat_x_vec(n,iend,m,A,b)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                    :: n, m, iend
     real(jprb), intent(in), dimension(m,m)    :: A
@@ -152,9 +175,12 @@ contains
     real(jprb),             dimension(iend,m) :: singlemat_x_vec
 
     integer    :: j1, j2
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:single_mat_x_vec',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     singlemat_x_vec = 0.0_jprb
@@ -166,7 +192,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:single_mat_x_vec',1,hook_handle)
+#endif 
 
   end function singlemat_x_vec
 
@@ -177,7 +205,9 @@ contains
   ! multiplications on all pairs
   function rect_singlemat_x_vec(n,m,k,A,b)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                    :: n, m, k
     real(jprb), intent(in), dimension(m,k)    :: A
@@ -185,9 +215,12 @@ contains
     real(jprb),             dimension(n,m)    :: rect_singlemat_x_vec
 
     integer    :: j1, j2
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_single_mat_x_vec',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_singlemat_x_vec = 0.0_jprb
@@ -199,7 +232,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_single_mat_x_vec',1,hook_handle)
+#endif 
 
   end function rect_singlemat_x_vec
 
@@ -212,19 +247,24 @@ contains
   ! all n matrix pairs
   function mat_x_mat(n,iend,m,A,B,i_matrix_pattern)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, iend
     integer,    intent(in), optional            :: i_matrix_pattern
     real(jprb), intent(in), dimension(:,:,:)    :: A, B
 
     real(jprb),             dimension(iend,m,m) :: mat_x_mat
-    integer    :: j1, j2, j3
+    integer    :: j1, j2, j3, jn
     integer    :: mblock, m2block
     integer    :: i_actual_matrix_pattern
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:mat_x_mat',0,hook_handle)
+#endif 
 
     if (present(i_matrix_pattern)) then
       i_actual_matrix_pattern = i_matrix_pattern
@@ -235,7 +275,19 @@ contains
     ! Array-wise assignment
     mat_x_mat = 0.0_jprb
 
-    if (i_actual_matrix_pattern == IMatrixPatternShortwave) then
+    if (i_actual_matrix_pattern /= IMatrixPatternShortwave) then
+      ! Ordinary dense matrix
+      do j2 = 1,m
+        do j3 = 1,m
+          do j1 = 1,m
+            do jn = 1,iend
+              mat_x_mat(jn,j1,j2) = mat_x_mat(jn,j1,j2) &
+                   &              + A(jn,j1,j3)*B(jn,j3,j2)
+            end do
+          end do
+        end do
+      end do
+    else
       ! Matrix has a sparsity pattern
       !     (C D E)
       ! A = (F G H)
@@ -267,19 +319,11 @@ contains
           end do
         end do
       end do
-    else
-      ! Ordinary dense matrix
-      do j2 = 1,m
-        do j1 = 1,m
-          do j3 = 1,m
-            mat_x_mat(1:iend,j1,j2) = mat_x_mat(1:iend,j1,j2) &
-                 &                  + A(1:iend,j1,j3)*B(1:iend,j3,j2)
-          end do
-        end do
-      end do
     end if
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:mat_x_mat',1,hook_handle)
+#endif 
 
   end function mat_x_mat
 
@@ -290,7 +334,9 @@ contains
   ! all n matrix pairs
   function rect_mat_x_mat(n,k,l,m,A,B)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                   :: n, k, l, m
     real(jprb), intent(in), dimension(n,k,l) :: A
@@ -298,9 +344,12 @@ contains
 
     real(jprb),             dimension(n,k,m) :: rect_mat_x_mat
     integer    :: j1, j2, j3
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_mat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_mat_x_mat = 0.0_jprb
@@ -315,7 +364,9 @@ contains
        end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_mat',1,hook_handle)
+#endif 
 
   end function rect_mat_x_mat
 
@@ -326,7 +377,9 @@ contains
   ! multiplications on the first iend matrix pairs
   function singlemat_x_mat(n,iend,m,A,B)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, iend
     real(jprb), intent(in), dimension(m,m)      :: A
@@ -334,9 +387,12 @@ contains
     real(jprb),             dimension(iend,m,m) :: singlemat_x_mat
 
     integer    :: j1, j2, j3
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:singlemat_x_mat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     singlemat_x_mat = 0.0_jprb
@@ -350,7 +406,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:singlemat_x_mat',1,hook_handle)
+#endif 
 
   end function singlemat_x_mat
 
@@ -361,7 +419,9 @@ contains
   ! multiplications on the first iend matrix pairs
   function mat_x_singlemat(n,iend,m,A,B)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, iend
     real(jprb), intent(in), dimension(:,:,:)    :: A
@@ -369,9 +429,12 @@ contains
 
     real(jprb),             dimension(iend,m,m) :: mat_x_singlemat
     integer    :: j1, j2, j3
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:mat_x_singlemat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     mat_x_singlemat = 0.0_jprb
@@ -385,7 +448,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:mat_x_singlemat',1,hook_handle)
+#endif 
 
   end function mat_x_singlemat
 
@@ -395,7 +460,10 @@ contains
   ! (with the n dimension varying fastest) and perform matrix
   ! multiplications on all matrix pairs
   function rect_mat_x_singlemat(n,m,o,p,A,B) 
+
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, o, p
     real(jprb), intent(in), dimension(:,:,:)    :: A
@@ -403,9 +471,12 @@ contains
 
     real(jprb),             dimension(n,m,p) :: rect_mat_x_singlemat
     integer    :: j1, j2, j3
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_singlemat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_mat_x_singlemat = 0.0_jprb
@@ -419,7 +490,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_singlemat',1,hook_handle)
+#endif 
 
   end function rect_mat_x_singlemat
 
@@ -431,7 +504,9 @@ contains
   ! replaced by A(i,j)*Is, where Is is the s-by-s identity matrix.
   function rect_expandedmat_x_mat(n,m,o,s,p,A,B)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, o, s, p
     real(jprb), intent(in), dimension(m,o)      :: A
@@ -441,9 +516,12 @@ contains
     integer    :: j1, j3    ! Indices of the unexpanded A
     integer    :: jj1, jj2  ! Indices of the output matrix
     integer    :: offset2
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_mat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_expandedmat_x_mat = 0.0_jprb
@@ -463,10 +541,11 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_mat',1,hook_handle)
+#endif 
 
   end function rect_expandedmat_x_mat
-
 
 
   !---------------------------------------------------------------------
@@ -476,7 +555,9 @@ contains
   ! replaced by B(i,j)*Is, where Is is the s-by-s identity matrix.
   function rect_mat_x_expandedmat(n,m,o,s,p,A,B)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                      :: n, m, o, s, p
     real(jprb), intent(in), dimension(:,:,:)    :: A
@@ -486,9 +567,12 @@ contains
     integer    :: j2, j3   ! Indices of the unexpanded B
     integer    :: jj1, jj2 ! Indices of the output matrix
     integer    :: offset3
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_expandedmat',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_mat_x_expandedmat = 0.0_jprb
@@ -507,7 +591,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_mat_x_expandedmat',1,hook_handle)
+#endif 
 
   end function rect_mat_x_expandedmat
 
@@ -521,7 +607,9 @@ contains
   ! matrix.
   function rect_expandedmat_x_vec(n,m,k,s,A,b)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                   :: n, m, k, s
     real(jprb), intent(in), dimension(m,k)   :: A
@@ -531,9 +619,12 @@ contains
     integer    :: j1, j3    ! Indices of the unexpanded A
     integer    :: jj1       ! Indices of the output vector
     integer    :: offset2
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_vec',0,hook_handle)
+#endif 
 
     ! Array-wise assignment
     rect_expandedmat_x_vec = 0.0_jprb
@@ -551,7 +642,9 @@ contains
       end do
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:rect_expandedmat_x_vec',1,hook_handle)
+#endif 
 
   end function rect_expandedmat_x_vec
 
@@ -561,7 +654,9 @@ contains
   ! m-by-m square matrices
   function identity_minus_mat_x_mat(n,iend,m,A,B,i_matrix_pattern)
 
+#ifdef DO_DR_HOOK_MATRIX
     use yomhook, only : lhook, dr_hook
+#endif 
 
     integer,    intent(in)                   :: n, m, iend
     integer,    intent(in), optional         :: i_matrix_pattern
@@ -569,9 +664,12 @@ contains
     real(jprb),             dimension(iend,m,m) :: identity_minus_mat_x_mat
 
     integer    :: j
+
+#ifdef DO_DR_HOOK_MATRIX
     real(jprb) :: hook_handle
 
     if (lhook) call dr_hook('radtool_matrix:identity_mat_x_mat',0,hook_handle)
+#endif 
 
     if (present(i_matrix_pattern)) then
       identity_minus_mat_x_mat = mat_x_mat(n,iend,m,A,B,i_matrix_pattern)
@@ -585,7 +683,9 @@ contains
            &     = 1.0_jprb + identity_minus_mat_x_mat(1:iend,j,j)
     end do
 
+#ifdef DO_DR_HOOK_MATRIX
     if (lhook) call dr_hook('radtool_matrix:identity_mat_x_mat',1,hook_handle)
+#endif 
 
   end function identity_minus_mat_x_mat
 
