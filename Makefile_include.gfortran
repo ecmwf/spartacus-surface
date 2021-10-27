@@ -14,8 +14,11 @@ OMPFLAG = -fopenmp
 ifndef DEBUG
 # --NORMAL CONFIGURATION--
 
-# Optimization flags
-OPTFLAGS = -O3 -march=native
+# Optimization flags: note that experience with gfortran is that the
+# code is faster with -O2 than with -O3. The "-march=native" optimizes
+# for the architecture on which the compilation takes place, but this
+# means the code might not run on older CPUs.
+OPTFLAGS = -O2 -march=native
 
 # Warning flags: all except those that warn about unused stuff
 WARNFLAGS = -Wall -Wno-unused-label -Wno-unused-dummy-argument -Wno-unused-variable -Wimplicit-interface
