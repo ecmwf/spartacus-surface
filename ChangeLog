@@ -1,4 +1,4 @@
-version 0.7.3
+version 0.7.3 (27 October 2021)
 	- Redefined veg_contact_fraction: now the fraction of the building
 	  edge that is touching veg, not the fraction of the vegetation edge
 	  that is touching a building
@@ -21,6 +21,8 @@ version 0.7.3
 	- test/single_layer case for testing the new surface types
 	- Namelist parameter radsurf_config:isurfacetype can be used to
 	  override the surface_type in the input file
+	- Namelist parameter radsurf_config:vegetation_extinction_scaling
+	  can scale the vegetation extinction in the input file
 
 version 0.7.2 (4 October 2021)
 	- Longwave urban modifications to give correct emission from
