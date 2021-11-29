@@ -364,13 +364,14 @@ used or these fields will be constructed according to
 \begin{longtable}{llLp{8cm}}%
 \caption{\label{tab:invar}Main variables contained in the input netCDF
   file to \spsurf. All are floating-point numbers except for
-  \code{surface\_type}, which contains integers.}\\
+  \code{surface\_type} and \code{nlayer}, which contain integers.}\\
 %
 \hline
 Variable & Dimensions & Description \\
 \hline
 \codetab{cos\_solar\_zenith\_angle} & \codetab{col} & Cosine of solar zenith angle \\
 \codetab{surface\_type} & \codetab{col} & Surface type: (0) flat, (1) forest, (2) urban, (3) vegetated urban, (4) simple urban, and (5) infinite street \\
+\codetab{nlayer} & \codetab{col} & Number of active layers \\
 \codetab{height} & \codetab{col, layer\_int} & Height of layer interfaces (m) \\
 \codetab{veg\_fraction} & \codetab{col, layer} & Vegetation fraction \\
 \codetab{veg\_scale} & \codetab{col, layer} & Vegetation horizontal scale (m) \\
@@ -716,6 +717,7 @@ Parameter & Description\\
 \codetab{wall\_lw\_emissivity} & Override longwave emissivity of walls\\
 \codetab{vegetation\_fraction} & Override vegetation fraction \\
 \codetab{vegetation\_extinction} & Override vegetation extinction coefficient (m$^{-1}$)\\
+\codetab{vegetation\_extinction\_scaling} & Scale vegetation extinction coefficient\\
 \codetab{vegetation\_fsd} & Override vegetation fractional standard deviation of extinction\\
 \codetab{vegetation\_sw\_ssa} & Override vegetation shortwave single scattering albedo \\
 \codetab{vegetation\_lw\_ssa} & Override vegetation longwave single scattering albedo \\
