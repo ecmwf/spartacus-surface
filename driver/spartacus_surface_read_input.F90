@@ -113,6 +113,10 @@ contains
     if (config%do_vegetation) then
       if (driver_config%vegetation_fraction >= 0.0_jprb) then
         allocate(canopy_props%veg_fraction(ntotlay))
+        if  (driver_config%iverbose >= 2) then
+          write(nulout,'(a,i0,a,a,a)') '  Overriding vegetation fraction with ', &
+               &  driver_config%vegetation_fraction
+        end if
         canopy_props%veg_fraction = driver_config%vegetation_fraction
       else
         call read_packed_1d(file, 'veg_fraction', canopy_props%nlay, &
@@ -120,17 +124,27 @@ contains
       end if
       call read_packed_1d(file, 'veg_extinction', canopy_props%nlay, &
            &  canopy_props%veg_ext)
-      if (driver_config%vegetation_extinction >= 0.0) then
+      if (driver_config%vegetation_extinction >= 0.0_jprb) then
         if  (driver_config%iverbose >= 2) then
           write(nulout,'(a,g10.3)') '  Overriding vegetation extinction with ', &
                &  driver_config%vegetation_extinction
         end if
         canopy_props%veg_ext = driver_config%vegetation_extinction
+      else if (driver_config%vegetation_extinction_scaling >= 0.0_jprb) then
+        canopy_props%veg_ext = canopy_props%veg_ext * driver_config%vegetation_extinction_scaling
+        if  (driver_config%iverbose >= 2) then
+          write(nulout,'(a,g10.3)') '  Scaling vegetation extinction with ', &
+               &  driver_config%vegetation_extinction_scaling
+        end if
       end if
       call read_packed_1d(file, 'veg_scale', canopy_props%nlay, &
            &              canopy_props%veg_scale)
       if (driver_config%vegetation_fsd >= 0.0_jprb) then
         allocate(canopy_props%veg_fsd(ntotlay))
+        if  (driver_config%iverbose >= 2) then
+          write(nulout,'(a,g10.3)') '  Overriding vegetation fractional standard deviation with ', &
+               &  driver_config%vegetation_fsd
+        end if
         canopy_props%veg_fsd = driver_config%vegetation_fsd
       else
         call read_packed_1d(file, 'veg_fsd', canopy_props%nlay, &
@@ -166,7 +180,7 @@ contains
       end if
 
       call read_2d(file, 'ground_lw_emissivity', lw_spectral_props%ground_emissivity)
-      if (driver_config%ground_lw_emissivity >= 0.0) then
+      if (driver_config%ground_lw_emissivity >= 0.0_jprb) then
         if  (driver_config%iverbose >= 2) then
           write(nulout,'(a,g10.3)') '  Overriding ground longwave emissivity with ', &
                &  driver_config%ground_lw_emissivity
@@ -178,7 +192,7 @@ contains
         ! Read urban properties needed for longwave calculations
         
         call read_packed_2d(file, 'roof_lw_emissivity', canopy_props%nlay, lw_spectral_props%roof_emissivity)
-        if (driver_config%roof_lw_emissivity >= 0.0) then
+        if (driver_config%roof_lw_emissivity >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding roof longwave emissivity with ', &
                  &  driver_config%roof_lw_emissivity
@@ -188,7 +202,7 @@ contains
 
         call read_packed_2d(file, 'wall_lw_emissivity', canopy_props%nlay, &
              &              lw_spectral_props%wall_emissivity)
-        if (driver_config%wall_lw_emissivity >= 0.0) then
+        if (driver_config%wall_lw_emissivity >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding wall longwave emissivity with ', &
                  &  driver_config%wall_lw_emissivity
@@ -201,7 +215,7 @@ contains
         ! Read vegetation properties needed for longwave calculations
         call read_packed_2d(file, 'veg_lw_ssa', canopy_props%nlay, &
              &  lw_spectral_props%veg_ssa)
-        if (driver_config%vegetation_lw_ssa >= 0.0) then
+        if (driver_config%vegetation_lw_ssa >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation longwave single-scattering albedo with ', &
                  &  driver_config%vegetation_lw_ssa
@@ -270,7 +284,7 @@ contains
     if (config%do_sw) then
       ! Read ground properties needed for shortwave calculations
       call read_2d(file, 'ground_sw_albedo', sw_spectral_props%ground_albedo)
-      if (driver_config%ground_sw_albedo >= 0.0) then
+      if (driver_config%ground_sw_albedo >= 0.0_jprb) then
         if  (driver_config%iverbose >= 2) then
           write(nulout,'(a,g10.3)') '  Overriding ground shortwave albedo with ', &
                &  driver_config%ground_sw_albedo
@@ -286,7 +300,7 @@ contains
         ! Read urban properties needed for shortwave calculations
         call read_packed_2d(file, 'roof_sw_albedo', canopy_props%nlay, &
              &              sw_spectral_props%roof_albedo)
-        if (driver_config%roof_sw_albedo >= 0.0) then
+        if (driver_config%roof_sw_albedo >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding roof shortwave albedo with ', &
                  &  driver_config%roof_sw_albedo
@@ -302,7 +316,7 @@ contains
             write(nulout,'(a)') '  Assuming roof albedo to direct albedo is the same as to diffuse'
           end if
           allocate(sw_spectral_props%roof_albedo_dir(ubound(sw_spectral_props%roof_albedo,1),ntotlay))
-          if (driver_config%roof_sw_albedo >= 0.0) then
+          if (driver_config%roof_sw_albedo >= 0.0_jprb) then
             sw_spectral_props%roof_albedo_dir = driver_config%roof_sw_albedo
           else
             sw_spectral_props%roof_albedo_dir = sw_spectral_props%roof_albedo
@@ -310,7 +324,7 @@ contains
         end if
 
         call read_packed_2d(file, 'wall_sw_albedo', canopy_props%nlay, sw_spectral_props%wall_albedo)
-        if (driver_config%wall_sw_albedo >= 0.0) then
+        if (driver_config%wall_sw_albedo >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding wall shortwave albedo with ', &
                  &  driver_config%wall_sw_albedo
@@ -335,7 +349,7 @@ contains
         ! Read vegetation properties needed for shortwave calculations
         call read_packed_2d(file, 'veg_sw_ssa', canopy_props%nlay, &
              &  sw_spectral_props%veg_ssa)
-        if (driver_config%vegetation_sw_ssa >= 0.0) then
+        if (driver_config%vegetation_sw_ssa >= 0.0_jprb) then
           if  (driver_config%iverbose >= 2) then
             write(nulout,'(a,g10.3)') '  Overriding vegetation shortwave single-scattering albedo with ', &
                  &  driver_config%vegetation_sw_ssa

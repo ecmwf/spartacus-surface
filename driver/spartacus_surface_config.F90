@@ -50,6 +50,7 @@ module spartacus_surface_config
      real(kind=jprb) :: wall_lw_emissivity    = -1.0_jprb
      real(kind=jprb) :: vegetation_fraction   = -1.0_jprb
      real(kind=jprb) :: vegetation_extinction = -1.0_jprb
+     real(kind=jprb) :: vegetation_extinction_scaling = -1.0_jprb
      real(kind=jprb) :: vegetation_fsd        = -1.0_jprb
      real(kind=jprb) :: vegetation_sw_ssa     = -1.0_jprb
      real(kind=jprb) :: vegetation_lw_ssa     = -1.0_jprb
@@ -89,6 +90,7 @@ contains
     real(kind=jprb),    pointer :: ground_sw_albedo, roof_sw_albedo, wall_sw_albedo
     real(kind=jprb),    pointer :: ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity
     real(kind=jprb),    pointer :: vegetation_extinction, vegetation_sw_ssa
+    real(kind=jprb),    pointer :: vegetation_extinction_scaling
     real(kind=jprb),    pointer :: top_flux_dn_sw, top_flux_dn_direct_sw
     real(kind=jprb),    pointer :: top_flux_dn_lw
     integer(kind=jpim), pointer :: isurfacetype
@@ -101,7 +103,7 @@ contains
          &  ground_lw_emissivity, roof_lw_emissivity, wall_lw_emissivity, &
          &  vegetation_extinction, vegetation_sw_ssa, vegetation_fraction, &
          &  top_flux_dn_sw, top_flux_dn_direct_sw, top_flux_dn_lw, &
-         &  do_conservation_check, isurfacetype
+         &  do_conservation_check, isurfacetype, vegetation_extinction_scaling
 
     do_parallel            => this%do_parallel
     do_conservation_check  => this%do_conservation_check
@@ -120,6 +122,7 @@ contains
     vegetation_fraction    => this%vegetation_fraction
     vegetation_fsd         => this%vegetation_fsd
     vegetation_extinction  =>this%vegetation_extinction
+    vegetation_extinction_scaling=>this%vegetation_extinction_scaling
     vegetation_sw_ssa      => this%vegetation_sw_ssa
     top_flux_dn_sw         => this%top_flux_dn_sw
     top_flux_dn_direct_sw  => this%top_flux_dn_direct_sw
