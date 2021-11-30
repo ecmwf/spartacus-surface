@@ -103,7 +103,7 @@ for sid = 1:length(solar_ids)
 	      sum(out.veg_spectral_absorption_sw.*foliage_ratio, 2),...
 	      'Foliage absorption', wav);
 
-  % Transmission scattered one or more timesby vegetation but not by
+  % Transmission scattered one or more times by vegetation but not by
   % soil
   if strcmp(solar_id, 'diffuse')
     write_ascii(scene_id, bands_par, solar_id, 'ftran_coco', model, ...

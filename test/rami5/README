@@ -1,4 +1,44 @@
-Running "make" will run SPARTACUS-Surface on five "actual" scenes from the RAMI-V intercomparison:
+Running "make" will run SPARTACUS-Surface on five "actual" scenes from
+the RAMI-V intercomparison:
   https://rami-benchmark.jrc.ec.europa.eu/_www/phase_descr.php?strPhase=RAMI5
-Note that the "urban" surface type is used to represent forests, with the tree trunks treated as buildings and other woody material (branches) merged into the vegetation properties.
-The output netCDF files are placed in the out_nc directory. The Matlab script process_spartacus_scenes.m then converts the outputs into ASCII files for the RAMI-V submission.
+
+Note that the "urban" surface type is used to represent forests, with
+the tree trunks treated as buildings and other woody material
+(branches) merged into the vegetation properties. The output netCDF
+files are placed in the out_nc directory. The Matlab script
+process_spartacus_scenes.m then converts the outputs into ASCII files
+for the RAMI-V submission in the "mes" directory.
+
+Typing "make overhead" runs the cases with overhead sun (solar zenith
+angle of 0 degrees), and the matlab script check_fractional_cover.m
+uses the direct flux at the surface
+(ground_spectral_flux_dn_direct_sw) to diagnose the fractional scene
+coverage, and compare it with the values provided on the RAMI-V web
+site.
+
+An updated submission to the intercomparison was provided on 30 Nov
+2021, involving the following changes:
+
+ - The canopy radius, which in the RAMI-V scene description data is
+   provided for each tree as a profile of the maximum dimension of a
+   leaf/branch element from the tree axis, is now multiplied by 0.9 to
+   provide a more reasonable envelope for the actual tree crowns.
+
+ - Hogan et al. (2018) found that it was necessary to project the
+   crown regions down to the surface, in order to improve the impacts
+   of shadows on the upwelling radiation and preventing excessive
+   "entrapment" of radiation.  Many of the RAMI-V trees are very tall
+   and the foliage starts very high above the ground, for which this
+   adjustment would not be necessary. But in case it is important for
+   the shorter trees, any tree with a crown base less than 2 m above
+   the ground now has its crown projected down to the surface.
+
+ - Previously a fixed vegetation fractional standard deviation was
+   specified via the namelist as 0.9. In real trees the branches are
+   much more heterogeneously distributed than the leaves.  Therefore
+   we assume a value of 0.7 for the leaves and 1.4 for the branches,
+   and the profile of veg_fsd is provided in the scene netCDF files as
+   the average of the leaf and branch values, weighting by the
+   extinction of these two parts of the vegetation.
+
+

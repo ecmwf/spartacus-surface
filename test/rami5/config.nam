@@ -1,11 +1,10 @@
 &radsurf_driver
 do_parallel = true,
-vegetation_fsd = 0.5,
 iverbose = 3,
 do_conservation_check = true,
 top_flux_dn_direct_sw = 0.0,
 !solar_zenith_angle = 60,
-vegetation_fsd = 0.9,
+!vegetation_fsd = 0.9,
 !ground_sw_albedo = 0.0,
 /
 

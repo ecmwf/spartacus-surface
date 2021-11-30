@@ -1,3 +1,8 @@
+version 0.8
+	- New versions of the RAMI-V test scene input files (see
+	  test/rami5/README), using explicit vegetation fractional standard
+	  deviation
+
 version 0.7.3 (27 October 2021)
 	- Redefined veg_contact_fraction: now the fraction of the building
 	  edge that is touching veg, not the fraction of the vegetation edge
