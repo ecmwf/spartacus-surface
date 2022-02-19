@@ -452,10 +452,11 @@ output but with the prefix \code{spectral\_}.
 %\begin{table}[tb!]
 \caption{\label{tab:outvar}Variables contained in the output netCDF
   file from \spsurf.  All fluxes (or irradiances) and absorption rates
-  have units of W~m$^{-2}$, but note that this is power per unit area
-  of the \emph{entire domain}, not per unit area of a specific facet
-  type.  `Net' fluxes are defined as the flux into a facet type (or downward) minus the
-  flux out of a facet type (or upward).}\\
+  have units of W~m$^{-2}$, but note that this is power per unit
+  horizontal area of the \emph{entire domain}, not per unit area of a
+  specific facet type.  `Net' fluxes are defined as the flux into a
+  facet type (or downward) minus the flux out of a facet type (or
+  upward).}\\
 %
 %\begin{tabular}{llLp{7cm}}%
 \hline
@@ -470,12 +471,12 @@ Variable & Dimensions & Description\\
 \codetab{top\_flux\_dn\_sw} & \codetab{col} & Top-of-canopy downwelling shortwave flux\\
 \codetab{top\_flux\_net\_sw} & \codetab{col} & Top-of-canopy net shortwave flux\\
 \codetab{top\_flux\_dn\_direct\_sw} & \codetab{col} & Top-of-canopy direct downwelling shortwave flux\\
-\codetab{roof\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into roofs \\
+\codetab{roof\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into roofs at the top of the layer\\
 \codetab{roof\_flux\_in\_direct\_sw} & \codetab{col, layer} & Direct shortwave flux into roofs \\
-\codetab{roof\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into roofs\\
+\codetab{roof\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into roofs (in minus out)\\
 \codetab{wall\_flux\_in\_sw} & \codetab{col, layer} & Shortwave flux into walls\\
 \codetab{wall\_flux\_in\_direct\_sw} & \codetab{col, layer} & Direct shortwave flux into walls\\
-\codetab{wall\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into walls\\
+\codetab{wall\_flux\_net\_sw} & \codetab{col, layer} & Net shortwave flux into walls (in minus out)\\
 \codetab{clear\_air\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate in clear-air part of layer\\
 \codetab{veg\_absorption\_sw} & \codetab{col, layer} & Shortwave absorption rate by leaves\\
 \codetab{veg\_absorption\_direct\_sw} & \codetab{col, layer} & Direct shortwave absorption rate by leaves\\
@@ -485,10 +486,10 @@ Variable & Dimensions & Description\\
 \codetab{ground\_flux\_vertical\_lw} & \codetab{col} & Longwave flux into a vertical surface at ground level\\
 \codetab{top\_flux\_dn\_lw} & \codetab{col} & Top-of-canopy donwelling longwave flux\\
 \codetab{top\_flux\_net\_lw} & \codetab{col} & Top-of-canopy net longwave flux\\
-\codetab{roof\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into roofs\\
-\codetab{roof\_flux\_net\_lw} & \codetab{col, layer} & Net longwave flux into roofs\\
+\codetab{roof\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into roofs at the top of the layer\\
+\codetab{roof\_flux\_net\_lw} & \codetab{col, layer} & Net longwave flux into roofs (in minus out)\\
 \codetab{wall\_flux\_in\_lw} & \codetab{col, layer} & Longwave flux into walls\\
-\codetab{wall\_flux\_net\_lw} & \codetab{col, layer} & Net flux into walls\\
+\codetab{wall\_flux\_net\_lw} & \codetab{col, layer} & Net flux into walls (in minus out)\\
 \codetab{clear\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate in clear-air part of layer\\
 \codetab{veg\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by leaves\\
 \codetab{veg\_air\_absorption\_lw} & \codetab{col, layer} & Net longwave absorption rate by air in vegetated part of layer\\
@@ -501,6 +502,13 @@ Variable & Dimensions & Description\\
 %\end{tabular}\end{table}
 }
 %\end{center}
+
+Note that the roof fluxes, e.g.\ \code{roof\_flux\_in\_sw}, have a
+\code{layer} dimension but since (flat) roofs are only assumed to
+exist at the interface between layers, these variables correspond to
+the fluxes into roofs at the top of each layer. The ground fluxes are
+similar to the roof fluxes but at the interface between the lowest
+layer and the ground.
 
 The \code{ground\_flux\_vertical\_*} variables are diffuse fluxes into
 a vertical plane at ground level, and are useful for computing thermal
@@ -552,12 +560,12 @@ the building fraction decreases with height.
 \begin{center}
 \tablesetup
 \begin{longtable}{llLp{7cm}}%
-\caption{\label{tab:outfluxprofvar}Additional variables contained in the
-  output netCDF file from \spsurf\ if the namelist parameter
+\caption{\label{tab:outfluxprofvar}Additional variables contained in
+  the output netCDF file from \spsurf\ if the namelist parameter
   \code{do\_save\_flux\_profile} is set to \code{true}.  All fluxes
-  have units of W~m$^{-2}$, but
-  note that this is power per unit area of the \emph{entire domain},
-  not per unit area of the clear/vegetated part of the layer.}\\
+  have units of W~m$^{-2}$, but note that this is power per unit
+  horizontal area of the \emph{entire domain}, not per unit area of
+  the clear/vegetated part of the layer.}\\
 %
 \hline
 Variable & Dimensions & Description\\
@@ -620,7 +628,7 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \multicolumn{4}{l}{\emph{Options specific to forest tiles}}\\
 \codetab{n\_vegetation\_region\_forest} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\
 \codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
-\codetab{n\_stream\_sw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
+\codetab{n\_stream\_lw\_forest} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
 \codetab{use\_symmetric\_vegetation\_scale\_forest} & L & \codetabemph{true} & Compute vegetation perimeter length using Eq.\ 20 of \cite{Hogan+2018}? Otherwise Eq.\ 19\\
 \codetab{vegetation\_isolation\_factor\_forest} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & In forests dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions, or in between\\
 \codetab{vegetation\_isolation\_factor\_urban} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & In urban areas dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions, or in between\\
@@ -629,7 +637,7 @@ Parameter & Type & \textbf{Default}, other values & Description\\
 \codetab{min\_building\_fraction} & R & \codetabemph{10$^{-6}$} & Minimum building area fraction below which a building is ignored\\
 \codetab{n\_vegetation\_region\_urban} & I & \codetabemph{1}, \code{2} & Number of regions used to describe vegetation (2 needed for heterogeneity)\\
 \codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe diffuse shortwave radiation\\
-\codetab{n\_stream\_sw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
+\codetab{n\_stream\_lw\_urban} & I & \codetabemph{4} & Streams per hemisphere to describe longwave radiation\\
 \codetab{use\_symmetric\_vegetation\_scale\_urban} & L & \codetabemph{true} & Compute vegetation perimeter length using Eq.\ 20 of \cite{Hogan+2018}? Otherwise Eq.\ 19\\
 \codetab{vegetation\_isolation\_factor\_urban} & R & \codetabemph{0.0}, \code{0.0}--\code{1.0} & Dense vegetation region is (0.0) embedded within sparse region or (1.0) in physically isolated regions\\
 %\hline
