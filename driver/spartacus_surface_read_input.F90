@@ -114,7 +114,7 @@ contains
       if (driver_config%vegetation_fraction >= 0.0_jprb) then
         allocate(canopy_props%veg_fraction(ntotlay))
         if  (driver_config%iverbose >= 2) then
-          write(nulout,'(a,i0,a,a,a)') '  Overriding vegetation fraction with ', &
+          write(nulout,'(a,g10.3)') '  Overriding vegetation fraction with ', &
                &  driver_config%vegetation_fraction
         end if
         canopy_props%veg_fraction = driver_config%vegetation_fraction

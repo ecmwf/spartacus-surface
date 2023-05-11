@@ -70,7 +70,7 @@ contains
       do_broadband_sw = config%do_save_broadband_flux
     else
       do_spectral_lw  = .false.
-      do_broadband_sw = .false.
+      do_broadband_lw = .false.
     end if
 
     ncol = canopy_props%ncol

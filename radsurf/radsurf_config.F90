@@ -298,6 +298,10 @@ contains
            &  'do_sw', this%do_sw)
       call print_logical('  Do longwave (LW) calculations', &
            &  'do_sw', this%do_lw)
+      call print_logical('  Save broadband fluxes', &
+           &  'do_save_broadband_flux', this%do_save_broadband_flux)
+      call print_logical('  Save spectral fluxes', &
+           &  'do_save_spectral_flux', this%do_save_spectral_flux)
       if (this%do_sw) then
         call print_integer('  Number of SW spectral intervals', &
              &  'nsw', this%nsw)
